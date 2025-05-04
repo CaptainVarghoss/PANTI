@@ -12,16 +12,16 @@ This is a simple image viewing app written in Python to facilitate easy naviagat
 
 ### 1. Install git, python, python-venv, and python-pip
 
-    `sudo apt install git python3 python3-venv python3-pip`
+    sudo apt install git python3 python3-venv python3-pip
 
 ### 2. Use git to clone the code from the repository and into the default "PANTI" folder
 
-    `git clone https://github.com/CaptainVarghoss/PANTI`
+    git clone https://github.com/CaptainVarghoss/PANTI
 
 Alternatively, use this git command if you want a different folder name
 
-    `git clone https://github.com/CaptainVarghoss/PANTI MyFolderName`
+    git clone https://github.com/CaptainVarghoss/PANTI MyFolderName
 
 ### 3. Run install.sh from a bash terminal
 
-    `./install.sh`
+    ./install.sh
