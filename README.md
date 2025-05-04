@@ -30,3 +30,11 @@ Alternatively, use this git command if you want a different folder name
 
     chmod +x ./install.sh
     ./install.sh
+
+##
+
+### Open http://localhost:5080 in your browser
+
+You will be asked to login, click the 'Signup' link and create a new user. The first user created on a fresh install will be the admin.
+
+After creating an account and logging in, go to settings and change the base path to a folder with images in it to have those images shown in the program.
