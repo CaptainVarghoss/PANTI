@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block offscreen %}
+<div class="offcanvas offcanvas-start bg-body-tertiary" tabindex="-1" id="offcanvas" aria-labelledby="offcanvasLabel">
+    <div class="offcanvas-header border-bottom border-2">
+        <button type="button" class="btn btn-dark {{ 'justify-content-start' if settings['sidebar'] == 'Left' or settings['sidebar'] == 'Both' else 'justify-content-end' }}" data-bs-dismiss="offcanvas" aria-label="Close">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+    <div class="offcanvas-body pt-5">
+        <ul class="flex-grow-1 list-group">
+            {% if url_for( request.endpoint, **request.view_args) != "/" %}
+            <li class="list-group-item p-4">
+                <a class="link-info link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover" href="{{ url_for( 'views.home' ) }}">Home</a>
+            </li>
+            {% endif%}
+            <li class="list-group-item p-4">
+                <a class="link-info link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover" href="{{ url_for( 'settings.show_settings' )}}">Settings</a>
+            </li>
+            <li class="list-group-item p-4">
+                <a class="link-danger link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover" href="{{ url_for('auth.logout') }}">Logout</a>
+            </li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

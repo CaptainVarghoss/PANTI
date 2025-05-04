@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block headerinjection %}
+<script id="app_settings" type="text/json">{{ settings|tojson }}</script>
+{% endblock %}
+
+{% block title %}Home{% endblock %}
+
+{% block headerblock %}
+    <p>{{ current_user.username }}{% if current_user.admin == True %} (admin) {% endif %} </p>
+{% endblock %}
+
+{% block contentblock %}
+<div class="modal fade fullsizeModal" id="fullsizeModal" tabindex="-1">
+    <div class="modal-dialog mt-0">
+        <div class="modal-content bg-transparent border-0">
+            <div class="modal-body p-0">
+                <div class="image-container-modal d-flex justify-content-center" role="button" data-bs-dismiss="modal">
+                    <img class="modal-image" role="button" data-bs-dismiss="modal" data-bs-target="#fullsizeModal" src="" />
+                </div>
+                <br />
+                <div class="image-modal-info modal-content p-2 bg-transparent border-0" id="imageModalInfo">
+                    <div class="tags mb-3 bg-body-tertiary rounded-4 border-2 p-3 align-items-top id=tagReplaceBox">
+                        {% include "includes/modal_tag_box.html" %}
+                    </div>
+                </div>
+                <div class="close-button-container float-end m-2">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="images-block g-0 mt-2" id="imagesBlock">
+    {% block liveupdate %}
+    {% endblock %}
+    {% for i in images %}
+    <div class="thumbnail">
+        <div role="button" data-bs-toggle="modal" data-bs-target="#fullsizeModal" hx-get="/get_image_info/{{i.id}}" hx-target="#imageModalInfo" hx-on="show.bs.modal: target.innerHTML='Loading...';" data-bs-modalimage="{{ url_for('image_handler.send_media', filename=i.filename) }}" data-image-id="{{i.id}}" class="m-0 g-0 p-0 rounded-4 thumbnail-sub">
+            <img src="{{ url_for('static', filename='thumbnails/' + i.checksum + '.webp') }}" />
+        </div>
+    </div>
+    {% endfor %}
+</div>    
+{% endblock %}
+
+{% block scriptblock %}
+
+{% endblock%}

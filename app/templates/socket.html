@@ -1,0 +1,35 @@
+{% block socketio %}
+<script type="text/javascript">
+    var socket = io(); // Connects to the SocketIO server at the same host and port
+
+
+    const newImage = (filename, checksum, id) => {
+        console.log('tried to make new image');
+        const containerDiv = document.getElementById("images-block");
+        const imageDiv = document.createElement('div');
+        imageDiv.classList.add("thumbnail");
+        imageDiv.innerHTML = `
+            <div role="button" data-bs-toggle="modal" data-bs-target="#fullsizeModal" data-bs-modalimage="${filename}" data-bs-modalmeta="${id}") }}" class="m-0 g-0 p-0 rounded-4 thumbnail-sub">
+                <img src="${checksum}" />
+            </div>
+        `;
+        containerDiv.insertBefore(imageDiv, containerDiv.firstChild);
+    }
+
+    socket.on('new_image', (data) => {
+        console.log("Image received");
+        //newImage(data.filename, data.checksum, data.id);
+    });
+
+    socket.on('connect', () => {
+        console.log('Connected to the server!');
+        //document.getElementById('connection_status').textContent = 'Connected!';
+    });
+
+    socket.on('disconnect', () => {
+        console.log('Disconnected from the server.');
+        //document.getElementById('connection_status').textContent = 'Disconnected.';
+    });
+
+</script>
+{% endblock %}

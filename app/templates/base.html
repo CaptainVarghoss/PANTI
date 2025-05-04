@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html data-bs-theme="dark">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link type="text/css" rel="stylesheet" href="{{ url_for('static', filename='bootstrap/css/bootstrap.min.css') }}" />
+        <link type="text/css" rel="stylesheet" href="{{ url_for('static', filename='main.css') }}" />
+        {%- block headerinjection -%}{% endblock %}
+        <title>{% block title %}Image Thingy{% endblock %}</title>
+    </head>
+        <body>
+            {% if current_user %}
+            <div class="sticky-top bg-body-tertiary d-flex">
+                {% if settings['sidebar'] == "Left" or settings['sidebar'] == "Both" %}
+                <div class="'justify-content-start p-2 align-self-center">
+                    <button class="btn btn-dark" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasLeft" aria-controls="offcanvasLeft" aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                </div>
+                {% endif %}
+                <div class="flex-grow-1 justify-content-center p-2 align-self-center input-group">
+                    {% if not url_for( request.endpoint, **request.view_args) != "/" %}
+                    <input class="form-control" type="search" name="q" hx-get="/search" hx-trigger="keyup changed delay:500ms" hx-target="#imagesBlock" placeholder="Search" aria-label="Search">
+                    {% endif %}
+                </div>
+                {% if settings['sidebar'] == "Right" or settings['sidebar'] == "Both" %}
+                <div class="justify-content-end p-2 align-self-center">
+                    <button class="btn btn-dark" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasRight" aria-controls="offcanvasRight" aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+            {% if settings['sidebar'] == "Left" or settings['sidebar'] == "Both" %}
+            <div class="offcanvas offcanvas-start bg-body-tertiary" tabindex="-1" id="offcanvasLeft" aria-labelledby="offcanvasLabel">
+                <div class="offcanvas-header border-bottom border-2">
+                    <button type="button" class="btn btn-dark justify-content-start" data-bs-dismiss="offcanvas" aria-label="Close">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                </div>
+                <div class="offcanvas-body pt-5">
+                    <ul class="flex-grow-1 list-group">
+                        {% if url_for( request.endpoint, **request.view_args) != "/" %}
+                        <li class="list-group-item p-4">
+                            <a class="link-info link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover" href="{{ url_for( 'views.home' ) }}">Home</a>
+                        </li>
+                        {% endif%}
+                        <li class="list-group-item p-4">
+                            <a class="link-info link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover" href="{{ url_for( 'settings.show_settings' )}}">Settings</a>
+                        </li>
+                        <li class="list-group-item p-4">
+                            <a class="link-danger link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover" href="{{ url_for('auth.logout') }}">Logout</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if settings['sidebar'] == "Right" or settings['sidebar'] == "Both" %}
+            <div class="offcanvas offcanvas-end bg-body-tertiary" tabindex="-1" id="offcanvasRight" aria-labelledby="offcanvasLabel">
+                <div class="offcanvas-header border-bottom border-2 justify-content-end">
+                    <button type="button" class="btn btn-dark" data-bs-dismiss="offcanvas" aria-label="Close">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                </div>
+                <div class="offcanvas-body pt-5">
+                    <ul class="flex-grow-1 list-group">
+                        {% if url_for( request.endpoint, **request.view_args) != "/" %}
+                        <li class="list-group-item p-4">
+                            <a class="link-info link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover" href="{{ url_for( 'views.home' ) }}">Home</a>
+                        </li>
+                        {% endif%}
+                        <li class="list-group-item p-4">
+                            <a class="link-info link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover" href="{{ url_for( 'settings.show_settings' )}}">Settings</a>
+                        </li>
+                        <li class="list-group-item p-4">
+                            <a class="link-danger link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover" href="{{ url_for('auth.logout') }}">Logout</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+            {% endif %}
+            <div class="container justify-content-center messages-block" id="liveAlerts">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="d-flex alert {% if category == 'error' %}alert-danger{% else %}alert-success{% endif%} alert-dismissible fade show m-3 justify-content-center align-self-center" role="alert">
+                        <div class="justify-content-center align-self-center"></div>
+                            <div class="">
+                                <p class="h3">{{ message }}</p>
+                            </div>
+                            <div>
+                                <button type="button" class="btn-close p-3" data-bs-dismiss="alert">&times;</button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+                {% endwith %}
+            </div>
+            {% block contentblock %}
+            {% endblock %}
+            </div>
+            <script src="{{ url_for('static', filename='bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+            <script src="{{ url_for('static', filename='htmx.min.js') }}"></script>
+            <script src="{{ url_for('static', filename='main.js') }}"></script>
+
+            {% block scriptblock %}
+            {% endblock %}
+        </body>
+</html>

@@ -1,0 +1,14 @@
+<div class="modal-body" style="max-width:500px;">
+    <div id="common-colors">
+        {% for color in colors %}
+            <div style="display: inline-block;">
+                <div class="color-box btn rounded-pill m-2" hx-post="/settings/add_tag/color/{{color.value}}/{{color.text_color}}/{{name}}" hx-target="#tag_modal_content" hx-swap="innerHTML" style="background-color: {{ color.value }}; color: {{color.text_color}};" title="{{ color.name }} ({{ color.value }})">
+                    <span class="p-1 tags">{{ color.name }}</span>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    <a id="show-more-link" hx-get="/settings/show_all_colors/{{name}}" hx-swap="innerHTML" hx-target="#tag_modal_content" data-bs-target="#tag_modal_content">More Colors</a>
+</div>
+
+

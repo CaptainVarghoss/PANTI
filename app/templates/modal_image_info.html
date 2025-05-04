@@ -1,0 +1,9 @@
+<div class="image_info p-3 bg-body-tertiary rounded-4 border-2">
+<p class="p-1">Filename: {{image.filename}}</p>
+<p class="p-1">Path: {{image.path}}</p>
+<p class="p-1">Image Size: {{image.meta['width']}} x {{image.meta['height']}}</p> 
+<p class="p-1">Metadata:</p>
+{% for k, v in meta.items() %}
+<p class="p-1">{{k}}: {{v}}</p>
+{% endfor %}
+</div>
