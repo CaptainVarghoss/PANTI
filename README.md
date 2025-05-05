@@ -33,7 +33,7 @@ Alternatively, use this git command if you want a different folder name
 
 ##
 
-### Open http://localhost:5080 in your browser
+### Open "localhost:5080" in your browser
 
 You will be asked to login, click the 'Signup' link and create a new user. The first user created on a fresh install will be the admin.
 
