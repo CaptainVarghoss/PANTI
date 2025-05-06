@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, current_app, request
 from flask_login import login_required
 from .models import Image, Tag
 import re
-from sqlalchemy import or_, and_, not_
+from sqlalchemy import or_, and_, not_, func
 
 views = Blueprint('views', __name__)
 
@@ -27,10 +27,8 @@ def search():
 
     if q:
         results = construct_query(q)
-        #results = Image.query.filter(Image.path.icontains(q) | Image.meta.icontains(q)).order_by(Image.id.desc()).limit(60).all()
     else:
         results = Image.query.order_by(Image.id.desc())
-        print('default search')
 
     return render_template("search.html", images=results, settings=settings)
 
@@ -55,7 +53,7 @@ def construct_query(keywords):
         elif upper_item.startswith("TAG "):
             tag_keyword = item[4:].strip()
             if tag_keyword:
-                conditions.append(Image.tags.any(Tag.name == tag_keyword))
+                conditions.append(Image.tags.any(func.lower(Tag.name) == func.lower(tag_keyword)))
         elif item:  # Non-operator and not starting with TAG
             search_condition = or_(
                 Image.meta.ilike(f"%{item}%"),
