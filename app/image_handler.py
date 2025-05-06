@@ -27,39 +27,27 @@ def get_meta(filename):
 # Build the modal with tag form and list and metadata
 # Handles general 'get' as well as 'add' and 'del' for tags
 
-@image_handler.route('/tags/get/<int:image_id>', methods=['GET', 'POST'])
-@image_handler.route('/tags/add/<int:image_id>/<int:tag_id>', methods=['GET', 'POST'])
-@image_handler.route('/tags/del/<int:image_id>/<int:tag_id>', methods=['GET', 'POST'])
+@image_handler.route('/tags/<string:op>/<int:image_id>/<int:tag_id>', methods=['POST'])
 @login_required
-def tag_handler(image_id, tag_id=0):
-    image = Image.query.filter_by(id=image_id).first()
-    if tag_id != 0:
-        tag = Tag.query.filter_by(id=tag_id).first()
-    else:
-        tag = False
-    if request.method == 'POST':
-        rule = request.url_rule.rule
-        print(rule)
-        if rule == 'add':
-            pass
+def tag_handler(op='get', image_id=0, tag_id=0):
+    if image_id != 0:
+        image = Image.query.filter_by(id=image_id).first()
+        if tag_id != 0:
+            tag = Tag.query.filter_by(id=tag_id).first()
+            if request.method == 'POST':
+                if op == 'add':
+                    image.tags.append(tag)
+                    db.session.commit()
+                elif op == 'del':
+                    image.tags.remove(tag)
+                    db.session.commit()
+                else:
+                    return 'Invalid Operation', 404
+            tags = image.tags
+            all_tags = Tag.query
+            tag_list = [tag for tag in all_tags if tag not in tags]
 
-    return render_template('includes/modal_tag_box.html')
-
-@image_handler.route('/add_tag/<int:tag_id>/<int:image_id>', methods=['POST'])
-def image_add_tag(tag_id, image_id):
-    image_tag = Image.query.filter_by(id=image_id).first()
-    new_tag = Tag.query.filter_by(id=tag_id).first()
-    image_tag.tags.append(new_tag)
-    db.session.commit()
-    return render_template('includes/modal_tag_box.html', image_id=image_id)
-
-@image_handler.route('/del_tag/<int:tag_id>/<int:image_id>', methods=['POST'])
-def image_del_tag(tag_id, image_id):
-    image = Image.query.filter_by(id=image_id).first()
-    old_tag = Tag.query.filter_by(id=tag_id).first()
-    image.tags.remove(old_tag)
-    db.session.commit()
-    return render_template('includes/modal_tag_box.html', image_id=image_id)
+    return render_template('includes/modal_tag_box.html', image=image, tag_list=tag_list, tags=tags)
 
 @image_handler.route('/get_image_info/<int:id>')
 def get_image_info(id):
@@ -67,9 +55,8 @@ def get_image_info(id):
         image = Image.query.filter_by(id=id).first()
         tags = image.tags
         if image:
-            #image_info = Pimage.open(os.path.join(get_setting('base_path'), image.filename))
-            #print(json.load(image.meta))
-            tag_list = Tag.query
+            all_tags = Tag.query
+            tag_list = [tag for tag in all_tags if tag not in tags]
             temp_meta = image.meta
             temp_meta = json.loads(temp_meta['parameters'])
             if temp_meta:
@@ -154,7 +141,7 @@ def scan_files(folder=""):
     print("Scanning files..")
     if os.path.exists(folder):
         #build file and dir lists
-        file_list = [] 
+        file_list = []
         dir_list = []
         file_count = 0
         dir_count = 0
@@ -165,7 +152,7 @@ def scan_files(folder=""):
                 file_list.append(f)
             elif not os.path.isfile(folder + f):
                 dir_count += 1
-                dir_list.append(f)    
+                dir_list.append(f)
             else:
                 print('not file or folder?')
         # now check database for files
@@ -190,7 +177,7 @@ def scan_files(folder=""):
     else:
         print('Base Path does not exist at: ' + folder)
 
-    
+
 class ImageHandler():
     def __init__(self, file_path, filename, lock_dir="/tmp/file_watcher_locks"):
         #self.mime = self.get_mime_type()
@@ -216,7 +203,7 @@ class ImageHandler():
     def get_checksum(self):
         with open(os.path.join(self.file_path, self.filename), 'rb') as file_to_check:
         # read contents of the file
-            data = file_to_check.read()    
+            data = file_to_check.read()
         # pipe contents of the file through
             return hashlib.md5(data).hexdigest()
 
@@ -265,7 +252,7 @@ class ImageHandler():
                 print(f"Error handling file: {e}")
                 if lock_file:
                     lock_file.close()
- 
+
     def _get_lock_path(self, filename):
         """Generates a lock file path from the watched file's path."""
         return os.path.join(self.lock_dir, f"{filename}.lock")
@@ -275,15 +262,15 @@ class ImageHandler():
         if image:
             return image
         else:
-            return False       
-    
+            return False
+
     def get_meta(self):
         image = Pimage.open(os.path.join(self.file_path, self.filename))
         exif = image.info
         exif['width'] = image.width
         exif['height'] = image.height
         return exif
-    
+
     def check_thumbnail(self):
         if not os.path.exists(os.path.join(self.thumb_path, f'{self.checksum}.webp')):
             self.generate_thumbnail()

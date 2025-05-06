@@ -1,20 +1,20 @@
 <div class="tag-form input-group justify-content-center">
-    <br />
+    <div class="">
         <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="tags-button" data-bs-toggle="dropdown" name="tags-button">
-            Add Tags
+            Add Tag
         </button>
         <ul class="dropdown-menu">
         {% for t in tag_list %}
-            <li value="{{t.id}}" class="rounded-pill" style="background-color: {{t.color}}; text-align:center;" hx-post="/add_tag/{{t.id}}/{{image.id}}" hx-target="#tagReplaceBox" hx-swap="innerHTML">{{t.name}}</li>
+            <li class="m-1" value="{{t.id}}" class="rounded-pill" style="background-color: {{t.color}}; color: {{t.text_color}}; text-align:center;" hx-post="/tags/add/{{image.id}}/{{t.id}}" hx-target="#tagReplaceBox" hx-swap="innerHTML">{{t.name}}</li>
         {% endfor %}
         </ul>
-    <br />
-    <br />
-    <div id="tagBox">
+    </div>
+    <div id="tagBox" class="d-flex justify-content-center">
     {% if tags %}
         {% for t in tags %}
-            <div class="btn rounded-pill mx-2" style="background-color: {{t.color}};">
-                <span class="px-1">{{ t.name }}</span><button type="button" class="btn-close mx-1" hx-confirm="Are you sure you wish to remove this tag?" hx-post="/del_tag/{{t.id}}/{{image.id}}" id="tag_button_{{t.id}}" hx-target="#tagReplaceBox" hx-swap="delete"></button>
+            <div class="btn-group rounded-pill mx-2 align-items-center" style="background-color: {{t.color}}; color: {{t.text_color}};">
+                <button class="btn" type="button" style="color: {{t.text_color}};">{{t.name}}</button>
+                <button type="button" class="rounded-pill border-0 me-1" style="background-color: {{t.color}}; color: {{t.text_color}};" hx-confirm="Are you sure you wish to remove this tag?" hx-post="/tags/del/{{image.id}}/{{t.id}}" id="tag_button_{{t.id}}" hx-target="#tagReplaceBox" hx-swap="innerHTML">&times;</button>
             </div>
         {% endfor %}
     {% endif %}
