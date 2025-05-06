@@ -34,10 +34,10 @@ def search():
 
     return render_template("search.html", images=results, settings=settings)
 
-
 def construct_query(keywords):
     """
-    Constructs an SQLAlchemy query from a list of keywords, phrases, and operators.
+    Constructs an SQLAlchemy query with exact Tag name matching for terms prefixed with "TAG".
+    Other terms are used for ilike search in Image.meta, Image.path, and Tag.name.
     """
     tokens = re.split(r'(\sand\s|\sAND\s|\sor\s|\sOR\s|\s=\s|\s>\s|\s<\s|\s>=\s|\snot\s|\sNOT\s|\sLIKE\s|\sIN\s|\sNOT IN\s)', keywords)
 
@@ -45,39 +45,85 @@ def construct_query(keywords):
     conditions = []
     operators = []
 
-    for item in tokens:
-        print('Item: ' + item)
-        cleaned_item = item.strip()
-        print('Cleaned: ' + cleaned_item)
-        upper_item = cleaned_item.upper()
-        print('Uppered: ' + upper_item)
+    i = 0
+    while i < len(tokens):
+        item = tokens[i].strip()
+        upper_item = item.upper()
+
         if upper_item == "AND" or upper_item == "OR" or upper_item == "NOT":
             operators.append(upper_item)
-        elif cleaned_item:  # Ensure it's not an empty string after stripping
-            # Create conditions for searching in both name and description
-            tag_condition = Image.tags.any(Tag.name.ilike(f"%{cleaned_item}%"))
+        elif upper_item.startswith("TAG "):
+            tag_keyword = item[4:].strip()
+            if tag_keyword:
+                conditions.append(Image.tags.any(Tag.name == tag_keyword))
+        elif item:  # Non-operator and not starting with TAG
             search_condition = or_(
-                Image.meta.ilike(f"%{cleaned_item}%"),
-                Image.path.ilike(f"%{cleaned_item}%"),
-                tag_condition
+                Image.meta.ilike(f"%{item}%"),
+                Image.path.ilike(f"%{item}%"),
+                Image.tags.any(Tag.name.ilike(f"%{item}%"))
             )
             conditions.append(search_condition)
+        i += 1
 
     # Apply conditions based on operators
     if not conditions:
         return query  # No search terms
 
     final_condition = conditions[0]
-    for i in range(len(operators)):
-        operator = operators[i]
-        if i + 1 < len(conditions):
-            next_condition = conditions[i + 1]
+    condition_index = 1
+    for operator in operators:
+        if condition_index < len(conditions):
+            next_condition = conditions[condition_index]
             if operator == "AND":
                 final_condition = and_(final_condition, next_condition)
             elif operator == "OR":
                 final_condition = or_(final_condition, next_condition)
             elif operator == "NOT":
                 final_condition = and_(final_condition, not_(next_condition))
-
+            condition_index += 1
 
     return query.filter(final_condition)
+
+# def construct_query(keywords):
+#     """
+#     Constructs an SQLAlchemy query from a list of keywords, phrases, and operators.
+#     """
+#     tokens = re.split(r'(\sand\s|\sAND\s|\sor\s|\sOR\s|\s=\s|\s>\s|\s<\s|\s>=\s|\snot\s|\sNOT\s|\sLIKE\s|\sIN\s|\sNOT IN\s)', keywords)
+
+#     query = Image.query.order_by(Image.id.desc())
+#     conditions = []
+#     operators = []
+
+#     for item in tokens:
+#         cleaned_item = item.strip()
+#         upper_item = cleaned_item.upper()
+#         if upper_item == "AND" or upper_item == "OR" or upper_item == "NOT":
+#             operators.append(upper_item)
+#         elif cleaned_item:  # Ensure it's not an empty string after stripping
+#             # Create conditions for searching in both name and description
+#             tag_condition = Image.tags.any(Tag.name.ilike(f"%{cleaned_item}%"))
+#             search_condition = or_(
+#                 Image.meta.ilike(f"%{cleaned_item}%"),
+#                 Image.path.ilike(f"%{cleaned_item}%"),
+#                 tag_condition
+#             )
+#             conditions.append(search_condition)
+
+#     # Apply conditions based on operators
+#     if not conditions:
+#         return query  # No search terms
+
+#     final_condition = conditions[0]
+#     for i in range(len(operators)):
+#         operator = operators[i]
+#         if i + 1 < len(conditions):
+#             next_condition = conditions[i + 1]
+#             if operator == "AND":
+#                 final_condition = and_(final_condition, next_condition)
+#             elif operator == "OR":
+#                 final_condition = or_(final_condition, next_condition)
+#             elif operator == "NOT":
+#                 final_condition = and_(final_condition, not_(next_condition))
+
+
+#     return query.filter(final_condition)
