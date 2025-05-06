@@ -14,16 +14,6 @@ default_settings = {
     "flyout_address": "False"
 }
 
-@settings.route('/remove_tag/<int:tag_id>', methods=['GET', 'POST'])
-@login_required
-def remove_tag(tag_id):
-    if request.method == 'POST':
-        tag = Tag.query.filter_by(id=tag_id).first()
-        db.session.delete(tag)
-        db.session.commit()
-        flash('Tag Deleted.', category='success')
-    return redirect(url_for('settings.show_settings'))
-
 @settings.route('/', methods=['GET', 'POST'])
 @login_required
 def show_settings():
@@ -31,6 +21,8 @@ def show_settings():
     user_id = user.id
     settings_button = request.form.get("settings-button", False)
     tags_button = request.form.get("tags_button", False)
+    tags_delete = request.form.get("tags_delete", False)
+    print(tags_delete)
 
     is_admin = user.admin
     settings = get_settings()
@@ -68,10 +60,16 @@ def show_settings():
                 flash('Tag Saved.', category='success')
             else:
                 add_tag = Tag(name=tag_name, color=tag_color, text_color=tag_text)
-                print(add_tag)
                 db.session.add(add_tag)
                 flash('Tag Added.', category='success')
             db.session.commit()
+        elif tags_delete != False:
+            if request.form.get('id'):
+                tag = Tag.query.filter_by(id=request.form.get('id')).first()
+                if tag:
+                    db.session.delete(tag)
+                    db.session.commit()
+                    flash('Tag Deleted.', category='success')
 
     else:
         settings = get_settings()

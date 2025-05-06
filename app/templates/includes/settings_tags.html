@@ -15,9 +15,9 @@
 <div class="modal-footer d-flex justify-content-between">
     <button class="btn btn-danger" data-bs-dismiss="modal" aria-label="Close">Cancel</button>
     {% if form_fields['id'] %}
-    <button class="btn btn-danger" aria-label="Delete">Delete</button>
     <input type="hidden" name="id" value="{{form_fields['id']}}">
-    <button class="btn btn-primary" type="submit" id="tags_button" name="tags_button">Save</button>
+    <button class="btn btn-danger" type="submit" id="tags_delete" name="tags_delete" hx-confirm="Are you sure you wish to delete this tag? It will be removed from all images." aria-label="Delete">Delete</button>
+    <button class="btn btn-primary" type="submit" id="tags_button" name="tags_button">Update</button>
     {% else %}
     <button class="btn btn-primary" type="submit" id="tags_button" name="tags_button">Add</button>
     {% endif %}
