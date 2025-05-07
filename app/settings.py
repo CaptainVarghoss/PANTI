@@ -22,7 +22,6 @@ def show_settings():
     settings_button = request.form.get("settings-button", False)
     tags_button = request.form.get("tags_button", False)
     tags_delete = request.form.get("tags_delete", False)
-    print(tags_delete)
 
     is_admin = user.admin
     settings = get_settings()
@@ -48,7 +47,6 @@ def show_settings():
                 db.session.commit()
 
         if tags_button != False:
-            print('add a tag button')
             tag_name = request.form.get('name')
             tag_color = request.form.get('color')
             tag_text = request.form.get('text')
@@ -111,7 +109,6 @@ def add_tag_color(color, text, name):
 
 @settings.route('/show_common_colors', methods=['POST'])
 def show_common_colors():
-    print(request.form)
     name = request.form.get('name')
     from .helpers.color_picker import color_picker_list
     colors = color_picker_list("common")
@@ -119,7 +116,6 @@ def show_common_colors():
 
 @settings.route('/show_all_colors/<name>')
 def show_all_colors(name):
-    tag_name = name
     from .helpers.color_picker import color_picker_list
     all_colors = color_picker_list("all")
     return render_template('includes/color_picker_more.html', all_colors=all_colors, name=name)

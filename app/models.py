@@ -44,8 +44,6 @@ class Tag(db.Model):
     icon = db.Column(db.String(250))
     admin_only = db.Column(db.Boolean, default=False)
     text_color = db.Column(db.String(250))
-    #images = db.relationship('Image', secondary='image_tags', back_populates='tags')
-    #paths = db.relationship('ImagePath', secondary='path_tags', back_populates='tags')
 
 class User(db.Model, UserMixin):
     __tablename__ = 'users'

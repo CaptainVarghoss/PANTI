@@ -33,10 +33,6 @@ def search():
     return render_template("search.html", images=results, settings=settings, search=q)
 
 def construct_query(keywords):
-    """
-    Constructs an SQLAlchemy query with exact Tag name matching for terms prefixed with "TAG".
-    Other terms are used for ilike search in Image.meta, Image.path, and Tag.name.
-    """
     tokens = re.split(r'(\sand\s|\sAND\s|\sor\s|\sOR\s|\s=\s|\s>\s|\s<\s|\s>=\s|\snot\s|\sNOT\s|\sLIKE\s|\sIN\s|\sNOT IN\s)', keywords)
 
     query = Image.query.order_by(Image.id.desc())

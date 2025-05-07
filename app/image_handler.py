@@ -194,7 +194,6 @@ class ImageHandler():
     def get_mime_type(self):
         import magic
         mime = magic.from_file(os.path.join(self.file_path, self.filename), mime=True)
-        print(mime)
         if 'image' in mime:
             return True
         else:
@@ -216,9 +215,7 @@ class ImageHandler():
                 lock_file = open(lock_path, 'w')
                 fcntl.flock(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)  # Non-blocking
                 print(f"Lock acquired: {lock_path}")
-                # do a thing
                 try:
-                    ## blah
                     meta = self.get_meta()
                     try:
                         existing_image = self.db_get_image()
@@ -254,7 +251,7 @@ class ImageHandler():
                     lock_file.close()
 
     def _get_lock_path(self, filename):
-        """Generates a lock file path from the watched file's path."""
+        # Generates a lock file path from the watched file's path.
         return os.path.join(self.lock_dir, f"{filename}.lock")
 
     def db_get_image(self):
