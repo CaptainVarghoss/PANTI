@@ -31,8 +31,7 @@ def create_app():
     from app.views import views
     from app.auth import auth
     from app.image_handler import image_handler
-
-    from .settings import settings
+    from app.settings import settings
 
     app.register_blueprint(views, url_prefix='/')
     app.register_blueprint(auth, url_prefix='/')
@@ -43,8 +42,8 @@ def create_app():
         #from .image_handler import scan_files
         #scan_files()
 
-        from .settings import get_setting
-        base_path = get_setting('base_path')
+        from app.settings import get_settings
+        base_path = get_settings()['base_path']
 
         from app.watcher import FileWatcher
         file_watcher = FileWatcher()
