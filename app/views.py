@@ -15,7 +15,7 @@ def home():
     settings = get_settings()
     scan_files()
 
-    return render_template('home.html', images=images, settings=settings)
+    return render_template('home.html', images=images, settings=settings, search="")
 
 
 @views.route('/search', methods=['GET', 'POST'])
@@ -30,7 +30,7 @@ def search():
     else:
         results = Image.query.order_by(Image.id.desc())
 
-    return render_template("search.html", images=results, settings=settings)
+    return render_template("search.html", images=results, settings=settings, search=q)
 
 def construct_query(keywords):
     """

@@ -18,9 +18,9 @@
                     </button>
                 </div>
                 {% endif %}
-                <div class="flex-grow-1 justify-content-center p-2 align-self-center input-group">
+                <div class="flex-grow-1 justify-content-center p-2 align-self-center input-group" id="searchContainer">
                     {% if not url_for( request.endpoint, **request.view_args) != "/" %}
-                    <input class="form-control" type="search" name="q" hx-get="/search" hx-trigger="keyup changed delay:500ms" hx-target="#imagesBlock" placeholder="Search" aria-label="Search">
+                    <input class="form-control" type="search" name="q" id="searchBox" {% if search %}value="{{search}}" {% endif %} hx-get="/search" hx-trigger="keyup changed delay:500ms" hx-target="#imagesBlock" hx-swap="innerHTML" placeholder="Search" aria-label="Search">
                     {% endif %}
                 </div>
                 {% if settings['sidebar'] == "Right" or settings['sidebar'] == "Both" %}

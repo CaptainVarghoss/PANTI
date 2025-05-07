@@ -1,3 +1,7 @@
+<div class="flex-grow-1 justify-content-center p-2 align-self-center input-group" id="searchContainer" hx-swap-oob="true">
+    <input class="form-control" type="search" name="q" id="searchBox" {% if search %}value="{{search}}" {% endif %} hx-get="/search" hx-trigger="keyup changed delay:500ms" hx-target="#imagesBlock" hx-swap="innerHTML" placeholder="Search" aria-label="Search">
+</div>
+
 {% for i in images %}
 <div class="thumbnail">
     <div role="button" data-bs-toggle="modal" data-bs-target="#fullsizeModal" hx-get="/get_image_info/{{i.id}}" hx-target="#imageModalInfo" hx-on="show.bs.modal: target.innerHTML='Loading...';" data-bs-modalimage="{{ url_for('image_handler.send_media', filename=i.filename) }}" data-image-id="{{i.id}}" class="m-0 g-0 p-0 rounded-4 thumbnail-sub">
