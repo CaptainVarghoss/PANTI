@@ -1,22 +1,53 @@
 from flask import Flask
 from flask_login import LoginManager
-from os import path
+import os, json
 from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
+PORT = '5080'
+HOST = '127.0.0.1'
+CONFIG_FILE = 'config.json'
+DEFAULT_CONFIG = {
+    'DEBUG_MODE': False,
+    'SQLALCHEMY_DATABASE_URI': 'sqlite:///database.db',
+    'SECRET_KEY': 'your_secret_key_here', # Replace with a strong, random key
+    'HOST': HOST,
+    'PORT': PORT,
+    'SERVER_NAME': f'{HOST}:{PORT}'
+}
+
+def load_config(app):
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, 'r') as f:
+                config_data = json.load(f)
+                app.config.update(config_data)
+                print(f"Loaded configuration from {CONFIG_FILE}")
+        except json.JSONDecodeError:
+            print(f"Error decoding JSON in {CONFIG_FILE}. Using default configuration.")
+            create_default_config()
+            app.config.update(DEFAULT_CONFIG)
+    else:
+        print(f"{CONFIG_FILE} not found. Creating default configuration.")
+        create_default_config()
+        app.config.update(DEFAULT_CONFIG)
+
+def create_default_config():
+    with open(CONFIG_FILE, 'w') as f:
+        json.dump(DEFAULT_CONFIG, f, indent=4)
+    print(f"Created default configuration file: {CONFIG_FILE}")
+
+
 def create_app():
     app = Flask(__name__)
-    app.config['DB_NAME'] = "database.db"
-    app.config['SECRET_KEY'] = "aslkdfjhjaslkdja alskjdalskdj"
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + app.config['DB_NAME']
-    app.config['SERVER_NAME'] = '10.0.42.30:5080'
+    load_config(app)
 
     # Initialize Database
     from app.models import User, Image, Setting
     db.init_app(app)
     print("Checking for database..")
-    if not path.exists('instance/' + app.config['DB_NAME']):
+    if not os.path.exists('instance/database.db'):
         print('   Database not found, creating..')
     else:
         print('   Loaded existing database.')

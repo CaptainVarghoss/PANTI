@@ -13,7 +13,6 @@ def home():
     from app.image_handler import scan_files
     images = Image.query.order_by(Image.id.desc())
     settings = get_settings()
-    scan_files()
 
     return render_template('home.html', images=images, settings=settings, search="")
 
