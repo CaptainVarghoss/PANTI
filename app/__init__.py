@@ -42,7 +42,7 @@ def create_default_config():
 def create_app():
     app = Flask(__name__)
     load_config(app)
-
+    print('Creating app instance')
     # Initialize Database
     from app.models import User, Image, Setting
     db.init_app(app)

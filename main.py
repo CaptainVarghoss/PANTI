@@ -16,6 +16,6 @@ app = create_app()
 
 if __name__ == '__main__':
     with app.app_context():
-        from app.image_handler.image_handler import scan_files
-        scan_files()
+        from app.image_handler.bulk_functions import startup_scan
+        startup_scan()
     app.run(host=app.config['HOST'], port=app.config['PORT'], debug=app.config['DEBUG_MODE'])

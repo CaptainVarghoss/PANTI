@@ -6,7 +6,7 @@ if (fullsizeModal) {
     // Extract info from data-bs-* attributes
     const image_info = button.getAttribute('data-bs-modalmeta')
     const image = button.getAttribute('data-bs-modalimage')
-    
+
     // If necessary, you could initiate an Ajax request here
     // and then do the updating in a callback.
 
@@ -15,7 +15,6 @@ if (fullsizeModal) {
     const modalBody = fullsizeModal.querySelector('.modal-image')
     //const modalText = fullsizeModal.querySelector('.card-text')
 
-    
     modalBody.src = image
     //modalText.innerHTML = '<iframe src="' + image_info + '" />'
     // fullsizeModal.handleUpdate()
@@ -41,7 +40,7 @@ function checkWidth() {
   var thumb_space = window.innerWidth / 3.2;
   //console.log(thumb_space);
   var thumb_size = app_settings.thumb_size;
-  
+
 //  if (thumbnails_div.style.maxWidth != thumb_size + "px") {
     if (thumb_space <= thumb_size) {
       var all_thumbs = document.querySelectorAll('.thumbnail');

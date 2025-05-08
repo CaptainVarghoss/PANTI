@@ -12,16 +12,13 @@ def list_new_images():
     results = Image.query.order_by(Image.id.desc())
     return render_template("live_update.html", images=results, settings=settings)
 
-@image_routes.route('/get-image/<path:filename>')
-def send_media(filename):
-    return send_from_directory(get_settings('base_path'), filename)
+@image_routes.route('/get-image/<path:checksum>')
+def send_media(checksum):
+    image = Image.query.filter_by(checksum=checksum).first()
+    return send_from_directory(image.path, image.filename)
 
-@image_routes.route('/get-meta/<path:filename>')
-def get_meta(filename):
-    print('Checking meta')
-    folder = get_settings('base_path')
-    meta = ImageHandler(folder, filename)
-    return meta.get_meta()
+# Build the modal with tag form and list and metadata
+# Handles general 'get' as well as 'add' and 'del' for tags
 
 @image_routes.route('/tags/<string:op>/<int:image_id>/<int:tag_id>', methods=['POST'])
 @login_required
@@ -54,13 +51,17 @@ def get_image_info(id):
             all_tags = Tag.query
             tag_list = [tag for tag in all_tags if tag not in tags]
             temp_meta = image.meta
-            temp_meta = json.loads(temp_meta['parameters'])
-            if temp_meta:
-                #might be swarm?
-                temp_meta = temp_meta['sui_image_params']
-                if temp_meta:
-                    #actually swarm, pass data
+            if type(temp_meta) == dict:
+                # check if swarmui
+                if 'sui_image_params' in temp_meta['parameters']:
+                    # actually swarm, pass data
+                    temp_meta = json.loads(temp_meta['parameters'])
+                    meta = temp_meta['sui_image_params']
+                else:
+                # not swarm, pass normally?
                     meta = temp_meta
+            else:
+                meta = {}
 
             return render_template('modal_image_info.html', image=image, meta=meta, tag_list=tag_list, tags=tags)
         else:
