@@ -3,38 +3,63 @@ from flask_login import login_required
 from .models import Image, Tag
 import re
 from sqlalchemy import or_, and_, not_, func
+from app.settings import get_settings
 
 views = Blueprint('views', __name__)
 
 @views.route('/', methods=['GET', 'POST'])
 @login_required
 def home():
-    from app.settings import get_settings
-    from app.image_handler import scan_files
-    images = Image.query.order_by(Image.id.desc())
     settings = get_settings()
+    images = db_get_images(limit=settings['thumb_num'])
+    q = request.args.get('q', '')
 
-    return render_template('home.html', images=images, settings=settings, search="")
+    return render_template('home.html', images=images, settings=settings, search=q, next_offset=settings['thumb_num'])
 
 
 @views.route('/search', methods=['GET', 'POST'])
 def search():
     from .models import Image
-    from .settings import get_settings
     settings = get_settings()
     q = request.args.get('q')
 
     if q:
-        results = construct_query(q)
+        results = db_get_images(limit=settings['thumb_num'],query=construct_query(q))
     else:
-        results = Image.query.order_by(Image.id.desc())
+        results = db_get_images(limit=settings['thumb_num'])
 
-    return render_template("search.html", images=results, settings=settings, search=q)
+    return render_template("search.html", images=results, settings=settings, search=q, next_offset=settings['thumb_num'])
+
+def db_get_images(order=Image.id.desc(), limit=60, offset=0, query=''):
+    if query != '':
+        images = Image.query.filter(query).order_by(order).limit(limit).offset(offset)
+    else:
+        images = Image.query.order_by(order).limit(limit).offset(offset)
+
+    if images.count() == 0:
+        return ''
+
+    return images
+
+@views.route('/load_more_images')
+def load_more_images():
+    settings = get_settings()
+    offset = int(request.args.get('offset', 0))
+    q = request.args.get('q', '')
+    if q:
+        new_images = db_get_images(limit=settings['thumb_num'], offset=offset, query=construct_query(q))
+    else:
+        new_images = db_get_images(limit=settings['thumb_num'], offset=offset)
+    #if not new_images:
+        #return ''
+
+    return render_template('search.html', images=new_images, settings=settings, search=q, next_offset=offset + int(settings['thumb_num']))
 
 def construct_query(keywords):
     tokens = re.split(r'(\sand\s|\sAND\s|\sor\s|\sOR\s|\s=\s|\s>\s|\s<\s|\s>=\s|\snot\s|\sNOT\s|\sLIKE\s|\sIN\s|\sNOT IN\s)', keywords)
 
-    query = Image.query.order_by(Image.id.desc())
+    #query = Image.query.order_by(Image.id.desc())
+    #query = db_get_images(limit=get_settings()['thumb_num'])
     conditions = []
     operators = []
 
@@ -60,7 +85,8 @@ def construct_query(keywords):
 
     # Apply conditions based on operators
     if not conditions:
-        return query  # No search terms
+        #return query  # No search terms
+        return ''
 
     final_condition = conditions[0]
     condition_index = 1
@@ -75,4 +101,4 @@ def construct_query(keywords):
                 final_condition = and_(final_condition, not_(next_condition))
             condition_index += 1
 
-    return query.filter(final_condition)
+    return final_condition

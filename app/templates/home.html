@@ -42,8 +42,6 @@
     </div>
     {% endfor %}
 </div>
+<div id="load-more" hx-get="/load_more_images?q={{ search }}&offset={{ next_offset }}" hx-target="#imagesBlock" hx-trigger="intersect once" hx-swap="beforeend">
+</div>
 {% endblock %}
-
-{% block scriptblock %}
-
-{% endblock%}

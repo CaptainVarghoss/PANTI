@@ -11,7 +11,8 @@ default_settings = {
     "thumb_size": "350",
     "base_path": "static/images",
     "flyout": "False",
-    "flyout_address": "False"
+    "flyout_address": "False",
+    "thumb_num": "60"
 }
 
 @settings.route('/', methods=['GET', 'POST'])
