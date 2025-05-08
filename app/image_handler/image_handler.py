@@ -1,76 +1,13 @@
-from app.models import db, Image, Tag
-from flask import json, Blueprint, send_from_directory, render_template, request
-from flask_login import login_required
+from app.models import db, Image
+from flask import json
 import time, os, hashlib, fcntl
 from PIL import Image as Pimage
-from .settings import get_setting, get_settings
-
-image_handler = Blueprint('image_handler', __name__)
-
-@image_handler.route('/get_new_content')
-def list_new_images():
-    settings = get_settings()
-    results = Image.query.order_by(Image.id.desc())
-    return render_template("live_update.html", images=results, settings=settings)
-
-@image_handler.route('/get-image/<path:filename>')
-def send_media(filename):
-    return send_from_directory(get_setting('base_path'), filename)
-
-@image_handler.route('/get-meta/<path:filename>')
-def get_meta(filename):
-    print('Checking meta')
-    folder = get_setting('base_path')
-    meta = ImageHandler(folder, filename)
-    return meta.get_meta()
+from app.settings import get_settings
 
 # Build the modal with tag form and list and metadata
 # Handles general 'get' as well as 'add' and 'del' for tags
 
-@image_handler.route('/tags/<string:op>/<int:image_id>/<int:tag_id>', methods=['POST'])
-@login_required
-def tag_handler(op='get', image_id=0, tag_id=0):
-    if image_id != 0:
-        image = Image.query.filter_by(id=image_id).first()
-        if tag_id != 0:
-            tag = Tag.query.filter_by(id=tag_id).first()
-            if request.method == 'POST':
-                if op == 'add':
-                    image.tags.append(tag)
-                    db.session.commit()
-                elif op == 'del':
-                    image.tags.remove(tag)
-                    db.session.commit()
-                else:
-                    return 'Invalid Operation', 404
-            tags = image.tags
-            all_tags = Tag.query
-            tag_list = [tag for tag in all_tags if tag not in tags]
 
-    return render_template('includes/modal_tag_box.html', image=image, tag_list=tag_list, tags=tags)
-
-@image_handler.route('/get_image_info/<int:id>')
-def get_image_info(id):
-    if id:
-        image = Image.query.filter_by(id=id).first()
-        tags = image.tags
-        if image:
-            all_tags = Tag.query
-            tag_list = [tag for tag in all_tags if tag not in tags]
-            temp_meta = image.meta
-            temp_meta = json.loads(temp_meta['parameters'])
-            if temp_meta:
-                #might be swarm?
-                temp_meta = temp_meta['sui_image_params']
-                if temp_meta:
-                    #actually swarm, pass data
-                    meta = temp_meta
-
-            return render_template('modal_image_info.html', image=image, meta=meta, tag_list=tag_list, tags=tags)
-        else:
-            return
-    else:
-        return
 
 def string_to_nested_dict(json_string):
     """
@@ -136,7 +73,7 @@ def process_nested_list(data_list):
 
 def scan_files(folder=""):
     if folder == "":
-        folder = get_setting('base_path')
+        folder = get_settings('base_path')
     scan_time = time.perf_counter()
     print("Scanning files..")
     if os.path.exists(folder):
@@ -277,7 +214,7 @@ class ImageHandler():
         if os.path.exists(self.thumb_path):
             image = Pimage.open(os.path.join(self.file_path, self.filename))
             #print(f'Opened image: {os.path.join(self.file_path, self.filename)}')
-            image.thumbnail((int(get_setting('thumb_size')) + 100,int(get_setting('thumb_size')) + 100))
+            image.thumbnail((int(get_settings('thumb_size')) + 100,int(get_settings('thumb_size')) + 100))
             image.save(os.path.join(self.thumb_path, f'{self.checksum}.webp'), 'webp')
             print('Thumbnail generated for ' + self.filename)
         else:

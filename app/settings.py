@@ -121,19 +121,16 @@ def show_all_colors(name):
     all_colors = color_picker_list("all")
     return render_template('includes/color_picker_more.html', all_colors=all_colors, name=name)
 
-@settings.route('/get_setting')
-def get_setting(setting):
-        all_settings = get_settings()
-        this_setting = all_settings[setting]
-        return this_setting
-
 @settings.route('/get_settings')
-def get_settings():
+def get_settings(setting=''):
     set_default_settings()
     sets = {}
     db_settings = Setting.query
     for s in db_settings:
-        sets[s.name] = s.value
+        if setting != '' and setting == s.name:
+            return s.value
+        else:
+            sets[s.name] = s.value
     return sets
 
 @settings.route('/set_default_settings')

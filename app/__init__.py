@@ -61,12 +61,12 @@ def create_app():
 
     from app.views import views
     from app.auth import auth
-    from app.image_handler import image_handler
+    from app.image_handler.image_routes import image_routes
     from app.settings import settings
 
     app.register_blueprint(views, url_prefix='/')
     app.register_blueprint(auth, url_prefix='/')
-    app.register_blueprint(image_handler, url_prefix="/")
+    app.register_blueprint(image_routes, url_prefix="/")
     app.register_blueprint(settings, url_prefix="/settings")
 
     with app.app_context():

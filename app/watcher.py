@@ -2,7 +2,7 @@ import threading
 from flask import Blueprint, current_app
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-from app.image_handler import ImageHandler
+from app.image_handler.image_handler import ImageHandler
 from app.settings import get_settings
 from threading import Timer
 import os
