@@ -1,5 +1,8 @@
 <div class="flex-grow-1 justify-content-center p-2 align-self-center input-group" id="searchContainer" hx-swap-oob="true">
-    <input class="form-control" type="search" name="q" id="searchBox" {% if search %}value="{{search}}" {% endif %} hx-get="/search" hx-trigger="keyup changed delay:500ms" hx-target="#imagesBlock" hx-swap="innerHTML" placeholder="Search" aria-label="Search">
+    <div class="input-group">
+        <input class="form-control" type="search" name="q" id="searchBox" {% if search %}value="{{search}}" {% endif %} hx-get="/search" hx-trigger="keyup changed delay:500ms" hx-target="#imagesBlock" hx-swap="innerHTML" placeholder="Search" aria-label="Search">
+        <button class="btn btn-outline-secondary" type="button" id="clear-search" hx-get="/search" hx-target="#imagesBlock" hx-swap="innerHTML">&times;</button>
+    </div>
 </div>
 
 {% for i in images %}

@@ -1,26 +1,47 @@
-{% extends "base.html" %}
-
-{% block offscreen %}
-<div class="offcanvas offcanvas-start bg-body-tertiary" tabindex="-1" id="offcanvas" aria-labelledby="offcanvasLabel">
-    <div class="offcanvas-header border-bottom border-2">
-        <button type="button" class="btn btn-dark {{ 'justify-content-start' if settings['sidebar'] == 'Left' or settings['sidebar'] == 'Both' else 'justify-content-end' }}" data-bs-dismiss="offcanvas" aria-label="Close">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-    </div>
-    <div class="offcanvas-body pt-5">
-        <ul class="flex-grow-1 list-group">
-            {% if url_for( request.endpoint, **request.view_args) != "/" %}
-            <li class="list-group-item p-4">
-                <a class="link-info link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover" href="{{ url_for( 'views.home' ) }}">Home</a>
-            </li>
-            {% endif%}
-            <li class="list-group-item p-4">
-                <a class="link-info link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover" href="{{ url_for( 'settings.show_settings' )}}">Settings</a>
-            </li>
-            <li class="list-group-item p-4">
-                <a class="link-danger link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover" href="{{ url_for('auth.logout') }}">Logout</a>
-            </li>
-        </ul>
-    </div>
+<div class="offcanvas-header border-bottom border-2">
+    <button type="button" class="btn btn-dark {{ 'justify-content-start' if settings['sidebar'] == 'Left' or settings['sidebar'] == 'Both' else 'justify-content-end' }}" data-bs-dismiss="offcanvas" aria-label="Close">
+        <span class="navbar-toggler-icon"></span>
+    </button>
 </div>
-{% endblock %}
+<div class="offcanvas-body pt-5">
+    <div class="offcanvas-filters" id="offcanvas-filters">
+        Filters:<br />
+        <div class="container justify-content-center accordion p-0">
+            <div class="accordion-item p-0" id="tagsAccordion">
+                <h2 class="accordion-header">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#filterOne" aria-expanded="true" aria-controls="filterOne">
+                        Tags
+                    </button>
+                </h2>
+                <div id="filterOne" class="accordion-collapse collapse">
+                    {% include "includes/offscreen_tags.html" %}
+                </div>
+            </div>
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#filterTwo" aria-expanded="true" aria-controls="filtereTwo">
+                        Folders
+                    </button>
+                </h2>
+                <div id="filterTwo" class="accordion-collapse collapse">
+                    <div class="accordion-body">
+                        folders here
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <ul class="flex-grow-1 list-group mt-3">
+        {% if url_for( request.endpoint, **request.view_args) != "/" %}
+        <li class="list-group-item p-4">
+            <a class="link-info link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover" href="{{ url_for( 'views.home' ) }}">Home</a>
+        </li>
+        {% endif %}
+        <li class="list-group-item p-4">
+            <a class="link-info link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover" href="{{ url_for( 'settings.show_settings' )}}">Settings</a>
+        </li>
+        <li class="list-group-item p-4">
+            <a class="link-danger link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover" href="{{ url_for('auth.logout') }}">Logout</a>
+        </li>
+    </ul>
+</div>

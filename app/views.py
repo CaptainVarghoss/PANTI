@@ -13,8 +13,9 @@ def home():
     settings = get_settings()
     images = db_get_images(limit=settings['thumb_num'])
     q = request.args.get('q', '')
+    tag_list = Tag.query
 
-    return render_template('home.html', images=images, settings=settings, search=q, next_offset=settings['thumb_num'])
+    return render_template('home.html', images=images, settings=settings, search=q, next_offset=settings['thumb_num'], offscreen_tag_list=tag_list)
 
 
 @views.route('/search', methods=['GET', 'POST'])

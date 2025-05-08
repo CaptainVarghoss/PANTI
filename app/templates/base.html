@@ -20,7 +20,10 @@
                 {% endif %}
                 <div class="flex-grow-1 justify-content-center p-2 align-self-center input-group" id="searchContainer">
                     {% if not url_for( request.endpoint, **request.view_args) != "/" %}
-                    <input class="form-control" type="search" name="q" id="searchBox" {% if search %}value="{{search}}" {% endif %} hx-get="/search" hx-trigger="keyup changed delay:500ms" hx-target="#imagesBlock" hx-swap="innerHTML" placeholder="Search" aria-label="Search">
+                    <div class="input-group">
+                        <input class="form-control" type="search" name="q" id="searchBox" {% if search %}value="{{search}}" {% endif %} hx-get="/search" hx-trigger="keyup changed delay:500ms" hx-target="#imagesBlock" hx-swap="innerHTML" placeholder="Search" aria-label="Search">
+                        <button class="btn btn-outline-secondary" type="button" id="clear-search" hx-get="/search" hx-target="#imagesBlock" hx-swap="innerHTML">&times;</button>
+                    </div>
                     {% endif %}
                 </div>
                 {% if settings['sidebar'] == "Right" or settings['sidebar'] == "Both" %}
@@ -33,53 +36,14 @@
             </div>
             {% if settings['sidebar'] == "Left" or settings['sidebar'] == "Both" %}
             <div class="offcanvas offcanvas-start bg-body-tertiary" tabindex="-1" id="offcanvasLeft" aria-labelledby="offcanvasLabel">
-                <div class="offcanvas-header border-bottom border-2">
-                    <button type="button" class="btn btn-dark justify-content-start" data-bs-dismiss="offcanvas" aria-label="Close">
-                        <span class="navbar-toggler-icon"></span>
-                    </button>
-                </div>
-                <div class="offcanvas-body pt-5">
-                    <ul class="flex-grow-1 list-group">
-                        {% if url_for( request.endpoint, **request.view_args) != "/" %}
-                        <li class="list-group-item p-4">
-                            <a class="link-info link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover" href="{{ url_for( 'views.home' ) }}">Home</a>
-                        </li>
-                        {% endif%}
-                        <li class="list-group-item p-4">
-                            <a class="link-info link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover" href="{{ url_for( 'settings.show_settings' )}}">Settings</a>
-                        </li>
-                        <li class="list-group-item p-4">
-                            <a class="link-danger link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover" href="{{ url_for('auth.logout') }}">Logout</a>
-                        </li>
-                    </ul>
-                </div>
+                {% include "offscreen.html" %}
             </div>
             {% endif %}
-
+            {% endif %}
             {% if settings['sidebar'] == "Right" or settings['sidebar'] == "Both" %}
             <div class="offcanvas offcanvas-end bg-body-tertiary" tabindex="-1" id="offcanvasRight" aria-labelledby="offcanvasLabel">
-                <div class="offcanvas-header border-bottom border-2 justify-content-end">
-                    <button type="button" class="btn btn-dark" data-bs-dismiss="offcanvas" aria-label="Close">
-                        <span class="navbar-toggler-icon"></span>
-                    </button>
-                </div>
-                <div class="offcanvas-body pt-5">
-                    <ul class="flex-grow-1 list-group">
-                        {% if url_for( request.endpoint, **request.view_args) != "/" %}
-                        <li class="list-group-item p-4">
-                            <a class="link-info link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover" href="{{ url_for( 'views.home' ) }}">Home</a>
-                        </li>
-                        {% endif%}
-                        <li class="list-group-item p-4">
-                            <a class="link-info link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover" href="{{ url_for( 'settings.show_settings' )}}">Settings</a>
-                        </li>
-                        <li class="list-group-item p-4">
-                            <a class="link-danger link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover" href="{{ url_for('auth.logout') }}">Logout</a>
-                        </li>
-                    </ul>
-                </div>
+                {% include "offscreen.html" %}
             </div>
-            {% endif %}
             {% endif %}
             <div class="container justify-content-center messages-block" id="liveAlerts">
                 {% with messages = get_flashed_messages(with_categories=true) %}
