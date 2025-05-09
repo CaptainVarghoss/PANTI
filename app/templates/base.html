@@ -36,13 +36,18 @@
             </div>
             {% if settings['sidebar'] == "Left" or settings['sidebar'] == "Both" %}
             <div class="offcanvas offcanvas-start bg-body-tertiary" tabindex="-1" id="offcanvasLeft" aria-labelledby="offcanvasLabel">
-                {% include "offscreen.html" %}
+                {% with which_side = 'left' %}
+                {% include "offscreen.html"%}
+                {% endwith %}
             </div>
             {% endif %}
             {% endif %}
             {% if settings['sidebar'] == "Right" or settings['sidebar'] == "Both" %}
+
             <div class="offcanvas offcanvas-end bg-body-tertiary" tabindex="-1" id="offcanvasRight" aria-labelledby="offcanvasLabel">
+                {% with which_side = 'right' %}
                 {% include "offscreen.html" %}
+                {% endwith %}
             </div>
             {% endif %}
             <div class="container justify-content-center messages-block" id="liveAlerts">
