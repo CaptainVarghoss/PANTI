@@ -7,6 +7,7 @@ class ImageHandler():
     def __init__(self, file_path, filename, lock_dir="/tmp/file_watcher_locks"):
         #self.mime = self.get_mime_type()
         self.settings = get_settings()
+        self.base_path = self.settings['base_path']
         self.file_path = file_path
         self.filename = filename
         self.checksum = self.get_checksum()
@@ -44,7 +45,8 @@ class ImageHandler():
                     fcntl.flock(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)  # Non-blocking
                     print(f"Lock acquired: {lock_path}")
                     try:
-                        new_image = Image(filename=self.filename, checksum=self.checksum, path=self.file_path, meta=meta)
+                        cleaned_path = self.file_path.replace(self.base_path, '')
+                        new_image = Image(filename=self.filename, checksum=self.checksum, path=cleaned_path, meta=meta)
                         db.session.add(new_image)
                         db.session.commit()
                         print(f'Image: {self.filename} added to database. ID: {new_image.id}')
