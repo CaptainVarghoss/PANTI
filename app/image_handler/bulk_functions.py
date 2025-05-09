@@ -2,6 +2,7 @@ from app.settings import get_settings
 from app.__init__ import create_app
 from app.models import db
 from app.image_handler.image_handler import ImageHandler
+from app.io_handler.io_handler import db_check_path
 import os, time, magic, threading
 from queue import Queue
 
@@ -130,6 +131,7 @@ class ScanFiles():
                 if os.path.isfile(item_path):
                     file_list.append(item)
                 elif os.path.isdir(item_path):
+                    db_check_path(item_path)
                     dir_list.append(item)
         except OSError as e:
             print(f"Error accessing path: {self.path}. Error: {e}")

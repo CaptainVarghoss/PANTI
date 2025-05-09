@@ -5,6 +5,7 @@ import re
 from sqlalchemy import or_, and_, not_, func
 from app.settings import get_settings
 from app.image_handler.bulk_functions import ScanFiles
+from app.io_handler.io_handler import get_path_list
 
 views = Blueprint('views', __name__)
 
@@ -15,7 +16,7 @@ def home():
     images = db_get_images(limit=settings['thumb_num'])
     q = request.args.get('q', '')
     tag_list = Tag.query
-    dir_list = ['/', 'test']
+    dir_list = get_path_list()
 
     return render_template('home.html', images=images, settings=settings, search=q, next_offset=settings['thumb_num'], offscreen_tag_list=tag_list, dir_list=dir_list)
 
@@ -90,7 +91,6 @@ def construct_query(keywords):
         elif upper_item.startswith("FOLDER "):
             folder_keyword = item[7:].strip()
             if folder_keyword:
-                print(folder_keyword)
                 conditions.append(func.lower(Image.path) == func.lower(folder_keyword))
         elif item:  # Non-operator and not starting with TAG or FOLDER
             search_condition = or_(

@@ -32,6 +32,7 @@ class ImagePath(db.Model):
     path = db.Column(db.String(250))
     parent = db.Column(db.String(250))
     fullpath = db.Column(db.String(250))
+    description = db.Column(db.String(250))
     ignore = db.Column(db.Boolean, default=False)
     admin_only = db.Column(db.Boolean, default=True)
     tags = db.relationship('Tag', secondary='path_tags')
