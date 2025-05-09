@@ -4,6 +4,7 @@ from .models import Image, Tag
 import re
 from sqlalchemy import or_, and_, not_, func
 from app.settings import get_settings
+from app.image_handler.bulk_functions import ScanFiles
 
 views = Blueprint('views', __name__)
 
@@ -14,8 +15,9 @@ def home():
     images = db_get_images(limit=settings['thumb_num'])
     q = request.args.get('q', '')
     tag_list = Tag.query
+    fl, fc, dir_list, dc = ScanFiles().get_file_list()
 
-    return render_template('home.html', images=images, settings=settings, search=q, next_offset=settings['thumb_num'], offscreen_tag_list=tag_list)
+    return render_template('home.html', images=images, settings=settings, search=q, next_offset=settings['thumb_num'], offscreen_tag_list=tag_list, dir_list=dir_list)
 
 
 @views.route('/search', methods=['GET', 'POST'])
@@ -78,7 +80,12 @@ def construct_query(keywords):
             tag_keyword = item[4:].strip()
             if tag_keyword:
                 conditions.append(Image.tags.any(func.lower(Tag.name) == func.lower(tag_keyword)))
-        elif item:  # Non-operator and not starting with TAG
+        elif upper_item.startswith("FOLDER "):
+            folder_keyword = item[7:].strip()
+            if folder_keyword:
+                print(folder_keyword)
+                conditions.append(func.lower(Image.path) == func.lower(folder_keyword))
+        elif item:  # Non-operator and not starting with TAG or FOLDER
             search_condition = or_(
                 Image.meta.ilike(f"%{item}%"),
                 Image.path.ilike(f"%{item}%"),

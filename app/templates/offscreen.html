@@ -25,7 +25,7 @@
                 </h2>
                 <div id="filterTwo{% if which_side == 'left' %}Left{% endif %}{% if which_side == 'right' %}Right{% endif %}" class="accordion-collapse collapse">
                     <div class="accordion-body">
-                        folders here
+                        {% include "includes/offscreen_folders.html" %}
                     </div>
                 </div>
             </div>
