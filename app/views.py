@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, current_app, request
+from flask import Blueprint, render_template, request, Response
 from flask_login import login_required
 from .models import Image, Tag
 import re
@@ -15,10 +15,17 @@ def home():
     images = db_get_images(limit=settings['thumb_num'])
     q = request.args.get('q', '')
     tag_list = Tag.query
-    fl, fc, dir_list, dc = ScanFiles().get_file_list()
+    dir_list = ['/', 'test']
 
     return render_template('home.html', images=images, settings=settings, search=q, next_offset=settings['thumb_num'], offscreen_tag_list=tag_list, dir_list=dir_list)
 
+@views.route('/stream')
+def live_updates():
+    return Response(send_update(), mimetype='text/event-stream')
+
+def send_update():
+    template_url = '/search'
+    yield f'data: <div hx-get="{template_url}" hx-target="#imagesBlock" hx-swap="afterbegin"></div>'
 
 @views.route('/search', methods=['GET', 'POST'])
 def search():

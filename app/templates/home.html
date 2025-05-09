@@ -32,14 +32,8 @@
     </div>
 </div>
 <div class="images-block g-0 mt-2" id="imagesBlock">
-    {% block liveupdate %}
-    {% endblock %}
     {% for i in images %}
-    <div class="thumbnail">
-        <div role="button" data-bs-toggle="modal" data-bs-target="#fullsizeModal" hx-get="/get_image_info/{{i.id}}" hx-target="#imageModalInfo" hx-on="show.bs.modal: target.innerHTML='Loading...';" data-bs-modalimage="{{ url_for('image_routes.send_media', checksum=i.checksum) }}" data-image-id="{{i.id}}" class="m-0 g-0 p-0 rounded-4 thumbnail-sub">
-            <img src="{{ url_for('static', filename='thumbnails/' + i.checksum + '.webp') }}" />
-        </div>
-    </div>
+    {% include "includes/thumbnail.html" %}
     {% endfor %}
 </div>
 <div id="load-more" hx-get="/load_more_images?q={{ search }}&offset={{ next_offset }}" hx-target="#imagesBlock" hx-trigger="intersect once" hx-swap="beforeend">

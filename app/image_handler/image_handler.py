@@ -51,8 +51,8 @@ class ImageHandler():
                         db.session.commit()
                         print(f'Image: {self.filename} added to database. ID: {new_image.id}')
                         ## send new image to clients
-                        #from main import send_new_image
-                        #send_new_image({'filename': url_for('image_handler.send_media', filename=self.filename), 'checksum': url_for('static', filename='thumbnails/' + self.checksum + '.webp'), 'id': url_for('image_handler.image_info', id=new_image.id)})
+                        from app.views import send_update
+                        #send_update()
                         return new_image.id
                     except Exception as e:
                         print(f'Error adding image to database: {e}')
