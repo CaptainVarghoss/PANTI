@@ -7,8 +7,6 @@ from app.settings import get_settings
 from threading import Timer
 import os
 
-file_watcher = Blueprint('file_watcher', __name__)
-
 class FileHandler(FileSystemEventHandler):
 
     def __init__(self, changed_event, ret_params, lock_dir):
