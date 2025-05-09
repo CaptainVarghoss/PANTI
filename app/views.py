@@ -29,6 +29,9 @@ def search():
     else:
         results = db_get_images(limit=settings['thumb_num'])
 
+    if q == None:
+        q = ''
+
     return render_template("search.html", images=results, settings=settings, search=q, next_offset=settings['thumb_num'])
 
 def db_get_images(order=Image.id.desc(), limit=60, offset=0, query=''):
