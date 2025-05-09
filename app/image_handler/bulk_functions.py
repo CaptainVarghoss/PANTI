@@ -126,7 +126,19 @@ class ScanFiles():
         file_list = []
         dir_list = []
         try:
+            items_with_ctime = []
             for item in os.listdir(self.path):
+                item_path = os.path.join(self.path, item)
+                try:
+                    creation_time = os.path.getctime(item_path)
+                    items_with_ctime.append((item, creation_time))
+                except OSError as e:
+                    print(f"Error getting creation time for {item_path}: {e}")
+                    items_with_ctime.append((item, None))
+
+            sorted_items = sorted(items_with_ctime, key=lambda x: (x[1] is None, x[1]))
+
+            for item, _ in sorted_items:  # The underscore "_" is used to discard the ctime
                 item_path = os.path.join(self.path, item)
                 if os.path.isfile(item_path):
                     file_list.append(item)

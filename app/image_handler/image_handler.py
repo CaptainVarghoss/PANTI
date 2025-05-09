@@ -2,6 +2,7 @@ from app.models import db, Image
 import time, os, hashlib, fcntl
 from PIL import Image as Pimage
 from app.settings import get_settings
+import datetime
 
 class ImageHandler():
     def __init__(self, file_path, filename, lock_dir="/tmp/file_watcher_locks"):
@@ -11,6 +12,7 @@ class ImageHandler():
         self.file_path = file_path
         self.filename = filename
         self.checksum = self.get_checksum()
+        self.date_created = self.get_created_date()
         self.thumb_path = 'app/static/thumbnails/'
         self.timer = None
         self.debounce_delay = 1.0
@@ -46,7 +48,7 @@ class ImageHandler():
                     print(f"Lock acquired: {lock_path}")
                     try:
                         cleaned_path = self.file_path.replace(self.base_path, '')
-                        new_image = Image(filename=self.filename, checksum=self.checksum, path=cleaned_path, meta=meta)
+                        new_image = Image(filename=self.filename, checksum=self.checksum, path=cleaned_path, meta=meta, date_created=self.date_created)
                         db.session.add(new_image)
                         db.session.commit()
                         print(f'Image: {self.filename} added to database. ID: {new_image.id}')
@@ -97,6 +99,11 @@ class ImageHandler():
         exif['width'] = image.width
         exif['height'] = image.height
         return exif
+
+    def get_created_date(self):
+        file_date = os.path.getctime(os.path.join(self.file_path, self.filename))
+        date_created = datetime.datetime.fromtimestamp(file_date)
+        return date_created
 
     def check_thumbnail(self):
         if not os.path.exists(os.path.join(self.thumb_path, f'{self.checksum}.webp')):
