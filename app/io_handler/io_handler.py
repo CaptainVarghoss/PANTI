@@ -1,3 +1,4 @@
+from flask_login import current_user
 from app.models import ImagePath, db
 from app.settings import get_settings
 import os
@@ -14,7 +15,10 @@ def extract_path_parts(path):
         return ''
 
 def get_path_list():
-    query = ImagePath.query
+    if current_user.admin:
+        query = ImagePath.query
+    else:
+        query = ImagePath.query.filter_by(admin_only=0)
     return query
 
 def db_check_path(path):

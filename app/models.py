@@ -7,11 +7,10 @@ image_tag_table = db.Table('image_tags',
     db.Column('tag_id', db.Integer, db.ForeignKey('tags.id'), primary_key=True)
 )
 
-class PathTags(db.Model):
-    __tablename__ = 'path_tags'
-    id = db.Column(db.Integer, primary_key=True)
-    path_id = db.Column(db.Integer, db.ForeignKey('image_paths.id'))
-    tag_id = db.Column(db.Integer, db.ForeignKey('tags.id'))
+path_tag_table = db.Table('path_tags',
+    db.Column('paths_id', db.Integer, db.ForeignKey('image_paths.id'), primary_key=True),
+    db.Column('tag_id', db.Integer, db.ForeignKey('tags.id'), primary_key=True)
+)
 
 class Image(db.Model):
     __tablename__ = 'images'
@@ -35,7 +34,7 @@ class ImagePath(db.Model):
     description = db.Column(db.String(250))
     ignore = db.Column(db.Boolean, default=False)
     admin_only = db.Column(db.Boolean, default=True)
-    tags = db.relationship('Tag', secondary='path_tags')
+    tags = db.relationship('Tag', secondary='path_tags', backref=db.backref('image_paths', lazy='dynamic'))
 
 class Tag(db.Model):
     __tablename__ = 'tags'
