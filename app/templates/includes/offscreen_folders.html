@@ -1,6 +1,6 @@
 <div class="accordion-body">
-    <button class="btn btn-secondary" type="button" hx-post="/search" hx-target="#imagesBlock" hx-swap="innerHTML" data-bs-toggle="modal">/</button>
+    <button class="btn btn-secondary" type="button" hx-post="/search" hx-target="#imagesBlock" hx-swap="innerHTML" data-bs-toggle="offcanvas">/</button>
     {% for d in dir_list %}
-    <button class="btn btn-secondary" type="button" hx-post="/search?q=FOLDER {{d.path}}" hx-target="#imagesBlock" hx-swap="innerHTML" data-bs-toggle="modal">/{{d.path}}</button>
+    <button class="btn btn-secondary" type="button" hx-post="/search?q=FOLDER {{d.path}}" hx-target="#imagesBlock" hx-swap="innerHTML" data-bs-toggle="offcanvas">/{{d.path}}</button>
     {% endfor %}
 </div>
