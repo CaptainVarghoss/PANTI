@@ -51,5 +51,16 @@ function checkWidth() {
 //  }
 }
 
+function setViewportHeight() {
+  let vh = window.innerHeight * 0.01;
+  document.documentElement.style.setProperty('--vh', `${vh}px`);
+}
+
+// Set the initial value
+setViewportHeight();
+
+// Update the value on resize (optional, but good for orientation changes)
+window.addEventListener('resize', setViewportHeight);
+
 //window.onload = checkWidth;
 //window.onresize = checkWidth;
