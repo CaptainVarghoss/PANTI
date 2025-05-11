@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, send_from_directory, request, json
-from flask_login import login_required
+from flask_login import login_required, current_user
 from app.models import db, Image, Tag
 from app.settings import get_settings
 from .image_handler import ImageHandler
@@ -39,7 +39,10 @@ def tag_handler(op='get', image_id=0, tag_id=0):
                 else:
                     return 'Invalid Operation', 404
             tags = image.tags
-            all_tags = Tag.query
+            if current_user.admin:
+                all_tags = Tag.query
+            else:
+                all_tags = Tag.query.filter_by(admin_only=0)
             tag_list = [tag for tag in all_tags if tag not in tags]
 
     return render_template('includes/modal_tag_box.html', image=image, tag_list=tag_list, tags=tags)
@@ -50,7 +53,10 @@ def get_image_info(id):
         image = Image.query.filter_by(id=id).first()
         tags = image.tags
         if image:
-            all_tags = Tag.query
+            if current_user.admin:
+                all_tags = Tag.query
+            else:
+                all_tags = Tag.query.filter_by(admin_only=0)
             tag_list = [tag for tag in all_tags if tag not in tags]
             temp_meta = image.meta
             if type(temp_meta) == dict:
