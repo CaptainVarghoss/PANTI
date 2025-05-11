@@ -21,17 +21,6 @@ if (fullsizeModal) {
   })
 }
 
-// viewport size stuff
-//document.documentElement.clientHeight;
-//document.documentElement.clientWidth;
-//to get sizes excluding scrollbars, or
-
-//window.innerHeight;
-//window.innerWidth;
-//to get sizes WITH scrollbars
-
-
-
 function checkWidth() {
   const app_settings = JSON.parse(document.querySelector('#app_settings').textContent);
   //console.log(app_settings);
@@ -51,16 +40,17 @@ function checkWidth() {
 //  }
 }
 
+// Update the value on resize (optional, but good for orientation changes)
+window.addEventListener('orientationchange', () => {
+  window.dispatchEvent(new Event('resize'));
+})
+
+window.addEventListener('resize', () => {
+  var imageModal = document.getElementById('fullsizeModal')
+  imageModal.handleUpdate();
+})
+
 function setViewportHeight() {
   let vh = window.innerHeight * 0.01;
   document.documentElement.style.setProperty('--vh', `${vh}px`);
 }
-
-// Set the initial value
-setViewportHeight();
-
-// Update the value on resize (optional, but good for orientation changes)
-window.addEventListener('resize', setViewportHeight);
-
-//window.onload = checkWidth;
-//window.onresize = checkWidth;
