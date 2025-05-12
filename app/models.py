@@ -24,6 +24,7 @@ class Image(db.Model):
     date_modified = db.Column(db.DateTime(timezone=True), default=func.now())
     created_by = db.Column(db.Integer, default=0)
     modified_by = db.Column(db.Integer, default=0)
+    is_video = db.Column(db.Boolean, default=False)
 
 class ImagePath(db.Model):
     __tablename__ = 'image_paths'

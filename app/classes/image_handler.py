@@ -29,9 +29,7 @@ class ImageHandler():
 
     def get_checksum(self):
         with open(os.path.join(self.file_path, self.filename), 'rb') as file_to_check:
-        # read contents of the file
             data = file_to_check.read()
-        # pipe contents of the file through
             return hashlib.md5(data).hexdigest()
 
     def db_add_image(self):
@@ -75,12 +73,15 @@ class ImageHandler():
 
             else:
                 # If the image exists, we don't need to lock or add
-                # print('Image exists, skipping lock.') # Uncomment if you want this message
+                # print('Image exists, skipping lock.')
                 pass
         except Exception as e:
             print(f"An unexpected error occurred: {e}")
             if lock_file:
                 lock_file.close()
+
+    def db_add_video(self):
+        return
 
     def _get_lock_path(self, filename):
         # Generates a lock file path from the watched file's path.
@@ -110,10 +111,9 @@ class ImageHandler():
             self.generate_thumbnail()
 
     def generate_thumbnail(self):
-        #print('Generating thumbnail')
+        print('Generating thumbnail')
         if os.path.exists(self.thumb_path):
             image = Pimage.open(os.path.join(self.file_path, self.filename))
-            #print(f'Opened image: {os.path.join(self.file_path, self.filename)}')
             image.thumbnail((int(get_settings('thumb_size')) + 100,int(get_settings('thumb_size')) + 100))
             image.save(os.path.join(self.thumb_path, f'{self.checksum}.webp'), 'webp')
             print('Thumbnail generated for ' + self.filename)

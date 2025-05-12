@@ -7,10 +7,6 @@ import os, time, magic, threading
 from queue import Queue
 
 def startup_scan():
-    # Sequential Scan
-    #scanner_sequential = ScanFiles()
-    #scanner_sequential.scan_folder()
-
     # Threaded Scan
     scanner_threaded = ScanFiles()
     scanner_threaded.scan_folder_threaded()
@@ -21,7 +17,6 @@ class ScanFiles():
         from main import app
         self.app = app
         self.settings = get_settings()
-        #self.settings = settings
         if path == '':
             self.path = self.settings['base_path']
         else:
@@ -88,40 +83,6 @@ class ScanFiles():
         scan_time = end_time - scan_time
         print(f'Scan of {self.path} completed in {scan_time:.3f} seconds. Counted {self.file_count} images and {self.dir_count} directories.')
 
-    # non-threaded folder scan
-    def scan_folder(self):
-        scan_time = time.perf_counter()
-        print(f'Scanning files: {self.path}..')
-        # do subdirectories recursively
-        if self.dir_count > 0:
-            for d in self.dir_list:
-                scan = ScanFiles(os.path.join(self.path, d))
-                scan.scan_folder()
-        # do files
-        if self.file_list:
-            for f in self.file_list:
-                file_path = os.path.join(self.path, f)
-                f_file = ImageHandler(file_path=self.path, filename=f)
-                try:
-                    mime = magic.from_file(file_path, mime=True)
-                    mime_parts = mime.split("/")
-                    if mime_parts[0] == 'image':
-                        f_file.db_add_image()
-                        f_file.check_thumbnail()
-                    elif mime_parts[0] == 'video': # Corrected condition.
-                        print('Video file found, add support for videos!')
-                except FileNotFoundError:
-                    print(f"Error: File not found: {file_path}")
-                except magic.MagicError as e:
-                    print(f"Error with magic on {file_path}: {e}")
-                except Exception as e:
-                    print(f"Error processing {file_path}: {e}")
-
-        end_time = time.perf_counter()
-        scan_time = end_time - scan_time
-        print(f'Scan of {self.path} completed in {scan_time:.3f} seconds. Counted {self.file_count} images and {self.dir_count} directories.')
-
-
     def _get_file_list(self):
         file_list = []
         dir_list = []
@@ -164,7 +125,7 @@ class ScanFiles():
                     if mime_parts[0] == 'image':
                         f_file.db_add_image()
                         f_file.check_thumbnail()
-                    elif mime_parts[0] == 'video':  # Corrected condition
+                    elif mime_parts[0] == 'video':
                         print(f'Video file found: {file_path}, add support for videos!')
                 except FileNotFoundError:
                     print(f"Error: File not found during processing: {file_path}")
