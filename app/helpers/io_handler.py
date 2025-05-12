@@ -1,6 +1,6 @@
 from flask_login import current_user
 from app.models import ImagePath, db
-from app.settings import get_settings
+from app.routes.settings import get_settings
 import os
 # Collection of small functions and helpers to handle file and folder IO related tasks.
 

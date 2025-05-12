@@ -1,9 +1,0 @@
-{% block liveupdate2 %}
-{% for i in images %}
-<div class="thumbnail">
-    <div role="button" data-bs-toggle="modal" data-bs-target="#fullsizeModal" data-bs-modalimage="{{ url_for('image_handler.send_media', filename=i.filename) }}" data-bs-modalmeta="{{ url_for('image_handler.image_info', id=i.id) }}" class="m-0 g-0 p-0 rounded-4 thumbnail-sub">
-        <img src="{{ url_for('static', filename='thumbnails/' + i.checksum + '.webp') }}" />
-    </div>
-</div>
-{% endfor %}
-{% endblock %}

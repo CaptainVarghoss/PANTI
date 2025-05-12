@@ -1,8 +1,8 @@
-from app.settings import get_settings
+from app.routes.settings import get_settings
 from app.__init__ import create_app
 from app.models import db
-from app.image_handler.image_handler import ImageHandler
-from app.io_handler.io_handler import db_check_path
+from app.classes.image_handler import ImageHandler
+from app.helpers.io_handler import db_check_path
 import os, time, magic, threading
 from queue import Queue
 

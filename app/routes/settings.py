@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, session, flash, redirect, url_for
 from flask_login import login_required
-from .models import Setting, db, User, Tag
+from ..models import Setting, db, User, Tag
 
 settings = Blueprint('settings', __name__)
 
@@ -78,8 +78,9 @@ def show_settings():
     else:
         tag_list = Tag.query.filter_by(admin_only=0)
 
-    common_colors = color_list(type="common")
-    all_colors = color_list(type="all")
+    from app.helpers.color_picker import color_picker_list
+    common_colors = color_picker_list(type="common")
+    all_colors = color_picker_list(type="all")
 
     return render_template('settings.html', settings=settings, user_id=user_id, is_admin=is_admin, tag_list=tag_list, common_colors=common_colors, all_colors=all_colors, form_fields=[])
 
@@ -111,13 +112,13 @@ def add_tag_color(color, text, name):
 @settings.route('/show_common_colors', methods=['POST'])
 def show_common_colors():
     name = request.form.get('name')
-    from .helpers.color_picker import color_picker_list
+    from ..helpers.color_picker import color_picker_list
     colors = color_picker_list("common")
     return render_template('includes/color_picker.html', colors=colors, name=name)
 
 @settings.route('/show_all_colors/<name>')
 def show_all_colors(name):
-    from .helpers.color_picker import color_picker_list
+    from ..helpers.color_picker import color_picker_list
     all_colors = color_picker_list("all")
     return render_template('includes/color_picker_more.html', all_colors=all_colors, name=name)
 
@@ -147,8 +148,3 @@ def clear_settings():
     settings = Setting.query.delete()
     db.session.commit()
     return settings
-
-def color_list(type):
-    from .helpers.color_picker import color_picker_list
-    color_list = color_picker_list(type)
-    return color_list

@@ -3,9 +3,9 @@ from flask_login import login_required, current_user
 from .models import Image, Tag, ImagePath, db
 import re
 from sqlalchemy import or_, and_, not_, func
-from app.settings import get_settings
-from app.image_handler.bulk_functions import ScanFiles
-from app.io_handler.io_handler import get_path_list
+from app.routes.settings import get_settings
+from app.classes.bulk_functions import ScanFiles
+from app.helpers.io_handler import get_path_list
 
 views = Blueprint('views', __name__)
 
@@ -67,7 +67,7 @@ def db_get_images(order=Image.id.desc(), limit=60, offset=0, query=''):
     images = images_query.all()  # Execute the query to get image objects.  Use .all()
 
     if image_count == 0:
-            return ''
+            return '', 0
 
     return images, image_count
 

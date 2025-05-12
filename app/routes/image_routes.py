@@ -1,8 +1,8 @@
 from flask import Blueprint, render_template, send_from_directory, request, json
 from flask_login import login_required, current_user
 from app.models import db, Image, Tag
-from app.settings import get_settings
-from .image_handler import ImageHandler
+from app.routes.settings import get_settings
+from ..classes.image_handler import ImageHandler
 import os
 
 image_routes = Blueprint('image_routes', __name__)

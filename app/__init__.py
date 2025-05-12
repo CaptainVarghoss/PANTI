@@ -60,9 +60,9 @@ def create_app():
     #dump_images(app)
 
     from app.views import views
-    from app.auth import auth
-    from app.image_handler.image_routes import image_routes
-    from app.settings import settings
+    from app.routes.auth import auth
+    from app.routes.image_routes import image_routes
+    from app.routes.settings import settings
 
     app.register_blueprint(views, url_prefix='/')
     app.register_blueprint(auth, url_prefix='/')
@@ -73,10 +73,10 @@ def create_app():
         #from .image_handler import scan_files
         #scan_files()
 
-        from app.settings import get_settings
+        from app.routes.settings import get_settings
         base_path = get_settings()['base_path']
 
-        from app.watcher import FileWatcher
+        from app.classes.watcher import FileWatcher
         file_watcher = FileWatcher()
         file_watcher.watch(base_path)
 

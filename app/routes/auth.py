@@ -1,15 +1,15 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app
-from .models import User
+from app.models import User
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.models import db
 from flask_login import login_user, login_required, logout_user, current_user
 from markupsafe import Markup
+from app.routes.settings import get_settings
 
 auth = Blueprint('auth', __name__)
 
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
-    from app.settings import get_settings
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
@@ -79,7 +79,6 @@ def sign_up():
             login_user(new_user, remember=True)
             return redirect(url_for('views.home'))
 
-    from app.settings import get_settings
     settings = get_settings()
 
     return render_template("signup.html", settings=settings)

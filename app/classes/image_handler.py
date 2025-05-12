@@ -1,7 +1,7 @@
 from app.models import db, Image
 import time, os, hashlib, fcntl
 from PIL import Image as Pimage
-from app.settings import get_settings
+from app.routes.settings import get_settings
 import datetime
 
 class ImageHandler():
