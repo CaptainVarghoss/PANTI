@@ -20,7 +20,6 @@ def home():
         if q == '':
             q = request.form.get('q','')
     images, image_count = db_get_images(limit=settings['thumb_num'], query=construct_query(q))
-    print(f'{image_count} images.')
     if current_user.admin:
         tag_list = Tag.query
     else:
