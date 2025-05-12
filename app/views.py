@@ -12,16 +12,37 @@ views = Blueprint('views', __name__)
 @views.route('/', methods=['GET', 'POST'])
 @login_required
 def home():
+    search = False
     settings = get_settings()
     q = request.args.get('q', '')
-    images = db_get_images(limit=settings['thumb_num'], query=construct_query(q))
+    if request.method == 'POST':
+        search = True
+        if q == '':
+            q = request.form.get('q','')
+    images, image_count = db_get_images(limit=settings['thumb_num'], query=construct_query(q))
+    print(f'{image_count} images.')
     if current_user.admin:
         tag_list = Tag.query
     else:
         tag_list = Tag.query.filter_by(admin_only=0)
     dir_list = get_path_list()
 
-    return render_template('home.html', images=images, settings=settings, search=q, next_offset=settings['thumb_num'], offscreen_tag_list=tag_list, dir_list=dir_list)
+    if search:
+        template = 'search.html'
+    else:
+        template = 'home.html'
+
+    return render_template(template, images=images, image_count=image_count, settings=settings, search=q, next_offset=settings['thumb_num'], offscreen_tag_list=tag_list, dir_list=dir_list)
+
+@views.route('/load_more_images')
+def load_more_images():
+    settings = get_settings()
+    offset = int(request.args.get('offset', 0))
+    q = request.args.get('q', '')
+    new_images, image_count = db_get_images(limit=settings['thumb_num'], offset=offset, query=construct_query(q))
+
+    return render_template('search.html', images=new_images, image_count=image_count, settings=settings, search=q, next_offset=offset + int(settings['thumb_num']))
+
 
 @views.route('/stream')
 def live_updates():
@@ -31,35 +52,25 @@ def send_update():
     template_url = '/search'
     yield f'data: <div hx-get="{template_url}" hx-target="#imagesBlock" hx-swap="afterbegin"></div>'
 
-@views.route('/search', methods=['GET', 'POST'])
-def search():
-    from .models import Image
-    settings = get_settings()
-    q = request.args.get('q', '')
-    results = db_get_images(limit=settings['thumb_num'], query=construct_query(q))
-
-    return render_template("search.html", images=results, settings=settings, search=q, next_offset=settings['thumb_num'])
-
 def db_get_images(order=Image.id.desc(), limit=60, offset=0, query=''):
+    base_query = Image.query.outerjoin(ImagePath, Image.path == ImagePath.path)
 
+    # Apply the filter if a query is provided
     if query != '':
-        images = Image.query.outerjoin(ImagePath, Image.path == ImagePath.path).filter(query).order_by(order).limit(limit).offset(offset)
-    else:
-        images = Image.query.outerjoin(ImagePath, Image.path == ImagePath.path).order_by(order).limit(limit).offset(offset)
+        base_query = base_query.filter(query)
 
-    if images.count() == 0:
-        return ''
+    # Apply ordering for both count and image retrieval
+    count_query = base_query.order_by(order)
+    images_query = base_query.order_by(order).limit(limit).offset(offset)
 
-    return images
+    # Get the count *before* applying limit and offset
+    image_count = count_query.count()
+    images = images_query.all()  # Execute the query to get image objects.  Use .all()
 
-@views.route('/load_more_images')
-def load_more_images():
-    settings = get_settings()
-    offset = int(request.args.get('offset', 0))
-    q = request.args.get('q', '')
-    new_images = db_get_images(limit=settings['thumb_num'], offset=offset, query=construct_query(q))
+    if image_count == 0:
+            return ''
 
-    return render_template('search.html', images=new_images, settings=settings, search=q, next_offset=offset + int(settings['thumb_num']))
+    return images, image_count
 
 def construct_query(keywords):
     tokens = re.split(r'(\sand\s|\sAND\s|\sor\s|\sOR\s|\s=\s|\s>\s|\s<\s|\s>=\s|\snot\s|\sNOT\s|\sLIKE\s|\sIN\s|\sNOT IN\s)', keywords)

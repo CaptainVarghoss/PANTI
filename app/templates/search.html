@@ -1,7 +1,7 @@
 <div class="flex-grow-1 justify-content-center p-2 align-self-center input-group" id="searchContainer" hx-swap-oob="true">
     <div class="input-group">
-        <input class="form-control" type="search" name="q" id="searchBox" {% if search %}value="{{search}}" {% endif %} hx-get="/search" hx-trigger="keyup changed delay:500ms" hx-target="#imagesBlock" hx-swap="innerHTML" placeholder="Search" aria-label="Search">
-        <button class="btn btn-outline-secondary" type="button" id="clear-search" hx-get="/search" hx-target="#imagesBlock" hx-swap="innerHTML">&times;</button>
+        <input class="form-control" type="search" name="q" id="searchBox" {% if search %}value="{{search}}" {% endif %} hx-post="/" hx-trigger="keyup changed delay:500ms" hx-target="#imagesBlock" hx-swap="innerHTML" placeholder="Search" aria-label="Search">
+        <button class="btn btn-outline-secondary" type="button" id="clear-search" hx-post="/" hx-target="#imagesBlock" hx-swap="innerHTML">&times;</button>
     </div>
 </div>
 
@@ -9,7 +9,7 @@
 {% include "includes/thumbnail.html" %}
 {% endfor %}
 
-{% if images != '' %}
+{% if images != [] %}
 <div id="load-more" hx-get="/load_more_images?q={{ search }}&offset={{ next_offset }}" hx-target="#imagesBlock" hx-trigger="intersect once" hx-swap="beforeend" hx-swap-oob="true">
     Loading more images... {{next_offset}}
 </div>
