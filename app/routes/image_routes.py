@@ -58,16 +58,19 @@ def get_image_info(id):
             else:
                 all_tags = Tag.query.filter_by(admin_only=0)
             tag_list = [tag for tag in all_tags if tag not in tags]
-            temp_meta = image.meta
-            if type(temp_meta) == dict:
-                # check if swarmui
-                if 'sui_image_params' in temp_meta['parameters']:
-                    # actually swarm, pass data
-                    temp_meta = json.loads(temp_meta['parameters'])
-                    meta = temp_meta['sui_image_params']
+            if not image.is_video:
+                temp_meta = image.meta
+                if type(temp_meta) == dict:
+                    # check if swarmui
+                    if 'sui_image_params' in temp_meta['parameters']:
+                        # actually swarm, pass data
+                        temp_meta = json.loads(temp_meta['parameters'])
+                        meta = temp_meta['sui_image_params']
+                    else:
+                    # not swarm, pass normally?
+                        meta = temp_meta
                 else:
-                # not swarm, pass normally?
-                    meta = temp_meta
+                    meta = {}
             else:
                 meta = {}
 

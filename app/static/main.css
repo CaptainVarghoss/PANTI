@@ -108,6 +108,11 @@ div.thumbnail {
     object-fit: contain;
 }
 
+.modal-video {
+    height: fit-content;
+    align-self: center;
+}
+
 .fullsizeModal .image-modal-info {
     max-width: max-content;
 }

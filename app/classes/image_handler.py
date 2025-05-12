@@ -2,16 +2,17 @@ from app.models import db, Image
 import time, os, hashlib, fcntl
 from PIL import Image as Pimage
 from app.routes.settings import get_settings
-import datetime
+import datetime, magic, subprocess
 
 class ImageHandler():
     def __init__(self, file_path, filename, lock_dir="/tmp/file_watcher_locks"):
-        #self.mime = self.get_mime_type()
         self.settings = get_settings()
         self.base_path = self.settings['base_path']
         self.file_path = file_path
         self.filename = filename
         self.checksum = self.get_checksum()
+        self.mime = self.get_mime_type()
+        self.is_video = True if self.mime == 'video' else False
         self.date_created = self.get_created_date()
         self.thumb_path = 'app/static/thumbnails/'
         self.timer = None
@@ -20,12 +21,9 @@ class ImageHandler():
         os.makedirs(self.lock_dir, exist_ok=True)  # Ensure lock directory exists
 
     def get_mime_type(self):
-        import magic
         mime = magic.from_file(os.path.join(self.file_path, self.filename), mime=True)
-        if 'image' in mime:
-            return True
-        else:
-            return False
+        mime_parts = mime.split("/")
+        return mime_parts[0]
 
     def get_checksum(self):
         with open(os.path.join(self.file_path, self.filename), 'rb') as file_to_check:
@@ -33,10 +31,9 @@ class ImageHandler():
             return hashlib.md5(data).hexdigest()
 
     def db_add_image(self):
-        lock_path = self._get_lock_path(self.filename)
+        lock_path = os.path.join(self.lock_dir, f"{self.filename}.lock")
         lock_file = None
         try:
-            meta = self.get_meta()
             existing_image = self.db_get_image()
             if not existing_image:
                 try:
@@ -45,8 +42,12 @@ class ImageHandler():
                     fcntl.flock(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)  # Non-blocking
                     print(f"Lock acquired: {lock_path}")
                     try:
+                        if not self.is_video:
+                            meta = self.get_meta()
+                        else:
+                            meta = {}
                         cleaned_path = self.file_path.replace(self.base_path, '')
-                        new_image = Image(filename=self.filename, checksum=self.checksum, path=cleaned_path, meta=meta, date_created=self.date_created)
+                        new_image = Image(filename=self.filename, checksum=self.checksum, path=cleaned_path, meta=meta, date_created=self.date_created, is_video=self.is_video)
                         db.session.add(new_image)
                         db.session.commit()
                         print(f'Image: {self.filename} added to database. ID: {new_image.id}')
@@ -83,10 +84,6 @@ class ImageHandler():
     def db_add_video(self):
         return
 
-    def _get_lock_path(self, filename):
-        # Generates a lock file path from the watched file's path.
-        return os.path.join(self.lock_dir, f"{filename}.lock")
-
     def db_get_image(self):
         image = Image.query.filter_by(checksum=self.checksum).first()
         if image:
@@ -113,9 +110,32 @@ class ImageHandler():
     def generate_thumbnail(self):
         print('Generating thumbnail')
         if os.path.exists(self.thumb_path):
-            image = Pimage.open(os.path.join(self.file_path, self.filename))
+            if self.mime == 'video':
+                temp_image = os.path.join(self.thumb_path, f'{self.filename}_temp.png')
+                command = [
+                    'ffmpeg',
+                    '-i', os.path.join(self.file_path, self.filename),
+                    '-ss', '00:00:00',
+                    '-vframes', '1',
+                    temp_image
+                ]
+                print("FFmpeg Command:", command)  # Add this line
+                try:
+                    subprocess.run(command, check=True, capture_output=True)
+                except subprocess.CalledProcessError as e:
+                    print(f"FFmpeg Error (status {e.returncode}): {e}")
+                    print(f"FFmpeg stderr:\n{e.stderr.decode()}")
+                    return False
+                image = Pimage.open(temp_image)
+            elif self.mime == 'image':
+                image = Pimage.open(os.path.join(self.file_path, self.filename))
+            else:
+                return
             image.thumbnail((int(get_settings('thumb_size')) + 100,int(get_settings('thumb_size')) + 100))
             image.save(os.path.join(self.thumb_path, f'{self.checksum}.webp'), 'webp')
+            if self.mime == 'video':
+                #delete temp video thumbnail
+                os.remove(temp_image)
             print('Thumbnail generated for ' + self.filename)
         else:
             print('Path broken')

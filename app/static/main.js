@@ -4,18 +4,23 @@ if (fullsizeModal) {
     // Button that triggered the modal
     const button = event.relatedTarget
     // Extract info from data-bs-* attributes
-    const image_info = button.getAttribute('data-bs-modalmeta')
     const image = button.getAttribute('data-bs-modalimage')
-
-    // If necessary, you could initiate an Ajax request here
-    // and then do the updating in a callback.
-
+    const isVideo = button.getAttribute('data-bs-isvideo')
+    var html = ''
+    console.log(isVideo)
+    if (isVideo == 'True') {
+      html = `<video class="modal-video" controls><source src="${image}"></video>`;
+      console.log(html)
+    }
+    if (isVideo == 'False') {
+      html = `<img class="modal-image" role="button" data-bs-dismiss="modal" data-bs-target="#fullsizeModal" src="${image}" />`;
+    }
 
     // Update the modal's content.
-    const modalBody = fullsizeModal.querySelector('.modal-image')
+    const modalBody = fullsizeModal.querySelector('.image-container-modal')
     //const modalText = fullsizeModal.querySelector('.card-text')
 
-    modalBody.src = image
+    modalBody.innerHTML = html
     //modalText.innerHTML = '<iframe src="' + image_info + '" />'
     // fullsizeModal.handleUpdate()
   })

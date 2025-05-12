@@ -120,16 +120,13 @@ class ScanFiles():
                 file_path = os.path.join(self.path, filename)
                 f_file = ImageHandler(file_path=self.path, filename=filename)
                 try:
-                    mime = magic.from_file(file_path, mime=True)
-                    mime_parts = mime.split("/")
-                    if mime_parts[0] == 'image':
+                    mime = f_file.mime
+                    if mime == 'image' or mime == 'video':
                         f_file.db_add_image()
                         f_file.check_thumbnail()
-                    elif mime_parts[0] == 'video':
-                        print(f'Video file found: {file_path}, add support for videos!')
                 except FileNotFoundError:
                     print(f"Error: File not found during processing: {file_path}")
-                except magic.MagicError as e:
+                except Exception as e:
                     print(f"Error with magic on {file_path}: {e}")
                 except Exception as e:
                     print(f"Error processing {file_path}: {e}")
