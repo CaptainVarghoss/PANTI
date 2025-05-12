@@ -31,7 +31,7 @@ def home():
     else:
         template = 'home.html'
 
-    return render_template(template, images=images, image_count=image_count, settings=settings, search=q, next_offset=settings['thumb_num'], offscreen_tag_list=tag_list, dir_list=dir_list)
+    return render_template(f'pages/{template}', images=images, image_count=image_count, settings=settings, search=q, next_offset=settings['thumb_num'], offscreen_tag_list=tag_list, dir_list=dir_list)
 
 @views.route('/load_more_images')
 def load_more_images():
@@ -40,7 +40,7 @@ def load_more_images():
     q = request.args.get('q', '')
     new_images, image_count = db_get_images(limit=settings['thumb_num'], offset=offset, query=construct_query(q))
 
-    return render_template('search.html', images=new_images, image_count=image_count, settings=settings, search=q, next_offset=offset + int(settings['thumb_num']))
+    return render_template('pages/search.html', images=new_images, image_count=image_count, settings=settings, search=q, next_offset=offset + int(settings['thumb_num']))
 
 
 @views.route('/stream')

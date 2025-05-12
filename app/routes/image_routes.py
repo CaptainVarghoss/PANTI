@@ -11,7 +11,7 @@ image_routes = Blueprint('image_routes', __name__)
 def list_new_images():
     settings = get_settings()
     results = Image.query.order_by(Image.id.desc())
-    return render_template("live_update.html", images=results, settings=settings)
+    return render_template("includes/live_update.html", images=results, settings=settings)
 
 @image_routes.route('/get-image/<path:checksum>')
 def send_media(checksum):
@@ -71,7 +71,7 @@ def get_image_info(id):
             else:
                 meta = {}
 
-            return render_template('modal_image_info.html', image=image, meta=meta, tag_list=tag_list, tags=tags)
+            return render_template('includes/modal_image_info.html', image=image, meta=meta, tag_list=tag_list, tags=tags)
         else:
             return
     else:

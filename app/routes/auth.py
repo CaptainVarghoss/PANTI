@@ -30,7 +30,7 @@ def login():
 
     settings = get_settings()
 
-    return render_template('login.html', settings=settings)
+    return render_template('pages/login.html', settings=settings)
 
 @auth.route('/logout')
 @login_required
@@ -81,4 +81,4 @@ def sign_up():
 
     settings = get_settings()
 
-    return render_template("signup.html", settings=settings)
+    return render_template("pages/signup.html", settings=settings)

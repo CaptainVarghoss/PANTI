@@ -82,7 +82,7 @@ def show_settings():
     common_colors = color_picker_list(type="common")
     all_colors = color_picker_list(type="all")
 
-    return render_template('settings.html', settings=settings, user_id=user_id, is_admin=is_admin, tag_list=tag_list, common_colors=common_colors, all_colors=all_colors, form_fields=[])
+    return render_template('pages/settings.html', settings=settings, user_id=user_id, is_admin=is_admin, tag_list=tag_list, common_colors=common_colors, all_colors=all_colors, form_fields=[])
 
 @settings.route('/edit_tag/<int:id>', methods=['POST'])
 def edit_tag(id):
