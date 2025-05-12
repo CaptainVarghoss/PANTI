@@ -120,3 +120,11 @@ div.thumbnail {
         margin: 1px;
     }
 }
+
+
+.tag-button {
+    border: 1px solid black;
+}
+.tag-button button.btn {
+    line-height:12px;
+}

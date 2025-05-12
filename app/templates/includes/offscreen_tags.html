@@ -1,6 +1,6 @@
 <div class="accordion-body">
 {% for t in offscreen_tag_list %}
-    <div class="btn rounded-pill m-1" style="background-color: {{t.color}}; color: {{t.text_color}};" hx-target="#filterOne" hx-swap="innerHTML">
+    <div class="btn rounded-pill tag-button m-1" style="background-color: {{t.color}}; color: {{t.text_color}};" hx-target="#filterOne" hx-swap="innerHTML">
         <button class="btn" type="button" hx-post="/search?q=TAG {{t.name}}" hx-target="#imagesBlock" hx-swap="innerHTML" style="color: {{t.text_color}};" data-bs-toggle="offcanvas">{{t.name}}</button>
     </div>
 {% endfor %}

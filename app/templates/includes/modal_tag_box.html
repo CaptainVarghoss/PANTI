@@ -5,16 +5,16 @@
         </button>
         <ul class="dropdown-menu">
         {% for t in tag_list %}
-            <li class="m-1" value="{{t.id}}" class="rounded-pill" style="background-color: {{t.color}}; color: {{t.text_color}}; text-align:center;" hx-post="/tags/add/{{image.id}}/{{t.id}}" hx-target="#tagReplaceBox" hx-swap="innerHTML">{{t.name}}</li>
+            <li value="{{t.id}}" class="rounded-pill m-1" style="background-color: {{t.color}}; color: {{t.text_color}}; text-align:center;" hx-post="/tags/add/{{image.id}}/{{t.id}}" hx-target="#tagReplaceBox" hx-swap="innerHTML">{{t.name}}</li>
         {% endfor %}
         </ul>
     </div>
     <div id="tagBox" class="d-flex justify-content-center">
     {% if tags %}
         {% for t in tags %}
-            <div class="btn-group rounded-pill mx-2 align-items-center" style="background-color: {{t.color}}; color: {{t.text_color}};">
+            <div class="btn-group rounded-pill tag-button mx-2 align-items-center" style="background-color: {{t.color}}; color: {{t.text_color}};">
                 <button class="btn" type="button" hx-post="/search?q=TAG {{t.name}}" hx-target="#imagesBlock" hx-swap="innerHTML" style="color: {{t.text_color}};" data-bs-toggle="modal">{{t.name}}</button>
-                <button type="button" class="rounded-pill border-0 me-1" style="background-color: {{t.color}}; color: {{t.text_color}};" hx-confirm="Are you sure you wish to remove this tag?" hx-post="/tags/del/{{image.id}}/{{t.id}}" id="tag_button_{{t.id}}" hx-target="#tagReplaceBox" hx-swap="innerHTML">&times;</button>
+                <button type="button" class="tag-button rounded-pill border-0 me-1" style="background-color: {{t.color}}; color: {{t.text_color}};" hx-confirm="Are you sure you wish to remove this tag?" hx-post="/tags/del/{{image.id}}/{{t.id}}" id="tag_button_{{t.id}}" hx-target="#tagReplaceBox" hx-swap="innerHTML">&times;</button>
             </div>
         {% endfor %}
     {% endif %}

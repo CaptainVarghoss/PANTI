@@ -2,7 +2,7 @@
     <div id="common-colors">
         {% for color in colors %}
             <div style="display: inline-block;">
-                <div class="color-box btn rounded-pill m-2" hx-post="/settings/add_tag/color/{{color.value}}/{{color.text_color}}/{{name}}" hx-target="#tag_modal_content" hx-swap="innerHTML" style="background-color: {{ color.value }}; color: {{color.text_color}};" title="{{ color.name }} ({{ color.value }})">
+                <div class="color-box btn rounded-pill tag-button m-2" hx-post="/settings/add_tag/color/{{color.value}}/{{color.text_color}}/{{name}}" hx-target="#tag_modal_content" hx-swap="innerHTML" style="background-color: {{ color.value }}; color: {{color.text_color}};" title="{{ color.name }} ({{ color.value }})">
                     <span class="p-1 tags">{{ color.name }}</span>
                 </div>
             </div>
