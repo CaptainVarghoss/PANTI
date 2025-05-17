@@ -2,13 +2,16 @@
 <div class="modal-header justify-content-center">
     <div class="pt-2">Add new tag</div>
 </div>
-<div class="modal-body text-center container">
+<div class="modal-body text-center container justify-content-center">
     <div class="p-2">Color:&nbsp;&nbsp;&nbsp;<button class="btn" style="background-color: {{form_fields['color']}}; color: {{form_fields['text']}};" hx-post="/settings/show_common_colors" hx-swap="innerHTML" hx-target="#tag_modal_content" {% if form_fields['id'] %}disabled{% endif %}>{{form_fields['color']}}</button></div>
-    <div class="d-flex align-items-center">
-        <input type="hidden" name="color" value="{{form_fields['color']}}">
-        <input type="hidden" name="text" value="{{form_fields['text']}}">
-        <input type="text" placeholder="Name" name="name" value="{{form_fields['name']}}">
+    <div class="d-flex align-items-center justify-content-center">
+        Name:&nbsp;&nbsp;&nbsp;<input type="text" placeholder="Name" name="name" value="{{form_fields['name']}}">
     </div>
+    <div class="">
+        Admin Only:&nbsp;&nbsp;&nbsp;<input type="checkbox" name="admin_only" value="{{form_fields['admin_only']}}" {% if form_fields['admin_only'] %}checked{% endif %}>
+    </div>
+    <input type="hidden" name="color" value="{{form_fields['color']}}">
+    <input type="hidden" name="text" value="{{form_fields['text']}}">
 </div>
 <div class="modal-footer d-flex justify-content-between">
     <button class="btn btn-danger" data-bs-dismiss="modal" aria-label="Close">Cancel</button>

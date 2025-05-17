@@ -51,14 +51,19 @@ def show_settings():
             tag_name = request.form.get('name')
             tag_color = request.form.get('color')
             tag_text = request.form.get('text')
+            if request.form.get('admin_only') == None:
+                tag_admin = False
+            else:
+                tag_admin = True
             if request.form.get('id'):
                 old_tag = Tag.query.filter_by(id=request.form.get('id')).first()
                 old_tag.name = tag_name
                 old_tag.color = tag_color
                 old_tag.text_color = tag_text
+                old_tag.admin_only = tag_admin
                 flash('Tag Saved.', category='success')
             else:
-                add_tag = Tag(name=tag_name, color=tag_color, text_color=tag_text)
+                add_tag = Tag(name=tag_name, color=tag_color, text_color=tag_text, admin_only=tag_admin)
                 db.session.add(add_tag)
                 flash('Tag Added.', category='success')
             db.session.commit()
@@ -92,6 +97,7 @@ def edit_tag(id):
     form_fields['text'] = tag.text_color
     form_fields['name'] = tag.name
     form_fields['id'] = tag.id
+    form_fields['admin_only'] = tag.admin_only
     return render_template('includes/settings_tags.html', form_fields=form_fields)
 
 @settings.route('/add_tag', methods=['GET', 'POST'])

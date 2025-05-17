@@ -5,116 +5,127 @@
     <div class="m-3 d-flex justify-content-center align-items-top">
         <ul class="nav nav-tabs" id="myTab" role="tablist">
             <li class="nav-item" role="presentation">
-              <button class="nav-link active" id="tags-tab" data-bs-toggle="tab" data-bs-target="#tags-tab-pane" type="button" role="tab" aria-controls="home-tab-pane" aria-selected="true">Tags</button>
+              <button class="nav-link active" id="users-tab" data-bs-toggle="tab" data-bs-target="#users-tab-pane" type="button" role="tab" aria-controls="user-tab-pane" aria-selected="true">User Settings</button>
             </li>
             <li class="nav-item" role="presentation">
-              <button class="nav-link" id="bookmarks-tab" data-bs-toggle="tab" data-bs-target="#bookmarks-tab-pane" type="button" role="tab" aria-controls="bookmarks-tab-pane" aria-selected="false">Bookmarks</button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings-tab-pane" type="button" role="tab" aria-controls="settings-tab-pane" aria-selected="false">App Settings</button>
+              <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings-tab-pane" type="button" role="tab" aria-controls="settings-tab-pane" aria-selected="false">Server Settings</button>
             </li>
         </ul>
     </div>
-    <div class="tab-content d-flex justify-content-center mt-3 pt-3" id="myTabContent">
-        <div class="tab-pane fade show active" id="tags-tab-pane" role="tabpanel" aria-labelledby="tags-tab" tabindex="0">
-            <div class="mb-3 d-flex justify-content-center">
-                <button class="btn btn-outline-secondary" data-bs-target="#tag_modal" data-bs-toggle="modal" hx-get="/settings/add_tag" hx-on="show.bs.modal: target.innerHTML='Loading...';" hx-target="#tag_modal_content" data-bs-target="#tag_modal_content">Add Tag</button>
-            </div>
-            <div id="tag_list">
-                {% include "includes/tag_list.html" %}
-            </div>
-            <div class="modal fade" id="tag_modal" aria-hidden="true" aria-labelledby="tag_modal" tabindex="-1">
-                <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-                    <div class="modal-content" id="tag_modal_content">
-                        {% include "includes/settings_tags.html" %}
+    <div class="">
+        <form method="POST" id="settings_form">
+            <div class="tab-content justify-content-center mt-3 pt-3" id="myTabContent">
+                <div class="tab-pane fade show active" id="users-tab-pane" role="tabpanel" aria-labelledby="users-tab" tabindex="0">
+                    <div class="container justify-content-center accordion">
+                        <div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                                        Sidebar Icons
+                                    </button>
+                                </h2>
+                                <div id="collapseOne" class="accordion-collapse collapse show">
+                                    <div class="accordion-body">
+                                        <div class="form-check m-2 mb-4">
+                                            <input class="form-check-input" type="radio" name="sidebar" value="Left" id="Left" {% if settings['sidebar'] == 'Left' %}checked{% endif %}>
+                                            <label class="form-check-label" for="base_path">Sidebar Left</label>
+                                        </div>
+                                        <div class="form-check m-2 mb-4">
+                                            <input class="form-check-input" type="radio" name="sidebar" value="Right" id="Right" {% if settings['sidebar'] == 'Right' %}checked{% endif %}>
+                                            <label class="form-check-label" for="base_path">Sidebar Right</label>
+                                        </div>
+                                        <div class="form-check m-2 mb-4">
+                                            <input class="form-check-input" type="radio" name="sidebar" value="Both" id="Both" {% if settings['sidebar'] == 'Both' %}checked{% endif %}>
+                                            <label class="form-check-label" for="base_path">Sidebar Both</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group m-2">
+                                <div class="">
+                                    <button type="submit" class="btn btn-success" id="settings-button" name="settings-button">Save</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="settings-tab-pane" role="tabpanel" aria-labelledby="settings-tab" tabindex="0">
+                    <div class="container justify-content-center accordion">
+                        <div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                                        Tags
+                                    </button>
+                                </h2>
+                                <div id="collapseOne" class="accordion-collapse collapse show">
+                                    <div class="accordion-body">
+                                        <div class="mb-3 d-flex justify-content-center">
+                                            <button class="btn btn-outline-secondary" data-bs-target="#tag_modal" data-bs-toggle="modal" hx-get="/settings/add_tag" hx-on="show.bs.modal: target.innerHTML='Loading...';" hx-target="#tag_modal_content" data-bs-target="#tag_modal_content">Add Tag</button>
+                                        </div>
+                                        <div id="tag_list">
+                                            {% include "includes/tag_list.html" %}
+                                        </div>
+                                        <div class="modal fade" id="tag_modal" aria-hidden="true" aria-labelledby="tag_modal" tabindex="-1">
+                                            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                                                <div class="modal-content" id="tag_modal_content">
+                                                    {% include "includes/settings_tags.html" %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item" id="settingsAccordion">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="true" aria-controls="collapseTwo">
+                                        Folders
+                                    </button>
+                                </h2>
+                                <div id="collapseTwo" class="accordion-collapse collapse show">
+                                    <div class="accordion-body">
+                                        
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="true" aria-controls="collapseThree">
+                                        Server Settings
+                                    </button>
+                                </h2>
+                                <div id="collapseThree" class="accordion-collapse collapse show">
+                                    <div class="accordion-body">
+                                        {% if not is_admin %}<span class="text-bg-danger">You must be logged in as admin to change these settings.</span>{% endif %}
+                                        <div class="form-floating m-2 mb-4">
+                                            <input type="text" class="form-control" id="base_path" name="base_path" value="{{ settings.base_path }}" placeholder="Base path to Images" {% if not is_admin %}disabled{% endif %}>
+                                            <label class="form-label" for="base_path">Base Path</label>
+                                        </div>
+                                        <div class="form-check m-2 mb-4">
+                                            <input type="checkbox" class="form-check-input" id="allow_signup" name="allow_signup" value="signups" placeholder="Allow Signup" {% if settings['allow_signup'] == 'True' %}checked{% endif %} {% if not is_admin %}disabled{% endif %}>
+                                            <label class="form-check-label" for="allow_signup">Allow Signup</label>
+                                        </div>
+                                        <div class="form-check m-2 mb-4">
+                                            <input type="checkbox" class="form-check-input" id="allow_login" name="allow_login" value="logins" placeholder="Allow Login" {% if settings['allow_login'] == 'True' %}checked{% endif %} {% if not is_admin %}disabled{% endif %}>
+                                            <label class="form-check-label" for="allow_login">Allow Login</label>
+                                        </div>
+                                        <div class="form-floating m-2 mb-4">
+                                            <input type="text" class="form-control" id="thumb_size" name="thumb_size" value="{{ settings.thumb_size }}" placeholder="Thumbnail Size/Offset" {% if not is_admin %}disabled{% endif %}>
+                                            <label class="form-label" for="thumb_size">Thumbnail Size/Offset</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group m-2">
+                                <div class="">
+                                    <button type="submit" class="btn btn-success" id="settings-button" name="settings-button">Save</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-        <div class="tab-pane fade" id="bookmarks-tab-pane" role="tabpanel" aria-labelledby="bookmarks-tab" tabindex="0">
-            <div>
-                <form id="bookmarks_form">
-                    <input type="text" class="form-control" id="add_bookmark" name="add_bookmark">
-                    <label class="form-label">Add Bookmark</label>
-                    <button class="btn" type="submit" id="bookmarks-button" name="bookmarks-button">Add</button>
-                </form>
-            </div>
-            <div class="form-floating mb-3">
-                list of bookmarks here
-            </div>
-            <div>
-                <ul>
-                    {% for b in bookmarks %}
-
-                    {% endfor %}
-                </ul>
-            </div>
-            </div>
-        </div>
-        <div class="tab-pane fade" id="settings-tab-pane" role="tabpanel" aria-labelledby="settings-tab" tabindex="0">
-            <div class="container justify-content-center accordion">
-                <div>
-                    <form method="POST" id="settings_form">
-                        <div class="accordion-item" id="settingsAccordion">
-                            <h2 class="accordion-header">
-                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
-                                    User Settings
-                                </button>
-                            </h2>
-                            <div id="collapseOne" class="accordion-collapse collapse show">
-                                <div class="accordion-body">
-                                    <div class="form-check m-2 mb-4">
-                                        <input class="form-check-input" type="radio" name="sidebar" value="Left" id="Left" {% if settings['sidebar'] == 'Left' %}checked{% endif %}>
-                                        <label class="form-check-label" for="base_path">Sidebar Left</label>
-                                    </div>
-                                    <div class="form-check m-2 mb-4">
-                                        <input class="form-check-input" type="radio" name="sidebar" value="Right" id="Right" {% if settings['sidebar'] == 'Right' %}checked{% endif %}>
-                                        <label class="form-check-label" for="base_path">Sidebar Right</label>
-                                    </div>
-                                    <div class="form-check m-2 mb-4">
-                                        <input class="form-check-input" type="radio" name="sidebar" value="Both" id="Both" {% if settings['sidebar'] == 'Both' %}checked{% endif %}>
-                                        <label class="form-check-label" for="base_path">Sidebar Both</label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="accordion-item">
-                            <h2 class="accordion-header">
-                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="true" aria-controls="collapseOne">
-                                    Server Settings
-                                </button>
-                            </h2>
-                            <div id="collapseThree" class="accordion-collapse collapse show">
-                                <div class="accordion-body">
-                                    {% if not is_admin %}<span class="text-bg-danger">You must be logged in as admin to change these settings.</span>{% endif %}
-                                    <div class="form-floating m-2 mb-4">
-                                        <input type="text" class="form-control" id="base_path" name="base_path" value="{{ settings.base_path }}" placeholder="Base path to Images" {% if not is_admin %}disabled{% endif %}>
-                                        <label class="form-label" for="base_path">Base Path</label>
-                                    </div>
-                                    <div class="form-check m-2 mb-4">
-                                        <input type="checkbox" class="form-check-input" id="allow_signup" name="allow_signup" value="signups" placeholder="Allow Signup" {% if settings['allow_signup'] == 'True' %}checked{% endif %} {% if not is_admin %}disabled{% endif %}>
-                                        <label class="form-check-label" for="allow_signup">Allow Signup</label>
-                                    </div>
-                                    <div class="form-check m-2 mb-4">
-                                        <input type="checkbox" class="form-check-input" id="allow_login" name="allow_login" value="logins" placeholder="Allow Login" {% if settings['allow_login'] == 'True' %}checked{% endif %} {% if not is_admin %}disabled{% endif %}>
-                                        <label class="form-check-label" for="allow_login">Allow Login</label>
-                                    </div>
-                                    <div class="form-floating m-2 mb-4">
-                                        <input type="text" class="form-control" id="thumb_size" name="thumb_size" value="{{ settings.thumb_size }}" placeholder="Thumbnail Size/Offset" {% if not is_admin %}disabled{% endif %}>
-                                        <label class="form-label" for="thumb_size">Thumbnail Size/Offset</label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-group m-2">
-                            <div class="">
-                                <button type="submit" class="btn btn-success" id="settings-button" name="settings-button">Save</button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
+        </form>
     </div>
 </div>
 
