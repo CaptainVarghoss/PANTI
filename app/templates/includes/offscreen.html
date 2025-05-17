@@ -3,9 +3,10 @@
         <span class="navbar-toggler-icon"></span>
     </button>
 </div>
-<div class="offcanvas-body pt-5">
+<div class="offcanvas-body pt-3">
+    <div class="m-2 pb-3">Logged in as {{current_user.username}}{% if current_user.admin %} (admin){% endif %}</div>
     <div class="offcanvas-filters" id="offcanvas-filters">
-        Filters:<br />
+        <div class="m-2">Filters:</div>
         <div class="container justify-content-center accordion p-0">
             <div class="accordion-item p-0" id="tagsAccordion{% if which_side == 'left' %}Left{% endif %}{% if which_side == 'right' %}Right{% endif %}">
                 <h2 class="accordion-header">
