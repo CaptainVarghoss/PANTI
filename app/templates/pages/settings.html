@@ -84,7 +84,9 @@
                                 </h2>
                                 <div id="collapseTwo" class="accordion-collapse collapse show">
                                     <div class="accordion-body">
-                                        
+                                        <div id="folder_list">
+                                            {% include "includes/file_list.html" %}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -96,21 +98,21 @@
                                 </h2>
                                 <div id="collapseThree" class="accordion-collapse collapse show">
                                     <div class="accordion-body">
-                                        {% if not is_admin %}<span class="text-bg-danger">You must be logged in as admin to change these settings.</span>{% endif %}
+                                        {% if not current_user.admin %}<span class="text-bg-danger">You must be logged in as admin to change these settings.</span>{% endif %}
                                         <div class="form-floating m-2 mb-4">
-                                            <input type="text" class="form-control" id="base_path" name="base_path" value="{{ settings.base_path }}" placeholder="Base path to Images" {% if not is_admin %}disabled{% endif %}>
+                                            <input type="text" class="form-control" id="base_path" name="base_path" value="{{ settings.base_path }}" placeholder="Base path to Images" {% if not current_user.admin %}disabled{% endif %}>
                                             <label class="form-label" for="base_path">Base Path</label>
                                         </div>
                                         <div class="form-check m-2 mb-4">
-                                            <input type="checkbox" class="form-check-input" id="allow_signup" name="allow_signup" value="signups" placeholder="Allow Signup" {% if settings['allow_signup'] == 'True' %}checked{% endif %} {% if not is_admin %}disabled{% endif %}>
+                                            <input type="checkbox" class="form-check-input" id="allow_signup" name="allow_signup" value="signups" placeholder="Allow Signup" {% if settings['allow_signup'] == 'True' %}checked{% endif %} {% if not current_user.admin %}disabled{% endif %}>
                                             <label class="form-check-label" for="allow_signup">Allow Signup</label>
                                         </div>
                                         <div class="form-check m-2 mb-4">
-                                            <input type="checkbox" class="form-check-input" id="allow_login" name="allow_login" value="logins" placeholder="Allow Login" {% if settings['allow_login'] == 'True' %}checked{% endif %} {% if not is_admin %}disabled{% endif %}>
+                                            <input type="checkbox" class="form-check-input" id="allow_login" name="allow_login" value="logins" placeholder="Allow Login" {% if settings['allow_login'] == 'True' %}checked{% endif %} {% if not current_user.admin %}disabled{% endif %}>
                                             <label class="form-check-label" for="allow_login">Allow Login</label>
                                         </div>
                                         <div class="form-floating m-2 mb-4">
-                                            <input type="text" class="form-control" id="thumb_size" name="thumb_size" value="{{ settings.thumb_size }}" placeholder="Thumbnail Size/Offset" {% if not is_admin %}disabled{% endif %}>
+                                            <input type="text" class="form-control" id="thumb_size" name="thumb_size" value="{{ settings.thumb_size }}" placeholder="Thumbnail Size/Offset" {% if not current_user.admin %}disabled{% endif %}>
                                             <label class="form-label" for="thumb_size">Thumbnail Size/Offset</label>
                                         </div>
                                     </div>

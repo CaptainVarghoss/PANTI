@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, session, flash, redirect, url_for
 from flask_login import login_required
-from ..models import Setting, db, User, Tag
+from ..models import Setting, db, User, Tag, ImagePath
 
 settings = Blueprint('settings', __name__)
 
@@ -80,14 +80,17 @@ def show_settings():
 
     if is_admin:
         tag_list = Tag.query
+        folder_list = ImagePath.query
+        print(type(folder_list))
     else:
         tag_list = Tag.query.filter_by(admin_only=0)
+        folder_list = ImagePath.query.filter_by(admin_only=0)
 
     from app.helpers.color_picker import color_picker_list
     common_colors = color_picker_list(type="common")
     all_colors = color_picker_list(type="all")
 
-    return render_template('pages/settings.html', settings=settings, user_id=user_id, is_admin=is_admin, tag_list=tag_list, common_colors=common_colors, all_colors=all_colors, form_fields=[])
+    return render_template('pages/settings.html', settings=settings, user_id=user_id, tag_list=tag_list, folder_list=folder_list, common_colors=common_colors, all_colors=all_colors, form_fields=[])
 
 @settings.route('/edit_tag/<int:id>', methods=['POST'])
 def edit_tag(id):
