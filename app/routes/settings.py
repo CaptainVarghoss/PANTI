@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, session, flash, redirect, url_for
 from flask_login import login_required
 from ..models import Setting, db, User, Tag, ImagePath
-from app.helpers.io_handler import get_path_list
+from app.helpers.io_handler import get_path_list, db_scan
 
 settings = Blueprint('settings', __name__)
 
@@ -56,7 +56,7 @@ def show_settings():
 
             # folder settings
             if is_admin:
-                folders = get_path_list()
+                folders = get_path_list(ignore=True)
                 for f in folders:
                     if request.form.get(f'{f.id}_admin_only') == None:
                         admin_only = False
@@ -72,6 +72,9 @@ def show_settings():
                         update.admin_only = admin_only
                         update.ignore = ignore
                         db.session.commit()
+                        # if ignore, initiate database scan to ensure nothing ignored remains in database
+                        if ignore:
+                            db_scan()
 
         if tags_button != False:
             tag_name = request.form.get('name')
@@ -109,7 +112,7 @@ def show_settings():
     else:
         tag_list = Tag.query.filter_by(admin_only=0)
 
-    folder_list = get_path_list()
+    folder_list = get_path_list(ignore=True)
     from app.helpers.color_picker import color_picker_list
     common_colors = color_picker_list(type="common")
     all_colors = color_picker_list(type="all")

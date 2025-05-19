@@ -104,8 +104,11 @@ class ScanFiles():
                 if os.path.isfile(item_path):
                     file_list.append(item)
                 elif os.path.isdir(item_path):
-                    db_check_path(item_path)
-                    dir_list.append(item)
+                    db_path = db_check_path(item_path)
+                    if db_path.ignore:
+                        print(f'Ignoring path: {item_path}')
+                    else:
+                        dir_list.append(item)
         except OSError as e:
             print(f"Error accessing path: {self.path}. Error: {e}")
             return [], 0, [], 0
