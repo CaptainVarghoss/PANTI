@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, session, flash, redirect, url_for
 from flask_login import login_required
 from ..models import Setting, db, User, Tag, ImagePath
+from app.helpers.io_handler import get_path_list
 
 settings = Blueprint('settings', __name__)
 
@@ -18,9 +19,11 @@ default_settings = {
 @settings.route('/', methods=['GET', 'POST'])
 @login_required
 def show_settings():
+    page = 'user'
     user = User.query.filter_by(id=session['_user_id']).first()
     user_id = user.id
-    settings_button = request.form.get("settings-button", False)
+    user_settings_button = request.form.get("user-settings-button", False)
+    server_settings_button = request.form.get("server-settings-button", False)
     tags_button = request.form.get("tags_button", False)
     tags_delete = request.form.get("tags_delete", False)
 
@@ -28,7 +31,11 @@ def show_settings():
     settings = get_settings()
     if request.method == 'POST':
 
-        if settings_button != False:
+        if user_settings_button != False or server_settings_button != False:
+            if user_settings_button != False:
+                page = 'user'
+            elif server_settings_button != False:
+                page = 'server'
             settings['sidebar'] = request.form.get('sidebar')
             if is_admin:
                 settings['base_path'] = request.form.get('base_path')
@@ -46,6 +53,25 @@ def show_settings():
                 update_query.name = k
                 update_query.value = v
                 db.session.commit()
+
+            # folder settings
+            if is_admin:
+                folders = get_path_list()
+                for f in folders:
+                    if request.form.get(f'{f.id}_admin_only') == None:
+                        admin_only = False
+                    else:
+                        admin_only = True
+                    if request.form.get(f'{f.id}_ignore') == None:
+                        ignore = False
+                    else:
+                        ignore = True
+                    if admin_only != f.admin_only or ignore != f.ignore:
+                        # changes made, update database
+                        update = ImagePath.query.filter_by(id=f.id).first()
+                        update.admin_only = admin_only
+                        update.ignore = ignore
+                        db.session.commit()
 
         if tags_button != False:
             tag_name = request.form.get('name')
@@ -80,17 +106,15 @@ def show_settings():
 
     if is_admin:
         tag_list = Tag.query
-        folder_list = ImagePath.query
-        print(type(folder_list))
     else:
         tag_list = Tag.query.filter_by(admin_only=0)
-        folder_list = ImagePath.query.filter_by(admin_only=0)
 
+    folder_list = get_path_list()
     from app.helpers.color_picker import color_picker_list
     common_colors = color_picker_list(type="common")
     all_colors = color_picker_list(type="all")
 
-    return render_template('pages/settings.html', settings=settings, user_id=user_id, tag_list=tag_list, folder_list=folder_list, common_colors=common_colors, all_colors=all_colors, form_fields=[])
+    return render_template('pages/settings.html', page=page, settings=settings, user_id=user_id, tag_list=tag_list, folder_list=folder_list, common_colors=common_colors, all_colors=all_colors, form_fields=[])
 
 @settings.route('/edit_tag/<int:id>', methods=['POST'])
 def edit_tag(id):

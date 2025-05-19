@@ -5,17 +5,17 @@
     <div class="m-3 d-flex justify-content-center align-items-top">
         <ul class="nav nav-tabs" id="myTab" role="tablist">
             <li class="nav-item" role="presentation">
-              <button class="nav-link active" id="users-tab" data-bs-toggle="tab" data-bs-target="#users-tab-pane" type="button" role="tab" aria-controls="user-tab-pane" aria-selected="true">User Settings</button>
+              <button class="nav-link {% if page == 'user' %}active{% endif %}" id="users-tab" data-bs-toggle="tab" data-bs-target="#users-tab-pane" type="button" role="tab" aria-controls="user-tab-pane" aria-selected="true">User Settings</button>
             </li>
             <li class="nav-item" role="presentation">
-              <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings-tab-pane" type="button" role="tab" aria-controls="settings-tab-pane" aria-selected="false">Server Settings</button>
+              <button class="nav-link {% if page == 'server' %}active{% endif %}" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings-tab-pane" type="button" role="tab" aria-controls="settings-tab-pane" aria-selected="false">Server Settings</button>
             </li>
         </ul>
     </div>
     <div class="">
         <form method="POST" id="settings_form">
             <div class="tab-content justify-content-center mt-3 pt-3" id="myTabContent">
-                <div class="tab-pane fade show active" id="users-tab-pane" role="tabpanel" aria-labelledby="users-tab" tabindex="0">
+                <div class="tab-pane fade {% if page == 'user' %}show active{% endif %}" id="users-tab-pane" role="tabpanel" aria-labelledby="users-tab" tabindex="0">
                     <div class="container justify-content-center accordion">
                         <div>
                             <div class="accordion-item">
@@ -43,13 +43,13 @@
                             </div>
                             <div class="form-group m-2">
                                 <div class="">
-                                    <button type="submit" class="btn btn-success" id="settings-button" name="settings-button">Save</button>
+                                    <button type="submit" class="btn btn-success" id="user-settings-button" name="user-settings-button">Save</button>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="tab-pane fade" id="settings-tab-pane" role="tabpanel" aria-labelledby="settings-tab" tabindex="0">
+                <div class="tab-pane fade {% if page == 'server' %}show active{% endif %}" id="settings-tab-pane" role="tabpanel" aria-labelledby="settings-tab" tabindex="0">
                     <div class="container justify-content-center accordion">
                         <div>
                             <div class="accordion-item">
@@ -58,7 +58,7 @@
                                         Tags
                                     </button>
                                 </h2>
-                                <div id="collapseOne" class="accordion-collapse collapse show">
+                                <div id="collapseOne" class="accordion-collapse collapse show d-flex justify-content-center">
                                     <div class="accordion-body">
                                         <div class="mb-3 d-flex justify-content-center">
                                             <button class="btn btn-outline-secondary" data-bs-target="#tag_modal" data-bs-toggle="modal" hx-get="/settings/add_tag" hx-on="show.bs.modal: target.innerHTML='Loading...';" hx-target="#tag_modal_content" data-bs-target="#tag_modal_content">Add Tag</button>
@@ -85,7 +85,23 @@
                                 <div id="collapseTwo" class="accordion-collapse collapse show">
                                     <div class="accordion-body">
                                         <div id="folder_list">
-                                            {% include "includes/file_list.html" %}
+                                            <table class="table table-striped">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Path</th>
+                                                        <th>Admin Only <button type="button" class="btn btn-sm rounded-pill btn-outline-secondary" data-bs-toggle="popover" data-bs-title="Admin Only" data-bs-content="Folders marked as 'Admin Only' are only visable to users with the admin role.">?</button></th>
+                                                        <th>Ignore <button type="button" class="btn btn-sm rounded-pill btn-outline-secondary" data-bs-toggle="popover" data-bs-title="Ignore" data-bs-content="Marking a folder with 'Ignore' enabled will prevent the folder and its contents from being scanned.">?</button></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td>/ <button type="button" class="btn btn-sm rounded-pill btn-outline-secondary" data-bs-toggle="popover" data-bs-title="Base Path '/'" data-bs-content="This entry represents the Base Path from Server Settings. Its settings cannot be modified.">?</button></td>
+                                                        <td><div class="form-check form-switch"><input class="form-check-input" role="switch" type="checkbox" disabled></div></td>
+                                                        <td><div class="form-check form-switch"><input class="form-check-input" role="switch" type="checkbox" disabled></div></td>
+                                                    </tr>
+                                                    {% include "includes/folder_list.html" %}
+                                                </tbody>
+                                            </table>
                                         </div>
                                     </div>
                                 </div>
@@ -120,7 +136,7 @@
                             </div>
                             <div class="form-group m-2">
                                 <div class="">
-                                    <button type="submit" class="btn btn-success" id="settings-button" name="settings-button">Save</button>
+                                    <button type="submit" class="btn btn-success" id="server-settings-button" name="server-settings-button">Save</button>
                                 </div>
                             </div>
                         </div>

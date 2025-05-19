@@ -3,13 +3,25 @@
     <div class="pt-2">Add new tag</div>
 </div>
 <div class="modal-body text-center container justify-content-center">
-    <div class="p-2">Color:&nbsp;&nbsp;&nbsp;<button class="btn" style="background-color: {{form_fields['color']}}; color: {{form_fields['text']}};" hx-post="/settings/show_common_colors" hx-swap="innerHTML" hx-target="#tag_modal_content" {% if form_fields['id'] %}disabled{% endif %}>{{form_fields['color']}}</button></div>
-    <div class="d-flex align-items-center justify-content-center">
-        Name:&nbsp;&nbsp;&nbsp;<input type="text" placeholder="Name" name="name" value="{{form_fields['name']}}">
-    </div>
-    <div class="">
-        Admin Only:&nbsp;&nbsp;&nbsp;<input type="checkbox" name="admin_only" value="{{form_fields['admin_only']}}" {% if form_fields['admin_only'] %}checked{% endif %}>
-    </div>
+    <table class="table justify-content-left">
+        <tbody>
+            <tr>
+                <td>Color</td><td><button class="btn" style="background-color: {{form_fields['color']}}; color: {{form_fields['text']}};" hx-post="/settings/show_common_colors" hx-swap="innerHTML" hx-target="#tag_modal_content" {% if form_fields['id'] %}disabled{% endif %}>{{form_fields['color']}}</button></td>
+            </tr>
+            <tr>
+                <td>Name</td><td><input type="text" placeholder="Name" name="name" value="{{form_fields['name']}}"></td>
+            </tr>
+            <tr>
+                <td>Admin Only <button type="button" class="btn btn-sm rounded-pill btn-outline-secondary" data-bs-toggle="popover" data-bs-title="Admin Only" data-bs-content="A tag marked as 'Admin Only', and images with the tag, are only visable to users with the admin role.">?</button></td>
+                <td class="justify-content-center">
+                    <div class="form-check form-switch d-flex justify-content-center">
+                        <input class="form-check-input d-flex" role="switch" type="checkbox" id="tag_admin_only" name="admin_only" value="{{form_fields['admin_only']}}" {% if form_fields['admin_only'] %}checked{% endif %} switch>
+                    </div>
+                </td>
+
+            </tr>
+        </tbody>
+    </table>
     <input type="hidden" name="color" value="{{form_fields['color']}}">
     <input type="hidden" name="text" value="{{form_fields['text']}}">
 </div>

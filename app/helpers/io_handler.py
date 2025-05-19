@@ -1,6 +1,5 @@
 from flask_login import current_user
 from app.models import ImagePath, db
-from app.routes.settings import get_settings
 import os
 # Collection of small functions and helpers to handle file and folder IO related tasks.
 
@@ -35,6 +34,7 @@ def db_add_directory(path):
         fullpath = path
         # should check fullpath against existing 'base' paths
         selfpath, parentpath = extract_path_parts(path)
+        from app.routes.settings import get_settings
         basepath = get_settings('base_path')
         temp_path = parentpath.replace(basepath, '')
         if temp_path == '':
