@@ -26,12 +26,16 @@ class FileHandler(FileSystemEventHandler):
             self.changed_event.set()
             print('Watchdog Event: ', event.src_path, event.event_type)
 
-            # do a thing
-            path, filename = os.path.split(event.src_path)
+            # check if path is ignored, else add image
             from main import app
             with app.app_context():
-                image = ImageHandler(path, filename)
-                image.db_add_image()
+                path, filename = os.path.split(event.src_path)
+                from app.models import ImagePath
+                db_path = ImagePath.query.filter_by(fullpath=path).first()
+                print(path)
+                if db_path and not db_path.ignore:
+                    image = ImageHandler(path, filename)
+                    image.db_add_image()
 
     def on_created(self, event):
         if self.timer:

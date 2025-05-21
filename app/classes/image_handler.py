@@ -74,8 +74,8 @@ class ImageHandler():
 
             else:
                 # If the image exists, we don't need to lock or add
-                # print('Image exists, skipping lock.')
                 pass
+            self.check_thumbnail()
         except Exception as e:
             print(f"An unexpected error occurred: {e}")
             if lock_file:
