@@ -44,7 +44,8 @@ input[type="search"]::-webkit-search-results-decoration {
 
 div.images-block {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(calc(250px + var(--size-offset)), 1fr));
+    /*grid-template-columns: repeat(auto-fill, minmax(calc(250px + var(--size-offset)), 1fr));*/
+    grid-template-columns: repeat(auto-fill, minmax(min(max(calc(100vw / 20),15em), max(8em,calc(100vw / 8))), 1fr));
     min-height:100vh;
     align-content: baseline;
 }
@@ -114,12 +115,12 @@ div.thumbnail {
 }
 
 .fullsizeModal .image-modal-info {
-    max-width: max-content;
+    max-width: none;
 }
 
 @media screen and (max-width: 500px) {
     div.images-block {
-        grid-template-columns: repeat(auto-fill, minmax(calc(120px + var(--size-offset)), 1fr));
+        /*grid-template-columns: repeat(auto-fill, minmax(calc(120px + var(--size-offset)), 1fr));*/
     }
     div.thumbnail {
         margin: 1px;
