@@ -1,10 +1,9 @@
 from flask import Blueprint, render_template, request, Response
 from flask_login import login_required, current_user
-from .models import Image, Tag, ImagePath, db
+from app.models import Image, Tag, ImagePath
 import re
 from sqlalchemy import or_, and_, not_, func
 from app.routes.settings import get_settings
-from app.classes.bulk_functions import ScanFiles
 from app.helpers.io_handler import get_path_list
 
 views = Blueprint('views', __name__)

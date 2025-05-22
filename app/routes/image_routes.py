@@ -16,8 +16,7 @@ def list_new_images():
 @image_routes.route('/get-image/<path:checksum>')
 def send_media(checksum):
     image = Image.query.filter_by(checksum=checksum).first()
-    true_path = os.path.join(get_settings('base_path'), image.path)
-    return send_from_directory(true_path, image.filename)
+    return send_from_directory(image.path, image.filename)
 
 # Build the modal with tag form and list and metadata
 # Handles general 'get' as well as 'add' and 'del' for tags

@@ -7,7 +7,6 @@ import datetime, magic, subprocess
 class ImageHandler():
     def __init__(self, file_path, filename, lock_dir="/tmp/file_watcher_locks"):
         self.settings = get_settings()
-        self.base_path = self.settings['base_path']
         self.file_path = file_path
         self.filename = filename
         self.checksum = self.get_checksum()
@@ -28,7 +27,7 @@ class ImageHandler():
     def get_checksum(self):
         with open(os.path.join(self.file_path, self.filename), 'rb') as file_to_check:
             data = file_to_check.read()
-            return hashlib.md5(data).hexdigest()
+            return hashlib.sha256(data).hexdigest()
 
     def db_add_image(self):
         lock_path = os.path.join(self.lock_dir, f"{self.filename}.lock")
@@ -46,8 +45,7 @@ class ImageHandler():
                             meta = self.get_meta()
                         else:
                             meta = {}
-                        cleaned_path = self.file_path.replace(self.base_path, '')
-                        new_image = Image(filename=self.filename, checksum=self.checksum, path=cleaned_path, meta=meta, date_created=self.date_created, is_video=self.is_video)
+                        new_image = Image(filename=self.filename, checksum=self.checksum, path=self.file_path, meta=meta, date_created=self.date_created, is_video=self.is_video)
                         db.session.add(new_image)
                         db.session.commit()
                         print(f'Image: {self.filename} added to database. ID: {new_image.id}')

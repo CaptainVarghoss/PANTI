@@ -7,22 +7,24 @@ import os
 
 def db_scan():
     from app.routes.settings import get_settings
-    base_path = get_settings('base_path')
     images_with_paths = db.session.query(Image, ImagePath).outerjoin(ImagePath, Image.path == ImagePath.path).filter(Image.path != '').all()
     for i, f in images_with_paths:
         if f.ignore:
             db.session.delete(i)
-        elif not os.path.exists(os.path.join(base_path, i.path, i.filename)):
+        elif not os.path.exists(os.path.join(i.path, i.filename)):
             db.session.delete(i)
     db.session.commit()
     return
 
 
-def extract_path_parts(path):
+def extract_parent_path(path):
     if path:
-        selfpath = os.path.basename(path)
-        parentpath = os.path.dirname(path)
-        return selfpath, parentpath
+        query = ImagePath.query.filter(path=path, basepath=True).first()
+        if not query:
+            parentpath = os.path.dirname(path)
+            return parentpath
+        else:
+            return ''
     else:
         return ''
 
@@ -47,16 +49,8 @@ def db_add_directory(path):
     try:
         fullpath = path
         # should check fullpath against existing 'base' paths
-        selfpath, parentpath = extract_path_parts(path)
-        from app.routes.settings import get_settings
-        basepath = get_settings('base_path')
-        temp_path = parentpath.replace(basepath, '')
-        if temp_path == '':
-            # no parent
-            parentpath = ''
-        else:
-            parentpath = temp_path
-        new_dir = ImagePath(path=selfpath, parent=parentpath, fullpath=fullpath )
+        parentpath = extract_parent_path(path)
+        new_dir = ImagePath(path=fullpath, parent=parentpath)
         db.session.add(new_dir)
         db.session.commit()
         return new_dir

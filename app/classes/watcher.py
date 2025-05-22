@@ -31,7 +31,7 @@ class FileHandler(FileSystemEventHandler):
             with app.app_context():
                 path, filename = os.path.split(event.src_path)
                 from app.models import ImagePath
-                db_path = ImagePath.query.filter_by(fullpath=path).first()
+                db_path = ImagePath.query.filter_by(path=path).first()
                 print(path)
                 if db_path and not db_path.ignore:
                     image = ImageHandler(path, filename)

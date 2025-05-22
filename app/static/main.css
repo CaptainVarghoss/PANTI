@@ -119,9 +119,6 @@ div.thumbnail {
 }
 
 @media screen and (max-width: 500px) {
-    div.images-block {
-        /*grid-template-columns: repeat(auto-fill, minmax(calc(120px + var(--size-offset)), 1fr));*/
-    }
     div.thumbnail {
         margin: 1px;
     }

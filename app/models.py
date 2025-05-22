@@ -1,6 +1,8 @@
 from flask_login import UserMixin
+from sqlalchemy import event
 from sqlalchemy.sql import func
 from . import db
+import os
 
 image_tag_table = db.Table('image_tags',
     db.Column('images_id', db.Integer, db.ForeignKey('images.id'), primary_key=True),
@@ -31,11 +33,12 @@ class ImagePath(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     path = db.Column(db.String(250))
     parent = db.Column(db.String(250))
-    fullpath = db.Column(db.String(250))
     description = db.Column(db.String(250))
     ignore = db.Column(db.Boolean, default=False)
     admin_only = db.Column(db.Boolean, default=True)
     tags = db.relationship('Tag', secondary='path_tags', backref=db.backref('image_paths', lazy='dynamic'))
+    basepath = db.Column(db.Boolean, default=False)
+    built_in = db.Column(db.Boolean, default=False)
 
 class Tag(db.Model):
     __tablename__ = 'tags'
@@ -45,6 +48,7 @@ class Tag(db.Model):
     icon = db.Column(db.String(250))
     admin_only = db.Column(db.Boolean, default=False)
     text_color = db.Column(db.String(250))
+    built_in = db.Column(db.Boolean, default=False)
 
 class User(db.Model, UserMixin):
     __tablename__ = 'users'
@@ -59,13 +63,42 @@ class Setting(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(250), unique=True)
     value = db.Column(db.String(250))
-    device_id = db.Column(db.String(250))
     admin_only = db.Column(db.Boolean, default=False)
 
-class Usersetting(db.Model):
-    __tablename__ = 'user_setitngs'
+class UserSetting(db.Model):
+    __tablename__ = 'user_settings'
     id = db.Column(db.Integer, primary_key=True)
     setting_id = db.Column(db.Integer)
     user_id = db.Column(db.Integer)
     device_id = db.Column(db.String(250))
     value = db.Column(db.String(250))
+
+def register_initial_data_listener(app):
+    with db.session.begin():
+        if not Tag.query.first():
+            db.session.add(Tag(name='Favorite', built_in=True))
+            db.session.add(Tag(name='Like', built_in=True))
+            db.session.add(Tag(name='Star', built_in=True))
+            db.session.add(Tag(name='NSFW', built_in=True))
+        if not Setting.query.first():
+            db.session.add(Setting(name='sidebar', value='Left'))
+            db.session.add(Setting(name='allow_signup', value='False', admin_only=True)) # allows new user accounts
+            db.session.add(Setting(name='allow_login', value='False', admin_only=True)) # allows non-admin logins
+            db.session.add(Setting(name='allow_tag_add', value='False', admin_only=True)) # non-admin add tags to images
+            db.session.add(Setting(name='allow_tag_remove', value='False', admin_only=True)) # non-admin remove tags from images
+            db.session.add(Setting(name='allow_tag_create', value='False', admin_only=True)) # non-admin create system-wide tags
+            db.session.add(Setting(name='allow_tag_delete', value='False', admin_only=True)) # non-admin delete system-wide tags
+            db.session.add(Setting(name='allow_tag_edit', value='False', admin_only=True)) # non-admin edit system-wide tags
+            db.session.add(Setting(name='allow_folder_tag_add', value='False', admin_only=True)) # non-admin add tags to folders
+            db.session.add(Setting(name='allow_folder_tag_remove', value='False', admin_only=True)) # non-admin remove tags from folders
+            db.session.add(Setting(name='thumb_size', value='400', admin_only=True)) # size of auto-generated thumbnails
+            db.session.add(Setting(name='flyout', value='False', admin_only=True)) # not implemented
+            db.session.add(Setting(name='flyout_address', value='False', admin_only=True)) # not implemented
+            db.session.add(Setting(name='thumb_num', value='60')) # number of thumbnails per 'page'
+            db.session.add(Setting(name='enable_previews', value='False')) # generate mid-size preview images (user/device)
+            db.session.add(Setting(name='preview_size', value='1024', admin_only=True))
+            db.session.add(Setting(name='thumb_offset', value='0')) # offset for thumbnail display size (user/device)
+            db.session.add(Setting(name='theme', value='default')) # default theme
+        if not ImagePath.query.first():
+            db.session.add(ImagePath(path=os.path.join(app.root_path, 'static/images'), description='Default Path', basepath=True, built_in=True))
+    return

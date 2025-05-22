@@ -1,6 +1,6 @@
 from app.routes.settings import get_settings
 from app.__init__ import create_app
-from app.models import db
+from app.models import db, ImagePath
 from app.classes.image_handler import ImageHandler
 from app.helpers.io_handler import db_check_path
 import os, time, magic, threading
@@ -18,9 +18,10 @@ class ScanFiles():
         self.app = app
         self.settings = get_settings()
         if path == '':
-            self.path = self.settings['base_path']
+            path_query = ImagePath.query.filter_by(basepath=True, built_in=True).first()
+            self.path = path_query.path
         else:
-            self.path = os.path.join(self.settings['base_path'], path)
+            self.path = path
 
         if not os.path.exists(self.path):
             print(f'Error: Path does not exist: {self.path}')

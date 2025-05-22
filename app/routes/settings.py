@@ -1,20 +1,9 @@
-from flask import Blueprint, render_template, request, session, flash, redirect, url_for
-from flask_login import login_required
-from ..models import Setting, db, User, Tag, ImagePath
+from flask import Blueprint, render_template, request, session, flash
+from flask_login import login_required, current_user
+from app.models import Setting, db, User, Tag, ImagePath, UserSetting
 from app.helpers.io_handler import get_path_list, db_scan
 
 settings = Blueprint('settings', __name__)
-
-default_settings = {
-    "sidebar": "Left",
-    "allow_signup": "False",
-    "allow_login": "False",
-    "thumb_size": "350",
-    "base_path": "static/images",
-    "flyout": "False",
-    "flyout_address": "False",
-    "thumb_num": "60"
-}
 
 @settings.route('/', methods=['GET', 'POST'])
 @login_required
@@ -29,16 +18,16 @@ def show_settings():
 
     is_admin = user.admin
     settings = get_settings()
+    user_settings = get_user_settings()
     if request.method == 'POST':
-
         if user_settings_button != False or server_settings_button != False:
             if user_settings_button != False:
                 page = 'user'
+                user_settings['sidebar'] = request.form.get('sidebar')
             elif server_settings_button != False:
                 page = 'server'
-            settings['sidebar'] = request.form.get('sidebar')
             if is_admin:
-                settings['base_path'] = request.form.get('base_path')
+                settings['sidebar'] = request.form.get('sidebar')
                 if request.form.get('allow_signup') == 'signups':
                     settings['allow_signup'] = "True"
                 else:
@@ -117,7 +106,7 @@ def show_settings():
     common_colors = color_picker_list(type="common")
     all_colors = color_picker_list(type="all")
 
-    return render_template('pages/settings.html', page=page, settings=settings, user_id=user_id, tag_list=tag_list, folder_list=folder_list, common_colors=common_colors, all_colors=all_colors, form_fields=[])
+    return render_template('pages/settings.html', page=page, settings=settings, user_settings=user_settings, user_id=user_id, tag_list=tag_list, folder_list=folder_list, common_colors=common_colors, all_colors=all_colors, form_fields=[])
 
 @settings.route('/edit_tag/<int:id>', methods=['POST'])
 def edit_tag(id):
@@ -160,7 +149,6 @@ def show_all_colors(name):
 
 @settings.route('/get_settings')
 def get_settings(setting=''):
-    set_default_settings()
     sets = {}
     db_settings = Setting.query
     for s in db_settings:
@@ -170,14 +158,16 @@ def get_settings(setting=''):
             sets[s.name] = s.value
     return sets
 
-@settings.route('/set_default_settings')
-def set_default_settings():
-    for k, v in default_settings.items():
-        db_settings = Setting.query.filter_by(name=k).first()
-        if not db_settings:
-            new_setting = Setting(name=k, value=v)
-            db.session.add(new_setting)
-            db.session.commit()
+def get_user_settings(setting=''):
+    settings = get_settings(setting)
+    sets = settings
+    db_user_settings = UserSetting.query.filter_by(user_id=current_user.id)
+    for s in db_user_settings:
+        if setting != '' and setting == s.name:
+            return s.value
+        else:
+            sets[s.name] = s.value
+    return sets
 
 @settings.route('/clear_settings')
 def clear_settings():

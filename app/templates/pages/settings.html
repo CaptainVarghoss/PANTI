@@ -13,9 +13,9 @@
         </ul>
     </div>
     <div class="">
-        <form method="POST" id="settings_form">
-            <div class="tab-content justify-content-center mt-3 pt-3" id="myTabContent">
-                <div class="tab-pane fade {% if page == 'user' %}show active{% endif %}" id="users-tab-pane" role="tabpanel" aria-labelledby="users-tab" tabindex="0">
+        <div class="tab-content justify-content-center mt-3 pt-3" id="myTabContent">
+            <div class="tab-pane fade {% if page == 'user' %}show active{% endif %}" id="users-tab-pane" role="tabpanel" aria-labelledby="users-tab" tabindex="0">
+                <form method="POST" id="user_settings_form">
                     <div class="container justify-content-center accordion">
                         <div>
                             <div class="accordion-item">
@@ -25,6 +25,43 @@
                                     </button>
                                 </h2>
                                 <div id="collapseOne" class="accordion-collapse collapse show">
+                                    <div class="accordion-body">
+                                        <div class="form-check m-2 mb-4">
+                                            <input class="form-check-input" type="radio" name="sidebar" value="Left" id="Left" {% if user_settings['sidebar'] == 'Left' %}checked{% endif %}>
+                                            <label class="form-check-label" for="base_path">Sidebar Left</label>
+                                        </div>
+                                        <div class="form-check m-2 mb-4">
+                                            <input class="form-check-input" type="radio" name="sidebar" value="Right" id="Right" {% if user_settings['sidebar'] == 'Right' %}checked{% endif %}>
+                                            <label class="form-check-label" for="base_path">Sidebar Right</label>
+                                        </div>
+                                        <div class="form-check m-2 mb-4">
+                                            <input class="form-check-input" type="radio" name="sidebar" value="Both" id="Both" {% if user_settings['sidebar'] == 'Both' %}checked{% endif %}>
+                                            <label class="form-check-label" for="base_path">Sidebar Both</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group m-2">
+                                <div class="">
+                                    <button type="submit" class="btn btn-success" id="user-settings-button" name="user-settings-button">Save</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            {% if current_user.admin %}
+            <form method="POST" id="settings_form">
+                <div class="tab-pane fade {% if page == 'server' %}show active{% endif %}" id="settings-tab-pane" role="tabpanel" aria-labelledby="settings-tab" tabindex="0">
+                    <div class="container justify-content-center accordion">
+                        <div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSideBar" aria-expanded="true" aria-controls="collapseSideBar">
+                                        Sidebar Icons
+                                    </button>
+                                </h2>
+                                <div id="collapseSideBar" class="accordion-collapse collapse show">
                                     <div class="accordion-body">
                                         <div class="form-check m-2 mb-4">
                                             <input class="form-check-input" type="radio" name="sidebar" value="Left" id="Left" {% if settings['sidebar'] == 'Left' %}checked{% endif %}>
@@ -41,24 +78,13 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="form-group m-2">
-                                <div class="">
-                                    <button type="submit" class="btn btn-success" id="user-settings-button" name="user-settings-button">Save</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="tab-pane fade {% if page == 'server' %}show active{% endif %}" id="settings-tab-pane" role="tabpanel" aria-labelledby="settings-tab" tabindex="0">
-                    <div class="container justify-content-center accordion">
-                        <div>
                             <div class="accordion-item">
                                 <h2 class="accordion-header">
-                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTags" aria-expanded="true" aria-controls="collapseTags">
                                         Tags
                                     </button>
                                 </h2>
-                                <div id="collapseOne" class="accordion-collapse collapse show d-flex justify-content-center">
+                                <div id="collapseTags" class="accordion-collapse collapse show d-flex justify-content-center">
                                     <div class="accordion-body">
                                         <div class="mb-3 d-flex justify-content-center">
                                             <button class="btn btn-outline-secondary" data-bs-target="#tag_modal" data-bs-toggle="modal" hx-get="/settings/add_tag" hx-on="show.bs.modal: target.innerHTML='Loading...';" hx-target="#tag_modal_content" data-bs-target="#tag_modal_content">Add Tag</button>
@@ -78,11 +104,11 @@
                             </div>
                             <div class="accordion-item" id="settingsAccordion">
                                 <h2 class="accordion-header">
-                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="true" aria-controls="collapseTwo">
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFolders" aria-expanded="true" aria-controls="collapseFolders">
                                         Folders
                                     </button>
                                 </h2>
-                                <div id="collapseTwo" class="accordion-collapse collapse show">
+                                <div id="collapseFolders" class="accordion-collapse collapse show">
                                     <div class="accordion-body">
                                         <div id="folder_list">
                                             <table class="table table-striped">
@@ -94,11 +120,6 @@
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    <tr>
-                                                        <td>/ <button type="button" class="btn btn-sm rounded-pill btn-outline-secondary" data-bs-toggle="popover" data-bs-title="Base Path '/'" data-bs-content="This entry represents the Base Path from Server Settings. Its settings cannot be modified.">?</button></td>
-                                                        <td><div class="form-check form-switch"><input class="form-check-input" role="switch" type="checkbox" disabled></div></td>
-                                                        <td><div class="form-check form-switch"><input class="form-check-input" role="switch" type="checkbox" disabled></div></td>
-                                                    </tr>
                                                     {% include "includes/folder_list.html" %}
                                                 </tbody>
                                             </table>
@@ -108,17 +129,13 @@
                             </div>
                             <div class="accordion-item">
                                 <h2 class="accordion-header">
-                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="true" aria-controls="collapseThree">
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseServerSettings" aria-expanded="true" aria-controls="collapseServerSettings">
                                         Server Settings
                                     </button>
                                 </h2>
-                                <div id="collapseThree" class="accordion-collapse collapse show">
+                                <div id="collapseServerSettings" class="accordion-collapse collapse show">
                                     <div class="accordion-body">
                                         {% if not current_user.admin %}<span class="text-bg-danger">You must be logged in as admin to change these settings.</span>{% endif %}
-                                        <div class="form-floating m-2 mb-4">
-                                            <input type="text" class="form-control" id="base_path" name="base_path" value="{{ settings.base_path }}" placeholder="Base path to Images" {% if not current_user.admin %}disabled{% endif %}>
-                                            <label class="form-label" for="base_path">Base Path</label>
-                                        </div>
                                         <div class="form-check m-2 mb-4">
                                             <input type="checkbox" class="form-check-input" id="allow_signup" name="allow_signup" value="signups" placeholder="Allow Signup" {% if settings['allow_signup'] == 'True' %}checked{% endif %} {% if not current_user.admin %}disabled{% endif %}>
                                             <label class="form-check-label" for="allow_signup">Allow Signup</label>
@@ -142,8 +159,9 @@
                         </div>
                     </div>
                 </div>
-            </div>
-        </form>
+            </form>
+            {% endif %}
+        </div>
     </div>
 </div>
 

@@ -2,6 +2,7 @@ from flask import Flask
 from flask_login import LoginManager
 import os, json
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import event
 
 db = SQLAlchemy()
 
@@ -44,20 +45,16 @@ def create_app():
     load_config(app)
     print('Creating app instance')
     # Initialize Database
-    from app.models import User, Image, Setting
     db.init_app(app)
     print("Checking for database..")
     if not os.path.exists('instance/database.db'):
         print('   Database not found, creating..')
     else:
         print('   Loaded existing database.')
+    from app.models import User, ImagePath, register_initial_data_listener
     with app.app_context():
         db.create_all()
-
-    #### WARNING ####
-    ## DO NOT USE THIS
-    #from .models import dump_images
-    #dump_images(app)
+        register_initial_data_listener(app)
 
     from app.views import views
     from app.routes.auth import auth
@@ -69,17 +66,6 @@ def create_app():
     app.register_blueprint(image_routes, url_prefix="/")
     app.register_blueprint(settings, url_prefix="/settings")
 
-    with app.app_context():
-        #from .image_handler import scan_files
-        #scan_files()
-
-        from app.routes.settings import get_settings
-        base_path = get_settings()['base_path']
-
-        from app.classes.watcher import FileWatcher
-        file_watcher = FileWatcher()
-        file_watcher.watch(base_path)
-
     login_manager = LoginManager()
     login_manager.login_view = 'auth.login'
     login_manager.init_app(app)
@@ -87,5 +73,15 @@ def create_app():
     @login_manager.user_loader
     def load_user(id):
         return User.query.get(int(id))
+
+    with app.app_context():
+        #from .image_handler import scan_files
+        #scan_files()
+
+        from app.classes.watcher import FileWatcher
+        base_paths = ImagePath.query.filter_by(basepath=True).all()
+        for bp in base_paths:
+            file_watcher = FileWatcher()
+            file_watcher.watch(bp.path)
 
     return app
