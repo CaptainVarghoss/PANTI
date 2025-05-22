@@ -68,7 +68,7 @@ class Setting(db.Model):
 class UserSetting(db.Model):
     __tablename__ = 'user_settings'
     id = db.Column(db.Integer, primary_key=True)
-    setting_id = db.Column(db.Integer)
+    name = db.Column(db.String(250))
     user_id = db.Column(db.Integer)
     device_id = db.Column(db.String(250))
     value = db.Column(db.String(250))
@@ -76,10 +76,10 @@ class UserSetting(db.Model):
 def register_initial_data_listener(app):
     with db.session.begin():
         if not Tag.query.first():
-            db.session.add(Tag(name='Favorite', built_in=True))
-            db.session.add(Tag(name='Like', built_in=True))
-            db.session.add(Tag(name='Star', built_in=True))
-            db.session.add(Tag(name='NSFW', built_in=True))
+            db.session.add(Tag(name='Favorite', built_in=True, color='darkviolet', text_color='white'))
+            db.session.add(Tag(name='Like', built_in=True, color='hotpink', text_color='black'))
+            db.session.add(Tag(name='Star', built_in=True, color='gold', text_color='black'))
+            db.session.add(Tag(name='NSFW', built_in=True, color='darkred', text_color='white'))
         if not Setting.query.first():
             db.session.add(Setting(name='sidebar', value='Left'))
             db.session.add(Setting(name='allow_signup', value='False', admin_only=True)) # allows new user accounts

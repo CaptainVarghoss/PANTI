@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from app.models import Image, Tag, ImagePath
 import re
 from sqlalchemy import or_, and_, not_, func
-from app.routes.settings import get_settings
+from app.routes.settings import get_settings, get_user_settings
 from app.helpers.io_handler import get_path_list
 
 views = Blueprint('views', __name__)
@@ -13,6 +13,7 @@ views = Blueprint('views', __name__)
 def home():
     search = False
     settings = get_settings()
+    user_settings = get_user_settings()
     q = request.args.get('q', '')
     if request.method == 'POST':
         search = True
@@ -30,16 +31,17 @@ def home():
     else:
         template = 'home.html'
 
-    return render_template(f'pages/{template}', images=images, image_count=image_count, settings=settings, search=q, next_offset=settings['thumb_num'], offscreen_tag_list=tag_list, dir_list=dir_list)
+    return render_template(f'pages/{template}', images=images, image_count=image_count, user_settings=user_settings, settings=settings, search=q, next_offset=settings['thumb_num'], offscreen_tag_list=tag_list, dir_list=dir_list)
 
 @views.route('/load_more_images')
 def load_more_images():
     settings = get_settings()
+    user_settings = get_user_settings()
     offset = int(request.args.get('offset', 0))
     q = request.args.get('q', '')
     new_images, image_count = db_get_images(limit=settings['thumb_num'], offset=offset, query=construct_query(q))
 
-    return render_template('pages/search.html', images=new_images, image_count=image_count, settings=settings, search=q, next_offset=offset + int(settings['thumb_num']))
+    return render_template('pages/search.html', images=new_images, image_count=image_count, user_settings=user_settings, settings=settings, search=q, next_offset=offset + int(settings['thumb_num']))
 
 
 @views.route('/stream')

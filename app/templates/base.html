@@ -11,7 +11,7 @@
         <body>
             {% if current_user %}
             <div class="sticky-top bg-body-tertiary d-flex">
-                {% if settings['sidebar'] == "Left" or settings['sidebar'] == "Both" %}
+                {% if user_settings['sidebar'] == "Left" or user_settings['sidebar'] == "Both" %}
                 <div class="'justify-content-start p-2 align-self-center">
                     <button class="btn btn-dark" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasLeft" aria-controls="offcanvasLeft" aria-expanded="false" aria-label="Toggle navigation">
                         <span class="navbar-toggler-icon"></span>
@@ -26,7 +26,7 @@
                     </div>
                     {% endif %}
                 </div>
-                {% if settings['sidebar'] == "Right" or settings['sidebar'] == "Both" %}
+                {% if user_settings['sidebar'] == "Right" or user_settings['sidebar'] == "Both" %}
                 <div class="justify-content-end p-2 align-self-center">
                     <button class="btn btn-dark" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasRight" aria-controls="offcanvasRight" aria-expanded="false" aria-label="Toggle navigation">
                         <span class="navbar-toggler-icon"></span>
@@ -34,7 +34,7 @@
                 </div>
                 {% endif %}
             </div>
-            {% if settings['sidebar'] == "Left" or settings['sidebar'] == "Both" %}
+            {% if user_settings['sidebar'] == "Left" or user_settings['sidebar'] == "Both" %}
             <div class="offcanvas offcanvas-start bg-body-tertiary" tabindex="-1" id="offcanvasLeft" aria-labelledby="offcanvasLabel">
                 {% with which_side = 'left' %}
                 {% include "includes/offscreen.html"%}
@@ -42,7 +42,7 @@
             </div>
             {% endif %}
             {% endif %}
-            {% if settings['sidebar'] == "Right" or settings['sidebar'] == "Both" %}
+            {% if user_settings['sidebar'] == "Right" or user_settings['sidebar'] == "Both" %}
 
             <div class="offcanvas offcanvas-end bg-body-tertiary" tabindex="-1" id="offcanvasRight" aria-labelledby="offcanvasLabel">
                 {% with which_side = 'right' %}

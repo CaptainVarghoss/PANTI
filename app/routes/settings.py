@@ -20,13 +20,22 @@ def show_settings():
     settings = get_settings()
     user_settings = get_user_settings()
     if request.method == 'POST':
-        if user_settings_button != False or server_settings_button != False:
-            if user_settings_button != False:
-                page = 'user'
-                user_settings['sidebar'] = request.form.get('sidebar')
-            elif server_settings_button != False:
-                page = 'server'
+        if user_settings_button != False:
+            page = 'user'
+            user_settings['sidebar'] = request.form.get('sidebar')
+            for k, v in user_settings.items():
+                update_query = UserSetting.query.filter_by(user_id=current_user.id, name=k).first()
+                if update_query:
+                    update_query.name = k
+                    update_query.value = v
+                else:
+                    add_query = UserSetting(user_id=current_user.id, name=k, value=v)
+                    db.session.add(add_query)
+                db.session.commit()
+
+        elif server_settings_button != False:
             if is_admin:
+                page = 'server'
                 settings['sidebar'] = request.form.get('sidebar')
                 if request.form.get('allow_signup') == 'signups':
                     settings['allow_signup'] = "True"
@@ -66,6 +75,7 @@ def show_settings():
                             db_scan()
 
         if tags_button != False:
+            page = 'server'
             tag_name = request.form.get('name')
             tag_color = request.form.get('color')
             tag_text = request.form.get('text')
@@ -74,24 +84,31 @@ def show_settings():
             else:
                 tag_admin = True
             if request.form.get('id'):
-                old_tag = Tag.query.filter_by(id=request.form.get('id')).first()
-                old_tag.name = tag_name
-                old_tag.color = tag_color
-                old_tag.text_color = tag_text
-                old_tag.admin_only = tag_admin
-                flash('Tag Saved.', category='success')
+                if request.form.get('id') in ['1','2','3','4']:
+                    flash('This tag cannot be edited.', category='error')
+                else:
+                    old_tag = Tag.query.filter_by(id=request.form.get('id')).first()
+                    old_tag.name = tag_name
+                    old_tag.color = tag_color
+                    old_tag.text_color = tag_text
+                    old_tag.admin_only = tag_admin
+                    flash('Tag Saved.', category='success')
             else:
                 add_tag = Tag(name=tag_name, color=tag_color, text_color=tag_text, admin_only=tag_admin)
                 db.session.add(add_tag)
                 flash('Tag Added.', category='success')
             db.session.commit()
         elif tags_delete != False:
+            page = 'server'
             if request.form.get('id'):
-                tag = Tag.query.filter_by(id=request.form.get('id')).first()
-                if tag:
-                    db.session.delete(tag)
-                    db.session.commit()
-                    flash('Tag Deleted.', category='success')
+                if request.form.get('id') in ['1','2','3','4']:
+                    flash('This tag cannot be deleted.', category='error')
+                else:
+                    tag = Tag.query.filter_by(id=request.form.get('id')).first()
+                    if tag:
+                        db.session.delete(tag)
+                        db.session.commit()
+                        flash('Tag Deleted.', category='success')
 
     else:
         settings = get_settings()
@@ -148,9 +165,12 @@ def show_all_colors(name):
     return render_template('includes/color_picker_more.html', all_colors=all_colors, name=name)
 
 @settings.route('/get_settings')
-def get_settings(setting=''):
+def get_settings(setting='', admin=1):
     sets = {}
-    db_settings = Setting.query
+    if admin == 1:
+        db_settings = Setting.query.all()
+    else:
+        db_settings = Setting.query.filter_by(admin_only=0).all()
     for s in db_settings:
         if setting != '' and setting == s.name:
             return s.value
@@ -159,7 +179,7 @@ def get_settings(setting=''):
     return sets
 
 def get_user_settings(setting=''):
-    settings = get_settings(setting)
+    settings = get_settings(setting, admin=0)
     sets = settings
     db_user_settings = UserSetting.query.filter_by(user_id=current_user.id)
     for s in db_user_settings:
