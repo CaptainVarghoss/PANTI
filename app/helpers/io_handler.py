@@ -19,7 +19,7 @@ def db_scan():
 
 def extract_parent_path(path):
     if path:
-        query = ImagePath.query.filter(path=path, basepath=True).first()
+        query = ImagePath.query.filter_by(path=path, basepath=True).first()
         if not query:
             parentpath = os.path.dirname(path)
             return parentpath
@@ -38,7 +38,7 @@ def get_path_list(ignore=False):
     return result
 
 def db_check_path(path):
-    query = ImagePath.query.filter_by(fullpath=path).first()
+    query = ImagePath.query.filter_by(path=path).first()
     if not query:
         result = db_add_directory(path)
     else:
@@ -47,10 +47,9 @@ def db_check_path(path):
 
 def db_add_directory(path):
     try:
-        fullpath = path
         # should check fullpath against existing 'base' paths
         parentpath = extract_parent_path(path)
-        new_dir = ImagePath(path=fullpath, parent=parentpath)
+        new_dir = ImagePath(path=path, parent=parentpath)
         db.session.add(new_dir)
         db.session.commit()
         return new_dir

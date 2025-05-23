@@ -8,8 +8,10 @@ from queue import Queue
 
 def startup_scan():
     # Threaded Scan
-    scanner_threaded = ScanFiles()
-    scanner_threaded.scan_folder_threaded()
+    base_paths = ImagePath.query.filter_by(basepath=True).all()
+    for bp in base_paths:
+        scanner_threaded = ScanFiles(path=bp.path)
+        scanner_threaded.scan_folder_threaded()
     return
 
 class ScanFiles():

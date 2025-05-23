@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container">
+<div class="container settings-container">
     <div class="m-3 d-flex justify-content-center align-items-top">
         <ul class="nav nav-tabs" id="myTab" role="tablist">
             <li class="nav-item" role="presentation">
@@ -110,19 +110,20 @@
                                 </h2>
                                 <div id="collapseFolders" class="accordion-collapse collapse show">
                                     <div class="accordion-body">
-                                        <div id="folder_list">
+                                        <div id="folder_list_container">
                                             <table class="table table-striped">
                                                 <thead>
                                                     <tr>
                                                         <th>Path</th>
-                                                        <th>Admin Only <button type="button" class="btn btn-sm rounded-pill btn-outline-secondary" data-bs-toggle="popover" data-bs-title="Admin Only" data-bs-content="Folders marked as 'Admin Only' are only visable to users with the admin role.">?</button></th>
-                                                        <th>Ignore <button type="button" class="btn btn-sm rounded-pill btn-outline-secondary" data-bs-toggle="popover" data-bs-title="Ignore" data-bs-content="Marking a folder with 'Ignore' enabled will prevent the folder and its contents from being scanned.">?</button></th>
+                                                        <th>Admin Only <button type="button" class="btn btn-sm rounded-pill btn-dark" data-bs-toggle="popover" data-bs-title="Admin Only" data-bs-content="Folders marked as 'Admin Only' are only visable to users with the admin role."><h5 class="m-auto"><i class="bi bi-question-circle"></i></h5></button></th>
+                                                        <th>Ignore <button type="button" class="btn btn-sm rounded-pill btn-dark" data-bs-toggle="popover" data-bs-title="Ignore" data-bs-content="Marking a folder with 'Ignore' enabled will prevent the folder and its contents from being scanned."><h5 class="m-auto"><i class="bi bi-question-circle"></i></h5></button></th>
                                                     </tr>
                                                 </thead>
-                                                <tbody>
+                                                <tbody id="folder_list">
                                                     {% include "includes/folder_list.html" %}
                                                 </tbody>
                                             </table>
+                                            <div class=""><button type="button" class="btn btn-dark" data-bs-target="#folder_modal" data-bs-toggle="modal"><h4 class="m-auto"><i class="bi bi-plus-circle"></i></h4></button></div>
                                         </div>
                                     </div>
                                 </div>
@@ -164,6 +165,26 @@
         </div>
     </div>
 </div>
-
+<div class="modal fade" id="folder_modal" aria-hidden="true" aria-labelledby="folder_modal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" id="folder_modal_content">
+            <div class="modal-header justify-content-center">
+                Add Folder
+            </div>
+            <form method="POST" id="new_folder_form">
+                <div class="modal-body d-flex justify-content-center">
+                    <div class="form-floating w-100">
+                        <input type="text" class="form-control" placeholder="Folder Path" name="new_folder" id="new_folder" />
+                        <label for="new_folder">Folder Path</label>
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-danger" data-bs-target="#folder_modal" data-bs-toggle="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" hx-post="/settings/add_folder" hx-target="#folder_list" hx-swap="innerHTML" data-bs-target="#folder_modal" data-bs-toggle="modal">Add</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 {% endblock %}

@@ -164,6 +164,24 @@ def show_all_colors(name):
     all_colors = color_picker_list("all")
     return render_template('includes/color_picker_more.html', all_colors=all_colors, name=name)
 
+@settings.route('/add_folder', methods=['POST'])
+@login_required
+def add_base_folder():
+    if current_user.admin:
+        if request.method == 'POST':
+            folder_name = request.form.get('new_folder')
+            if folder_name != '' and folder_name != None:
+                new_folder = ImagePath(path=folder_name, basepath=1)
+                db.session.add(new_folder)
+                db.session.commit()
+                flash(f'Added folder: {folder_name}', category='success')
+    else:
+        flash('Admin Only.', category='error')
+
+    folder_list = get_path_list(ignore=True)
+    return render_template('includes/folder_list.html', folder_list=folder_list)
+
+
 @settings.route('/get_settings')
 def get_settings(setting='', admin=1):
     sets = {}
