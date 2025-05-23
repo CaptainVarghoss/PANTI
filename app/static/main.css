@@ -131,3 +131,12 @@ div.thumbnail {
 .tag-button button.btn {
     line-height:12px;
 }
+
+.settings-container button.btn-sm {
+    margin:auto;
+    padding:0px;
+}
+
+i.bi {
+    padding-inline: 0.3em;
+}

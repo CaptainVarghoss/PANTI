@@ -11,7 +11,7 @@
             <div class="accordion-item p-0" id="tagsAccordion{% if which_side == 'left' %}Left{% endif %}{% if which_side == 'right' %}Right{% endif %}">
                 <h2 class="accordion-header">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#filterOne{% if which_side == 'left' %}Left{% endif %}{% if which_side == 'right' %}Right{% endif %}" aria-expanded="true" aria-controls="filterOne">
-                        Tags
+                        <i class="bi bi-tags"></i>Tags
                     </button>
                 </h2>
                 <div id="filterOne{% if which_side == 'left' %}Left{% endif %}{% if which_side == 'right' %}Right{% endif %}" class="accordion-collapse collapse">
@@ -21,7 +21,7 @@
             <div class="accordion-item">
                 <h2 class="accordion-header">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#filterTwo{% if which_side == 'left' %}Left{% endif %}{% if which_side == 'right' %}Right{% endif %}" aria-expanded="true" aria-controls="filtereTwo">
-                        Folders
+                        <i class="bi bi-folder"></i> Folders
                     </button>
                 </h2>
                 <div id="filterTwo{% if which_side == 'left' %}Left{% endif %}{% if which_side == 'right' %}Right{% endif %}" class="accordion-collapse collapse">
@@ -39,7 +39,7 @@
         </li>
         {% endif %}
         <li class="list-group-item p-4">
-            <a class="link-info link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover" href="{{ url_for( 'settings.show_settings' )}}">Settings</a>
+            <a class="link-info link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover" href="{{ url_for( 'settings.show_settings' )}}"><i class="bi bi-gear"></i>Settings</a>
         </li>
         <li class="list-group-item p-4">
             <a class="link-danger link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover" href="{{ url_for('auth.logout') }}">Logout</a>
