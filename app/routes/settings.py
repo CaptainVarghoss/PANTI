@@ -219,14 +219,17 @@ def get_settings(setting='', admin=1):
 
 def get_user_settings(setting=''):
     settings = get_settings(setting, admin=0)
-    sets = settings
-    db_user_settings = UserSetting.query.filter_by(user_id=current_user.id)
-    for s in db_user_settings:
-        if setting != '' and setting == s.name:
-            return s.value
-        else:
-            sets[s.name] = s.value
-    return sets
+    if current_user.is_authenticated:
+        sets = settings
+        db_user_settings = UserSetting.query.filter_by(user_id=current_user.id)
+        for s in db_user_settings:
+            if setting != '' and setting == s.name:
+                return s.value
+            else:
+                sets[s.name] = s.value
+        return sets
+    else:
+        return settings
 
 @settings.route('/clear_settings')
 def clear_settings():
