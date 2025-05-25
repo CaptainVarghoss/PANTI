@@ -175,12 +175,33 @@ def add_base_folder():
                 db.session.add(new_folder)
                 db.session.commit()
                 flash(f'Added folder: {folder_name}', category='success')
+                from app.classes.bulk_functions import ScanFiles
+                scanner_threaded = ScanFiles(path=folder_name)
+                scanner_threaded.scan_folder_threaded()
     else:
         flash('Admin Only.', category='error')
 
     folder_list = get_path_list(ignore=True)
     return render_template('includes/folder_list.html', folder_list=folder_list)
 
+@settings.route('/delete_folder/<id>', methods=['POST'])
+@login_required
+def del_base_folder(id):
+    if current_user.admin:
+        if request.method == 'POST':
+            query_folder = ImagePath.query.filter_by(id=id).first()
+            if query_folder:
+                # check for child paths
+                child_paths = ImagePath.query.filter_by(parent=query_folder.path)
+                for child in child_paths:
+                    remove_this = ImagePath.query.filter_by(id=child.id).first()
+                    db.session.delete(remove_this)
+                db.session.delete(query_folder)
+                db.session.commit()
+                flash(f'Removed folder: {query_folder.path}', category='success')
+
+    folder_list = get_path_list(ignore=True)
+    return render_template('includes/folder_list.html', folder_list=folder_list)
 
 @settings.route('/get_settings')
 def get_settings(setting='', admin=1):
