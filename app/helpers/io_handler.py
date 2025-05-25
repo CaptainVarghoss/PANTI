@@ -36,12 +36,11 @@ def get_path_list(ignore=False):
     if not ignore:
         query = query.filter_by(ignore=0)
     result = query.all()
-    path_list = []
+
     for r in result:
-        path_dict = {attr.key: attr.value for attr in inspect(r).attrs}
-        path_dict['short_path'] = os.path.basename(r.path)
-        path_list.append(path_dict)
-    return path_list
+        r.short_path = os.path.basename(r.path)
+
+    return result
 
 def db_check_path(path):
     query = ImagePath.query.filter_by(path=path).first()
