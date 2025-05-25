@@ -92,7 +92,12 @@ def construct_query(keywords):
         elif upper_item.startswith("TAG "):
             tag_keyword = item[4:].strip()
             if tag_keyword:
-                conditions.append(Image.tags.any(func.lower(Tag.name) == func.lower(tag_keyword)))
+                conditions.append(
+                    or_(
+                        Image.tags.any(func.lower(Tag.name) == func.lower(tag_keyword)),
+                        ImagePath.tags.any(func.lower(Tag.name) == func.lower(tag_keyword))
+                    )
+                )
         elif upper_item.startswith("FOLDER "):
             folder_keyword = item[7:].strip()
             if folder_keyword:
@@ -101,19 +106,25 @@ def construct_query(keywords):
             search_condition = or_(
                 Image.meta.ilike(f"%{item}%"),
                 Image.path.ilike(f"%{item}%"),
-                Image.tags.any(Tag.name.ilike(f"%{item}%"))
+                Image.tags.any(Tag.name.ilike(f"%{item}%")),
+                ImagePath.tags.any(Tag.name.ilike(f"%{item}%"))
             )
             conditions.append(search_condition)
         i += 1
     if not current_user.admin:
         # limit to non-admin tags
         operators.append("AND")
-        admin_condition = or_(
+        admin_condition_image = or_(
                 Image.tags.any() == False,
                 ~Image.tags.any(Tag.admin_only == True)
         )
+        admin_condition_image_path = or_(
+            ImagePath.tags.any() == False, # ImagePath has no tags
+            ~ImagePath.tags.any(Tag.admin_only == True) # No admin-only tags on the ImagePath
+        )
+        admin_condition = and_(admin_condition_image, admin_condition_image_path)
         conditions.append(admin_condition)
-        i += 1
+
     # Apply conditions based on operators
     if not conditions:
         #return query  # No search terms
