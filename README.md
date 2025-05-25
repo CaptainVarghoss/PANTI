@@ -39,10 +39,28 @@ Alternatively, use this git command if you want a different folder name
 
 ### 1. Install Python and git
 
-    Get python here: https://www.python.org/downloads/windows/
-    Get git here: https://git-scm.com/downloads/win
+Get python here: <https://www.python.org/downloads/windows/>
+During installation choose custom install and make sure 'Add Python to environment variables' is checked.
 
-### 2. Same as the above instructions for Debian
+Get git here: <https://git-scm.com/downloads/win>
+
+### 2. Create a folder and install with git
+
+Create a folder.
+Right click the folder and click "Open in terminal"
+Run the git clone command
+
+    git clone https://github.com/CaptainVarghoss/PANTI
+
+Once the download is complete, change to the newly created folder
+
+    cd PANTI
+
+If you want it to install into a different folder use
+
+    git clone https://github.com/CaptainVarghoss/PANTI MyFolderName
+
+    cd MyFolderName
 
 ### 3. Run install.bat
 
