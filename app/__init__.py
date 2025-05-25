@@ -60,11 +60,13 @@ def create_app():
     from app.routes.auth import auth
     from app.routes.image_routes import image_routes
     from app.routes.settings import settings
+    from app.routes.tag_routes import tag_routes
 
     app.register_blueprint(views, url_prefix='/')
     app.register_blueprint(auth, url_prefix='/')
     app.register_blueprint(image_routes, url_prefix="/")
     app.register_blueprint(settings, url_prefix="/settings")
+    app.register_blueprint(tag_routes, url_prefix="/")
 
     login_manager = LoginManager()
     login_manager.login_view = 'auth.login'

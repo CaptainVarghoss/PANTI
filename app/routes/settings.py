@@ -119,11 +119,12 @@ def show_settings():
         tag_list = Tag.query.filter_by(admin_only=0)
 
     folder_list = get_path_list(ignore=True)
+    dir_list = get_path_list()
     from app.helpers.color_picker import color_picker_list
     common_colors = color_picker_list(type="common")
     all_colors = color_picker_list(type="all")
 
-    return render_template('pages/settings.html', page=page, settings=settings, user_settings=user_settings, user_id=user_id, tag_list=tag_list, folder_list=folder_list, common_colors=common_colors, all_colors=all_colors, form_fields=[])
+    return render_template('pages/settings.html', page=page, settings=settings, user_settings=user_settings, user_id=user_id, tag_list=tag_list, offscreen_tag_list=tag_list, folder_list=folder_list, dir_list=dir_list, common_colors=common_colors, all_colors=all_colors, form_fields=[])
 
 @settings.route('/edit_tag/<int:id>', methods=['POST'])
 def edit_tag(id):
