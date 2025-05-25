@@ -76,10 +76,10 @@ class UserSetting(db.Model):
 def register_initial_data_listener(app):
     with db.session.begin():
         if not Tag.query.first():
-            db.session.add(Tag(name='Favorite', built_in=True, color='darkviolet', text_color='white'))
-            db.session.add(Tag(name='Like', built_in=True, color='hotpink', text_color='black'))
-            db.session.add(Tag(name='Star', built_in=True, color='gold', text_color='black'))
-            db.session.add(Tag(name='NSFW', built_in=True, color='darkred', text_color='white'))
+            db.session.add(Tag(name='Favorite', built_in=True, color='darkviolet', text_color='white', icon='heart'))
+            db.session.add(Tag(name='Like', built_in=True, color='hotpink', text_color='black', icon='hand-thumbs-up'))
+            db.session.add(Tag(name='Star', built_in=True, color='gold', text_color='black', icon='star'))
+            db.session.add(Tag(name='NSFW', built_in=True, color='darkred', text_color='white', icon='no-adult-content'))
         if not Setting.query.first():
             db.session.add(Setting(name='sidebar', value='Left'))
             db.session.add(Setting(name='allow_signup', value='False', admin_only=True)) # allows new user accounts
