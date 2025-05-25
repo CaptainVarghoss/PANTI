@@ -2,9 +2,9 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from app.models import User
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.models import db
-from flask_login import login_user, login_required, logout_user, current_user
+from flask_login import login_user, logout_user, current_user
 from markupsafe import Markup
-from app.routes.settings import get_settings
+from app.routes.settings import get_settings, get_user_settings
 
 auth = Blueprint('auth', __name__)
 
@@ -29,8 +29,9 @@ def login():
             return redirect(url_for('views.home'))
 
     settings = get_settings()
+    user_settings = get_user_settings()
 
-    return render_template('pages/login.html', settings=settings)
+    return render_template('pages/login.html', settings=settings, user_settings=user_settings)
 
 @auth.route('/logout')
 def logout():
@@ -79,5 +80,6 @@ def sign_up():
             return redirect(url_for('views.home'))
 
     settings = get_settings()
+    user_settings = get_user_settings()
 
-    return render_template("pages/signup.html", settings=settings)
+    return render_template("pages/signup.html", settings=settings, user_settings=user_settings)
