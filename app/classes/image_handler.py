@@ -1,5 +1,5 @@
 from app.models import db, Image
-import time, os, hashlib, fcntl
+import time, os, hashlib
 from PIL import Image as Pimage
 from app.routes.settings import get_settings
 import datetime, magic, subprocess
