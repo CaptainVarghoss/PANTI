@@ -127,9 +127,13 @@ div.thumbnail {
 
 .tag-button {
     border: 1px solid black;
+    --bs-btn-padding-x: 0.35rem;
+    --bs-btn-padding-y: 0.2rem;
 }
 .tag-button button.btn {
-    line-height:12px;
+    line-height:1em;
+    --bs-btn-padding-x: 0.1rem;
+    --bs-btn-padding-y: 0.1rem;
 }
 
 .settings-container button.btn-sm {

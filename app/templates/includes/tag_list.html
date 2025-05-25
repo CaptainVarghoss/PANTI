@@ -1,5 +1,5 @@
 {% for t in tag_list  %}
     <div class="btn rounded-pill tag-button m-1 {% if t.admin_only %}border border-2 border-danger{% endif %}" style="background-color: {{t.color}}; color: {{t.text_color}};" data-bs-target="#tag_modal" data-bs-toggle="modal" hx-post="/settings/edit_tag/{{t.id}}" hx-target="#tag_modal_content" hx-swap="innerHTML">
-        <span class="px-1">{{ t.name }}</span><button type="button" class="btn"></button>
+        <button class="btn" type="button" style="color: {{t.text_color}};" data-bs-toggle="offcanvas">{% if t.icon %}<i class="bi bi-{{t.icon}}"></i>{% endif %}{{t.name}}</button>
     </div>
 {% endfor %}
