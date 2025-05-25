@@ -1,5 +1,6 @@
 from flask_login import current_user
 from app.models import ImagePath, db, Image
+from sqlalchemy import inspect
 import os
 
 # Collection of small functions and helpers to handle file and folder IO related tasks.
@@ -35,7 +36,12 @@ def get_path_list(ignore=False):
     if not ignore:
         query = query.filter_by(ignore=0)
     result = query.all()
-    return result
+    path_list = []
+    for r in result:
+        path_dict = {attr.key: attr.value for attr in inspect(r).attrs}
+        path_dict['short_path'] = os.path.basename(r.path)
+        path_list.append(path_dict)
+    return path_list
 
 def db_check_path(path):
     query = ImagePath.query.filter_by(path=path).first()

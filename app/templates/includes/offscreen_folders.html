@@ -1,5 +1,13 @@
-<div class="accordion-body">
-    {% for d in dir_list %}
-    <button class="btn btn-secondary {% if d.admin_only %}border-danger border-2{% endif %}" type="button" hx-post="/?q=FOLDER {{d.path}}" hx-target="#imagesBlock" hx-swap="innerHTML" data-bs-toggle="offcanvas">{{d.path}}</button>
-    {% endfor %}
-</div>
+{% for d in dir_list %}
+    {% if d.basepath %}
+         <span class="small">{{d.path}}</span><br />
+        <button class="btn btn-secondary {% if d.admin_only %}border-danger border-2{% endif %}" type="button" hx-post="/?q=FOLDER {{d.path}}" hx-target="#imagesBlock" hx-swap="innerHTML" data-bs-toggle="offcanvas">{{d.short_path}}</button>
+        <br />
+        {% for p in dir_list %}
+            {% if d.path == p.parent %}
+            <button class="btn btn-secondary {% if p.admin_only %}border-danger border-2{% endif %}" type="button" hx-post="/?q=FOLDER {{p.path}}" hx-target="#imagesBlock" hx-swap="innerHTML" data-bs-toggle="offcanvas">{{p.short_path}}</button>
+            <br />
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+{% endfor %}
