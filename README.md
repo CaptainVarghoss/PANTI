@@ -47,7 +47,7 @@ Get git here: <https://git-scm.com/downloads/win>
 ### 2. Create a folder and install with git
 
 Create a folder.
-Right click the folder and click "Open in terminal"
+Open a command prompt and change to the folder you created.
 Run the git clone command
 
     git clone https://github.com/CaptainVarghoss/PANTI
