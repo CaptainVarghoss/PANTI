@@ -4,3 +4,4 @@ flask_sqlalchemy
 watchdog
 Pillow
 portalocker
+python-magic
