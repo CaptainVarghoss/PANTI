@@ -3,6 +3,8 @@ import time, os, hashlib, fcntl
 from PIL import Image as Pimage
 from app.routes.settings import get_settings
 import datetime, magic, subprocess
+import portalocker
+from portalocker import LockException, AlreadyLocked
 
 class ImageHandler():
     def __init__(self, file_path, filename, lock_dir="/tmp/file_watcher_locks"):
@@ -38,7 +40,7 @@ class ImageHandler():
                 try:
                     # Attempt to acquire an exclusive lock
                     lock_file = open(lock_path, 'w')
-                    fcntl.flock(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)  # Non-blocking
+                    portalocker.lock(lock_file, portalocker.LOCK_EX | portalocker.LOCK_NB)  # Non-blocking
                     print(f"Lock acquired: {lock_path}")
                     try:
                         if not self.is_video:
@@ -57,12 +59,16 @@ class ImageHandler():
                         print(f'Error adding image to database: {e}')
                     finally:
                         if lock_file:
-                            fcntl.flock(lock_file, fcntl.LOCK_UN)  # Release the lock
+                            portalocker.unlock(lock_file)  # Release the lock
                             lock_file.close()
                             os.remove(lock_path)  # Clean up the lock file
                             print(f"Lock released and removed: {lock_path}")
-                except BlockingIOError:
+                except AlreadyLocked:
                     print(f"File is locked, skipping processing: {os.path.join(self.file_path, self.filename)}")
+                    if lock_file:
+                        lock_file.close()
+                except LockException as e:
+                    print(f"Error acquiring lock: {e}")
                     if lock_file:
                         lock_file.close()
                 except Exception as e:
