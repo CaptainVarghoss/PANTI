@@ -4,12 +4,6 @@
 <script id="app_settings" type="text/json">{{ settings|tojson }}</script>
 {% endblock %}
 
-{% block title %}Home{% endblock %}
-
-{% block headerblock %}
-    <p>{{ current_user.username }}{% if current_user.admin == True %} (admin) {% endif %} </p>
-{% endblock %}
-
 {% block content %}
 <div class="modal fade fullsizeModal" id="fullsizeModal" tabindex="-1">
     <div class="modal-dialog m-0 justify-items-center">
