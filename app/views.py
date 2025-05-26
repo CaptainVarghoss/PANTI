@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from app.models import Image, Tag, ImagePath
 import re
 from sqlalchemy import or_, and_, not_, func
-from app.routes.settings import get_settings, get_user_settings
+from app.routes.settings import get_settings, get_user_settings, get_filters
 from app.helpers.io_handler import get_path_list
 
 views = Blueprint('views', __name__)
@@ -14,6 +14,7 @@ def home():
     search = False
     settings = get_settings()
     user_settings = get_user_settings()
+    filters = get_filters()
     q = request.args.get('q', '')
     if request.method == 'POST':
         search = True
@@ -31,7 +32,7 @@ def home():
     else:
         template = 'home.html'
 
-    return render_template(f'pages/{template}', images=images, image_count=image_count, user_settings=user_settings, settings=settings, search=q, next_offset=settings['thumb_num'], offscreen_tag_list=tag_list, dir_list=dir_list)
+    return render_template(f'pages/{template}', images=images, image_count=image_count, user_settings=user_settings, settings=settings, search=q, next_offset=settings['thumb_num'], offscreen_tag_list=tag_list, dir_list=dir_list, filters=filters)
 
 @views.route('/load_more_images')
 @login_required
@@ -44,6 +45,19 @@ def load_more_images():
 
     return render_template('pages/search.html', images=new_images, image_count=image_count, user_settings=user_settings, settings=settings, search=q, next_offset=offset + int(settings['thumb_num']))
 
+@views.route('/filter/<op>/<id>', methods=['POST'])
+@login_required
+def filter_toggle(op, id):
+    if request.method == 'POST':
+        if op == 'toggle':
+            #get users filter settings
+            user_settings = get_user_settings()
+            if user_settings['filters']['1'] == True:
+                user_settings['filters']['1'] = False
+            else:
+                user_settings['filters']['1'] = True
+
+    return render_template('includes/filter_buttons.html')
 
 @views.route('/stream')
 @login_required

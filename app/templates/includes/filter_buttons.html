@@ -1,0 +1,7 @@
+{% for f in filters %}
+    {% if f.header_display %}
+        <button class="btn btn-dark mx-2" type="button" hx-post="/filter/toggle/{{f.id}}" hx-target="#filter_buttons" hx-swap="innerHTML">
+            <i class="bi bi-{{f.icon}}"></i>
+        </button>
+    {% endif %}
+{% endfor %}

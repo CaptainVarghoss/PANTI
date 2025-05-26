@@ -132,6 +132,32 @@
                             </div>
                             <div class="accordion-item">
                                 <h2 class="accordion-header">
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFilters" aria-expanded="true" aria-controls="collapseFilters">
+                                        Filters
+                                    </button>
+                                </h2>
+                                <div id="collapseFilters" class="accordion-collapse collapse show">
+                                    <div class="accordion-body">
+                                        <table class="table table-striped">
+                                            <thead>
+                                                <tr>
+                                                    <th>Name</th>
+                                                    <th>Tags</th>
+                                                    <th>Search Terms</th>
+                                                    <th>Admin Only</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="filter_list">
+                                                {% include "includes/filter_list.html" %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
                                     <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseServerSettings" aria-expanded="true" aria-controls="collapseServerSettings">
                                         Server Settings
                                     </button>

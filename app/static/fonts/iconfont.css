@@ -1,0 +1,22 @@
+
+@font-face {
+  font-display: block;
+  font-family: "panti-icons";
+  src: url("./iconfont.woff2") format("woff2"),
+       url("./iconfont.woff") format("woff");
+}
+
+[class^="bi-"]::before,
+[class*="bi-"]::before {
+  margin-right: 0.2em;
+}
+
+.bi-solar-xxx-fill::before {
+  font-family: panti-icons !important;
+  content: "\e001";
+}
+
+.bi-solar-xxx::before {
+  font-family: panti-icons !important;
+  content: "\e002";
+}
