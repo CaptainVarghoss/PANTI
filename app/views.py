@@ -34,6 +34,7 @@ def home():
     return render_template(f'pages/{template}', images=images, image_count=image_count, user_settings=user_settings, settings=settings, search=q, next_offset=settings['thumb_num'], offscreen_tag_list=tag_list, dir_list=dir_list)
 
 @views.route('/load_more_images')
+@login_required
 def load_more_images():
     settings = get_settings()
     user_settings = get_user_settings()
@@ -45,6 +46,7 @@ def load_more_images():
 
 
 @views.route('/stream')
+@login_required
 def live_updates():
     return Response(send_update(), mimetype='text/event-stream')
 

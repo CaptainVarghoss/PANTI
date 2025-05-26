@@ -127,6 +127,7 @@ def show_settings():
     return render_template('pages/settings.html', page=page, settings=settings, user_settings=user_settings, user_id=user_id, tag_list=tag_list, offscreen_tag_list=tag_list, folder_list=folder_list, dir_list=dir_list, common_colors=common_colors, all_colors=all_colors, form_fields=[])
 
 @settings.route('/edit_tag/<int:id>', methods=['POST'])
+@login_required
 def edit_tag(id):
     tag = Tag.query.filter_by(id=id).first()
     form_fields = {}
@@ -138,6 +139,7 @@ def edit_tag(id):
     return render_template('includes/settings_tags.html', form_fields=form_fields)
 
 @settings.route('/add_tag', methods=['GET', 'POST'])
+@login_required
 def add_tag():
     form_fields = {}
     form_fields['color'] = "None"
@@ -145,6 +147,7 @@ def add_tag():
     return render_template('includes/settings_tags.html', form_fields=form_fields)
 
 @settings.route('/add_tag/color/<color>/<text>/<name>', methods=['POST'])
+@login_required
 def add_tag_color(color, text, name):
     form_fields = {}
     form_fields['color'] = color
@@ -153,6 +156,7 @@ def add_tag_color(color, text, name):
     return render_template('includes/settings_tags.html', form_fields=form_fields)
 
 @settings.route('/show_common_colors', methods=['POST'])
+@login_required
 def show_common_colors():
     name = request.form.get('name')
     from ..helpers.color_picker import color_picker_list
@@ -160,6 +164,7 @@ def show_common_colors():
     return render_template('includes/color_picker.html', colors=colors, name=name)
 
 @settings.route('/show_all_colors/<name>')
+@login_required
 def show_all_colors(name):
     from ..helpers.color_picker import color_picker_list
     all_colors = color_picker_list("all")
@@ -204,7 +209,6 @@ def del_base_folder(id):
     folder_list = get_path_list(ignore=True)
     return render_template('includes/folder_list.html', folder_list=folder_list)
 
-@settings.route('/get_settings')
 def get_settings(setting='', admin=1):
     sets = {}
     if admin == 1:
@@ -231,9 +235,3 @@ def get_user_settings(setting=''):
         return sets
     else:
         return settings
-
-@settings.route('/clear_settings')
-def clear_settings():
-    settings = Setting.query.delete()
-    db.session.commit()
-    return settings
