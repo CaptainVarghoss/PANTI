@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, session, flash
 from flask_login import login_required, current_user
-from app.models import Setting, db, User, Tag, ImagePath, UserSetting, Filter
+from app.models import Setting, db, User, Tag, ImagePath, UserSetting, Filter, UserFilter
 from app.helpers.io_handler import get_path_list, db_scan
 
 settings = Blueprint('settings', __name__)
@@ -20,6 +20,7 @@ def show_settings():
     settings = get_settings()
     user_settings = get_user_settings()
     filters = get_filters()
+    user_filters = get_user_filters()
     if request.method == 'POST':
         if user_settings_button != False:
             page = 'user'
@@ -125,7 +126,7 @@ def show_settings():
     common_colors = color_picker_list(type="common")
     all_colors = color_picker_list(type="all")
 
-    return render_template('pages/settings.html', page=page, settings=settings, user_settings=user_settings, user_id=user_id, tag_list=tag_list, offscreen_tag_list=tag_list, folder_list=folder_list, dir_list=dir_list, filters=filters, common_colors=common_colors, all_colors=all_colors, form_fields=[])
+    return render_template('pages/settings.html', page=page, settings=settings, user_settings=user_settings, user_id=user_id, tag_list=tag_list, offscreen_tag_list=tag_list, folder_list=folder_list, dir_list=dir_list, filters=filters, user_filters=user_filters, common_colors=common_colors, all_colors=all_colors, form_fields=[])
 
 @settings.route('/edit_tag/<int:id>', methods=['POST'])
 @login_required
@@ -243,3 +244,18 @@ def get_filters():
     else:
         filters = Filter.query.filter_by(admin_only=0)
     return filters
+
+
+def get_user_filters():
+    filters = get_filters()
+    user_filters = {}
+    for f in filters:
+        user_filter = UserFilter.query.filter_by(user_id=current_user.id, filter_id=f.id).first()
+        if user_filter:
+            user_filters[f.id] = user_filter.enabled
+        else:
+            db.session.add(UserFilter(user_id=current_user.id, filter_id=f.id, enabled=False))
+            db.session.commit()
+            user_filters[f.id] = False
+
+    return user_filters

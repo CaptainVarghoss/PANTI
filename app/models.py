@@ -98,6 +98,13 @@ class Filter(db.Model):
     built_in = db.Column(db.Boolean, default=False)
     admin_only = db.Column(db.Boolean, default=False)
 
+class UserFilter(db.Model):
+    __tablename__ = 'user_filters'
+    id = db.Column(db.Integer, primary_key=True)
+    filter_id = db.Column(db.Integer)
+    user_id = db.Column(db.Integer)
+    enabled = db.Column(db.Boolean, default=False)
+
 def register_initial_data_listener(app):
     with db.session.begin():
         if not Tag.query.first():

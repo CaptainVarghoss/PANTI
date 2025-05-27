@@ -5,6 +5,10 @@
     </div>
 </div>
 
+<div id="filter_buttons" hx-swap-oob="true">
+    {% include "includes/filter_buttons.html" %}
+</div>
+
 {% for i in images %}
 {% include "includes/thumbnail.html" %}
 {% endfor %}
