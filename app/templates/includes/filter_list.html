@@ -17,7 +17,7 @@
             </div>
         {% endfor %}
     </td>
-    <td><input type="text" value="{{f.search_terms}}"></td>
+    <td><textarea class="form-control" rows="2">{{f.search_terms}}</textarea></td>
     <td><div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" name="{{f.id}}_admin_only" value="{{f.admin_only}}" {% if f.admin_only %}checked{% endif %}></div></td>
 </tr>
 {% endfor %}
