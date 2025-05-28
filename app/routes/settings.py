@@ -19,8 +19,6 @@ def show_settings():
     is_admin = user.admin
     settings = get_settings()
     user_settings = get_user_settings()
-    filters = get_filters()
-    user_filters = get_user_filters()
     if request.method == 'POST':
         if user_settings_button != False:
             page = 'user'
@@ -76,6 +74,18 @@ def show_settings():
                         if ignore:
                             db_scan()
 
+                filters = get_filters()
+                for fl in filters:
+                    if request.form.get(f'filter_{fl.id}_admin_only') == None:
+                        admin_only = False
+                    else:
+                        admin_only = True
+                    search_terms = request.form.get(f'filter_{fl.id}_search_terms')
+                    if admin_only != fl.admin_only or search_terms != fl.search_terms:
+                        fl.admin_only = admin_only
+                        fl.search_terms = search_terms
+                        db.session.commit()
+
         if tags_button != False:
             page = 'server'
             tag_name = request.form.get('name')
@@ -120,6 +130,8 @@ def show_settings():
     else:
         tag_list = Tag.query.filter_by(admin_only=0)
 
+    filters = get_filters()
+    user_filters = get_user_filters()
     folder_list = get_path_list(ignore=True)
     dir_list = get_path_list()
     from app.helpers.color_picker import color_picker_list
@@ -172,6 +184,8 @@ def show_all_colors(name):
     all_colors = color_picker_list("all")
     return render_template('includes/color_picker_more.html', all_colors=all_colors, name=name)
 
+# Folders
+
 @settings.route('/add_folder', methods=['POST'])
 @login_required
 def add_base_folder():
@@ -210,6 +224,41 @@ def del_base_folder(id):
 
     folder_list = get_path_list(ignore=True)
     return render_template('includes/folder_list.html', folder_list=folder_list)
+
+# Filters
+
+@settings.route('/add_filter', methods=['POST'])
+@login_required
+def add_filter():
+    if current_user.admin:
+        if request.method == 'POST':
+            filter_name = request.form.get('new_filter')
+            if filter_name != '' and filter_name != None:
+                new_filter = Filter(name=filter_name)
+                db.session.add(new_filter)
+                db.session.commit()
+                flash(f'Added filter: {filter_name}', category='success')
+    else:
+        flash('Admin Only.', category='error')
+
+    filters = get_filters()
+    return render_template('includes/filter_list.html', filters=filters)
+
+@settings.route('/delete_filter/<id>', methods=['POST'])
+@login_required
+def del_filter(id):
+    if current_user.admin:
+        if request.method == 'POST':
+            query_filter = Filter.query.filter_by(id=id).first()
+            if query_filter:
+                db.session.delete(query_filter)
+                db.session.commit()
+                flash(f'Removed filter: {query_filter.name}', category='success')
+
+    folder_list = get_path_list(ignore=True)
+    return render_template('includes/folder_list.html', folder_list=folder_list)
+
+# Settings
 
 def get_settings(setting='', admin=1):
     sets = {}

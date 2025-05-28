@@ -84,8 +84,8 @@
                                         Tags
                                     </button>
                                 </h2>
-                                <div id="collapseTags" class="accordion-collapse collapse show d-flex justify-content-center">
-                                    <div class="accordion-body">
+                                <div id="collapseTags" class="accordion-collapse collapse show">
+                                    <div class="accordion-body d-flex justify-content-center">
                                         <div class="mb-3 d-flex justify-content-center">
                                             <button class="btn btn-outline-secondary" data-bs-target="#tag_modal" data-bs-toggle="modal" hx-get="/settings/add_tag" hx-on="show.bs.modal: target.innerHTML='Loading...';" hx-target="#tag_modal_content" data-bs-target="#tag_modal_content">Add Tag</button>
                                         </div>
@@ -151,6 +151,7 @@
                                                 {% include "includes/filter_list.html" %}
                                             </tbody>
                                         </table>
+                                        <div class=""><button type="button" class="btn btn-dark" data-bs-target="#filter_modal" data-bs-toggle="modal"><h4 class="m-auto"><i class="bi bi-plus-circle"></i></h4></button></div>
                                     </div>
                                 </div>
                             </div>
@@ -215,4 +216,25 @@
     </div>
 </div>
 
+<div class="modal fade" id="filter_modal" aria-hidden="true" aria-labelledby="filter_modal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" id="filter_modal_content">
+            <div class="modal-header justify-content-center">
+                Add Filter
+            </div>
+            <form method="POST" id="new_filter_form">
+                <div class="modal-body d-flex justify-content-center">
+                    <div class="form-floating w-100">
+                        <input type="text" class="form-control" placeholder="Filter Name" name="new_filter" id="new_filter" />
+                        <label for="new_filter">Filter Name</label>
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-danger" data-bs-target="#filter_modal" data-bs-toggle="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" hx-post="/settings/add_filter" hx-target="#filter_list" hx-swap="innerHTML" data-bs-target="#filter_modal" data-bs-toggle="modal">Add</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}

@@ -9,6 +9,10 @@
     {% include "includes/filter_buttons.html" %}
 </div>
 
+<div class="container justify-content-center" id="offscreen_filters" hx-swap-oob="true">
+    {% include "includes/offscreen_filters.html" %}
+</div>
+
 {% for i in images %}
 {% include "includes/thumbnail.html" %}
 {% endfor %}

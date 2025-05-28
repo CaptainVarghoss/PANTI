@@ -1,0 +1,5 @@
+{% for f in filters %}
+    <button class="btn btn-dark mx-2" {% if user_filters[f.id] is true %}style="background:{{f.color}};color:{{f.text_color}};"{% endif %} type="button" hx-post="/" hx-target="#imagesBlock" hx-swap="innerHTML" data-bs-toggle="offcanvas" name="filter_button" value="{{f.id}}">
+        <i class="bi bi-{{f.icon}}"></i>
+    </button>
+{% endfor %}
