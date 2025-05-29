@@ -1,0 +1,81 @@
+
+<div class="card my-2">
+    <div class="card-header h5 justify-content-between d-flex align-items-center">
+        <div class="" role="button" hx-get="/menu/main/{{side}}" hx-target="#offcanvas-container-{{side}}" hx-swap="innerHTML"><i class="bi bi-chevron-left"></i>Back</div>
+        <span>Filters</span>
+        <button class="btn btn-sm btn-dark p-0 bg-transparent border-0" data-bs-target="#filter_modal"><i class="bi bi-plus-circle h4"></i></button>
+    </div>
+</div>
+{% for f in filters %}
+<div class="card my-2">
+    <div class="card-header">{{f.name}}</div>
+    <div class="card-body">
+        <h6 class="card-title">Search Terms</h6>
+        <textarea class="form-control" name="filter_{{f.id}}_search_terms" rows="2">{{f.search_terms}}</textarea>
+    </div>
+    <div class="card-body">
+        <h6 class="card-title">Tags <button class="btn btn-sm rounded-pill btn-dark" data-bs-toggle="dropdown"><i class="bi bi-plus-circle" data-bs-toggle="tooltip" data-bs-title="Add tag"></i></button></h6>
+        <ul class="dropdown-menu">
+        {% for t in tag_list %}
+            <li value="{{t.id}}" class="rounded-pill m-1" style="background-color: {{t.color}}; color: {{t.text_color}}; text-align:center;" hx-post="/folder/tags/add/{{f.id}}/{{t.id}}" hx-target="#filter_list" hx-swap="innerHTML">{% if t.icon %}<i class="bi bi-{{t.icon}}"></i>{% endif %}{{t.name}}</li>
+        {% endfor %}
+        </ul>
+        {% for ft in f.tags %}
+            <div class="btn {% if ft.name != 'NSFW' %}btn-group{% endif %} rounded-pill tag-button mx-2 align-items-center {% if ft.admin_only %}border border-2 border-danger{% endif %}" style="background-color: {{ft.color}}; color: {{ft.text_color}};">
+                <button class="btn" type="button" style="color: {{ft.text_color}};" data-bs-toggle="modal">{% if ft.icon %}<i class="bi bi-{{ft.icon}}"></i>{% endif %}{{ft.name}}</button>
+                {% if ft.name != 'NSFW' %}
+                <button type="button" class="tag-button rounded-pill border-0 me-1" style="background-color: {{ft.color}}; color: {{ft.text_color}};" hx-confirm="Do you wish to remove this tag?" hx-post="/filter/neg_tags/del/{{f.id}}/{{ft.id}}" id="tag_button_{{ft.id}}" hx-target="#filter_list" hx-swap="innerHTML">&times;</button>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+    <div class="card-body">
+        <h6 class="card-title">Negative Tags <button class="btn btn-sm rounded-pill btn-dark" data-bs-toggle="dropdown"><i class="bi bi-plus-circle" data-bs-toggle="tooltip" data-bs-title="Add tag"></i></button></h6>
+        <ul class="dropdown-menu">
+        {% for t in tag_list %}
+            <li value="{{t.id}}" class="rounded-pill m-1" style="background-color: {{t.color}}; color: {{t.text_color}}; text-align:center;" hx-post="/folder/neg_tags/add/{{f.id}}/{{t.id}}" hx-target="#filter_list" hx-swap="innerHTML">{% if t.icon %}<i class="bi bi-{{t.icon}}"></i>{% endif %}{{t.name}}</li>
+        {% endfor %}
+        </ul>
+        {% for ft in f.neg_tags %}
+            <div class="btn {% if ft.name != 'NSFW' %}btn-group{% endif %} rounded-pill tag-button mx-2 align-items-center {% if ft.admin_only %}border border-2 border-danger{% endif %}" style="background-color: {{ft.color}}; color: {{ft.text_color}};">
+                <button class="btn" type="button" style="color: {{ft.text_color}};" data-bs-toggle="modal">{% if ft.icon %}<i class="bi bi-{{ft.icon}}"></i>{% endif %}{{ft.name}}</button>
+                {% if ft.name != 'NSFW' %}
+                <button type="button" class="tag-button rounded-pill border-0 me-1" style="background-color: {{ft.color}}; color: {{ft.text_color}};" hx-confirm="Do you wish to remove this tag?" hx-post="/filter/neg_tags/del/{{f.id}}/{{ft.id}}" id="tag_button_{{ft.id}}" hx-target="#filter_list" hx-swap="innerHTML">&times;</button>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+    <div class="card-body d-inline-flex justify-content-between">
+        <div class="">
+            <h6 class="card-title">Admin Only</h6>
+            <div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" name="filter_{{f.id}}_admin_only" value="{{f.admin_only}}" {% if f.admin_only %}checked{% endif %}></div></td>
+        </div>
+        <div class="">
+            <h6 class="card-title">Top Bar</h6>
+            <div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" name="filter_{{f.id}}_header_display" value="{{f.header_display}}" {% if f.header_display %}checked{% endif %}></div></td>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<div class="modal fade" id="filter_modal" aria-hidden="true" aria-labelledby="filter_modal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" id="filter_modal_content">
+            <div class="modal-header justify-content-center">
+                Add Filter
+            </div>
+            <form method="POST" id="new_filter_form">
+                <div class="modal-body d-flex justify-content-center">
+                    <div class="form-floating w-100">
+                        <input type="text" class="form-control" placeholder="Filter Name" name="new_filter" id="new_filter" />
+                        <label for="new_filter">Filter Name</label>
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-danger" data-bs-target="#filter_modal" data-bs-toggle="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" hx-post="/settings/add_filter" hx-target="#filter_list" hx-swap="innerHTML" data-bs-target="#filter_modal" data-bs-toggle="modal">Add</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

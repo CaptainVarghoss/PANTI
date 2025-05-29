@@ -12,14 +12,12 @@
     </head>
         <body>
             {% if current_user %}
-            <div class="sticky-top bg-body-tertiary d-flex">
-                {% if user_settings['sidebar'] == "Left" or user_settings['sidebar'] == "Both" %}
-                <div class="p-2 align-self-center d-flex">
-                    <button class="btn btn-dark" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasLeft" aria-controls="offcanvasLeft" aria-expanded="false" aria-label="Toggle navigation">
-                        <span class="navbar-toggler-icon"></span>
-                    </button>
+            <div class="sticky-top bg-body-tertiary d-flex" id="topBarContainer">
+                <div class="p-2 align-self-center d-flex flex-row-reverse" id="topBarLeft">
+                    {% with side = 'Left' %}
+                    {% include "includes/menu/menu_base.html" %}
+                    {% endwith %}
                 </div>
-                {% endif %}
                 <div class="flex-grow-1 justify-content-center p-2 align-self-center input-group" id="searchContainer">
                     {% if not url_for( request.endpoint, **request.view_args) != "/" %}
                     <div class="input-group">
@@ -28,50 +26,30 @@
                     </div>
                     {% endif %}
                 </div>
-                {% if user_settings['sidebar'] == "Right" or user_settings['sidebar'] == "Both" %}
-                <div class="p-2 align-self-center d-flex">
-                    <div id="filter_buttons">
-                        {% include "includes/filter_buttons.html" %}
-                    </div>
-                    <button class="btn btn-dark" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasRight" aria-controls="offcanvasRight" aria-expanded="false" aria-label="Toggle navigation">
-                        <span class="navbar-toggler-icon"></span>
-                    </button>
+                <div class="p-2 align-self-center d-flex" id="topBarRight">
+                    {% with side = 'Right' %}
+                    {% include "includes/menu/menu_base.html" %}
+                    {% endwith %}
                 </div>
-                {% endif %}
-            </div>
-            {% if user_settings['sidebar'] == "Left" or user_settings['sidebar'] == "Both" %}
-            <div class="offcanvas offcanvas-start bg-body-tertiary" tabindex="-1" id="offcanvasLeft" aria-labelledby="offcanvasLabel">
-                {% with which_side = 'left' %}
-                {% include "includes/offscreen.html" %}
-                {% endwith %}
-            </div>
-            {% endif %}
-            {% endif %}
-            {% if user_settings['sidebar'] == "Right" or user_settings['sidebar'] == "Both" %}
-
-            <div class="offcanvas offcanvas-end bg-body-tertiary" tabindex="-1" id="offcanvasRight" aria-labelledby="offcanvasLabel">
-                {% with which_side = 'right' %}
-                {% include "includes/offscreen.html" %}
-                {% endwith %}
             </div>
             {% endif %}
             <div class="container justify-content-center messages-block" id="liveAlerts">
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                    <div class="d-flex alert {% if category == 'error' %}alert-danger{% else %}alert-success{% endif%} alert-dismissible fade show m-3 justify-content-center align-self-center" role="alert">
-                        <div class="justify-content-center align-self-center"></div>
-                            <div class="">
-                                <p class="h3">{{ message }}</p>
-                            </div>
-                            <div>
-                                <button type="button" class="btn-close p-3" data-bs-dismiss="alert">&times;</button>
-                            </div>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="d-flex alert {% if category == 'error' %}alert-danger{% else %}alert-success{% endif%} alert-dismissible fade show m-3 justify-content-center align-self-center" role="alert">
+                    <div class="justify-content-center align-self-center"></div>
+                        <div class="">
+                            <p class="h3">{{ message }}</p>
+                        </div>
+                        <div>
+                            <button type="button" class="btn-close p-3" data-bs-dismiss="alert">&times;</button>
                         </div>
                     </div>
-                    {% endfor %}
-                {% endif %}
-                {% endwith %}
+                </div>
+                {% endfor %}
+            {% endif %}
+            {% endwith %}
             </div>
             {% block content %}
             {% endblock %}

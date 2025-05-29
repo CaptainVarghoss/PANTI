@@ -1,0 +1,36 @@
+<div class="card mt-2" id="filters-card">
+    <div class="card-body bg-body-secondary p-1">
+        <div class="d-flex {% if side == 'Left' %}justify-content-start{% endif %}{% if side == 'Right' %}justify-content-end{% endif %}" id="menu_filters">
+            {% include "includes/menu/menu_filters.html" %}
+        </div>
+    </div>
+</div>
+
+<div class="card mt-2">
+    <ul class="list-group list-group-flush">
+        <li class="list-group-item d-flex justify-content-between" role="button" hx-post="/menu/filter_settings/{{side}}" hx-target="#offcanvas-container-{{side}}" hx-swap="innerHTML">
+            <span>Filter Settings</span><span><i class="bi bi-chevron-right"></i></span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between" role="button" hx-post="/menu/tags/{{side}}" hx-target="#offcanvas-container-{{side}}" hx-swap="innerHTML">
+            <span>Tags</span><span><i class="bi bi-chevron-right"></i></span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between" role="button" hx-post="/menu/folders/{{side}}" hx-target="#offcanvas-container-{{side}}" hx-swap="innerHTML">
+            <span>Folders</span><span><i class="bi bi-chevron-right"></i></span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between" role="button" hx-post="/menu/user_settings/{{side}}" hx-target="#offcanvas-container-{{side}}" hx-swap="innerHTML">
+            <span>User Settings</span><span><i class="bi bi-chevron-right"></i></span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between" role="button" hx-post="/menu/server_settings/{{side}}" hx-target="#offcanvas-container-{{side}}" hx-swap="innerHTML">
+            <span>Server Settings</span><span><i class="bi bi-chevron-right"></i></span>
+        </li>
+    </ul>
+</div>
+
+<div class="card mt-5">
+    <div class="card-header">
+        <div class="">Logged in as {{current_user.username}}{% if current_user.admin %} (admin){% endif %}</div>
+    </div>
+    <div class="card-body bg-body-secondary">
+        <a class="link-danger link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover" href="{{ url_for('auth.logout') }}">Logout</a>
+    </div>
+</div>

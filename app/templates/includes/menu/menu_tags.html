@@ -1,0 +1,20 @@
+<div class="card mt-2" id="tags-card">
+    <div class="card-header h5 justify-content-between d-flex align-items-center">
+        <div class="" role="button" hx-get="/menu/main/{{side}}" hx-target="#offcanvas-container-{{side}}" hx-swap="innerHTML"><i class="bi bi-chevron-left"></i>Back</div>
+        <span>Tags</span>
+        <button class="btn btn-sm btn-dark p-0 bg-transparent border-0" data-bs-target="#tag_modal" hx-get="/settings/add_tag" hx-target="#tag_content" data-bs-target="#tag_content"><i class="bi bi-plus-circle h4"></i></button>
+    </div>
+    <div class="card-body bg-body-secondary">
+        <div class="" id="offscreen_tags">
+            {% for t in data %}
+                <div class="btn rounded-pill tag-button m-1 {% if t.admin_only %}border border-danger border-2{% endif %}" style="background-color: {{t.color}}; color: {{t.text_color}};" hx-target="#filterOne" hx-swap="innerHTML">
+                    <button class="btn" type="button" hx-post="/?q=TAG {{t.name}}" hx-target="#imagesBlock" hx-swap="innerHTML" style="color: {{t.text_color}};" data-bs-toggle="offcanvas">{% if t.icon %}<i class="bi bi-{{t.icon}}"></i>{% endif %}{{t.name}}</button>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="card-footer justify-content-between d-flex">
+        <span>Edit Tags</span><span><i class="bi bi-chevron-right"></i></span>
+    </div>
+</div>
+

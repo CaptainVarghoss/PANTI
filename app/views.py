@@ -72,6 +72,30 @@ def toggle_filter(id):
         filter.enabled = True
     db.session.commit()
 
+@views.route('/menu/<section>/<side>', methods=['GET', 'POST'])
+@login_required
+def get_offscreen_section(section, side):
+    if section != '' and side != '':
+        settings = get_settings()
+        user_settings = get_user_settings()
+        filters = get_filters()
+        user_filters = get_user_filters()
+        folder_list = get_path_list(ignore=True)
+        dir_list = get_path_list()
+        data = ''
+        if section == 'filters':
+            data = ''
+        elif section == 'tags':
+            if current_user.admin:
+                data = Tag.query
+            else:
+                data = Tag.query.filter_by(admin_only=0)
+        elif section == 'folders':
+            data = ''
+        elif section == 'main':
+            data = ''
+
+        return render_template(f'includes/menu/menu_{section}.html', data=data, side=side, filters=filters, user_filters=user_filters, folder_list=folder_list, dir_list=dir_list, settings=settings, user_settings=user_settings)
 
 def db_get_images(order=Image.id.desc(), limit=60, offset=0, query=''):
     base_query = Image.query.outerjoin(ImagePath, Image.path == ImagePath.path)
