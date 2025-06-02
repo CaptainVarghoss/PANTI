@@ -4,7 +4,7 @@ from app.models import db, Image, Tag, ImagePath, UserFilter, Filter
 import re
 from sqlalchemy import or_, and_, not_, func
 from sqlalchemy.sql.expression import false
-from app.routes.settings import get_settings, get_user_settings, get_filters, get_user_filters
+from app.routes.settings import get_settings, get_user_settings, get_filters, get_user_filters, get_tags
 from app.helpers.io_handler import get_path_list
 
 views = Blueprint('views', __name__)
@@ -27,6 +27,7 @@ def home():
         if q == '':
             q = request.form.get('q','')
 
+    filters = get_filters()
     user_filters = get_user_filters()
     images, image_count = db_get_images(limit=settings['thumb_num'], query=construct_query(q))
     if current_user.admin:
@@ -82,20 +83,18 @@ def get_offscreen_section(section, side):
         user_filters = get_user_filters()
         folder_list = get_path_list(ignore=True)
         dir_list = get_path_list()
+        tag_list = get_tags()
         data = ''
         if section == 'filters':
             data = ''
         elif section == 'tags':
-            if current_user.admin:
-                data = Tag.query
-            else:
-                data = Tag.query.filter_by(admin_only=0)
+            data = ''
         elif section == 'folders':
             data = ''
         elif section == 'main':
             data = ''
 
-        return render_template(f'includes/menu/menu_{section}.html', data=data, side=side, filters=filters, user_filters=user_filters, folder_list=folder_list, dir_list=dir_list, settings=settings, user_settings=user_settings)
+        return render_template(f'includes/menu/menu_{section}.html', data=data, side=side, filters=filters, user_filters=user_filters, folder_list=folder_list, dir_list=dir_list, settings=settings, user_settings=user_settings, tag_list=tag_list)
 
 def db_get_images(order=Image.id.desc(), limit=60, offset=0, query=''):
     base_query = Image.query.outerjoin(ImagePath, Image.path == ImagePath.path)

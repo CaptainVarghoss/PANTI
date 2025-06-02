@@ -14,9 +14,11 @@
             {% if current_user %}
             <div class="sticky-top bg-body-tertiary d-flex" id="topBarContainer">
                 <div class="p-2 align-self-center d-flex flex-row-reverse" id="topBarLeft">
-                    {% with side = 'Left' %}
-                    {% include "includes/menu/menu_base.html" %}
-                    {% endwith %}
+                    {% if user_settings['sidebar'] == 'Left' or user_settings['sidebar'] == 'Both' %}
+                        {% with side = 'Left' %}
+                        {% include "includes/menu/menu_base.html" %}
+                        {% endwith %}
+                    {% endif %}
                 </div>
                 <div class="flex-grow-1 justify-content-center p-2 align-self-center input-group" id="searchContainer">
                     {% if not url_for( request.endpoint, **request.view_args) != "/" %}
@@ -27,9 +29,11 @@
                     {% endif %}
                 </div>
                 <div class="p-2 align-self-center d-flex" id="topBarRight">
-                    {% with side = 'Right' %}
-                    {% include "includes/menu/menu_base.html" %}
-                    {% endwith %}
+                    {% if user_settings['sidebar'] == 'Right' or user_settings['sidebar'] == 'Both' %}
+                        {% with side = 'Right' %}
+                        {% include "includes/menu/menu_base.html" %}
+                        {% endwith %}
+                    {% endif %}
                 </div>
             </div>
             {% endif %}

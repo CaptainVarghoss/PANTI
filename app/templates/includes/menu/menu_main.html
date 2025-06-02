@@ -1,6 +1,6 @@
 <div class="card mt-2" id="filters-card">
     <div class="card-body bg-body-secondary p-1">
-        <div class="d-flex {% if side == 'Left' %}justify-content-start{% endif %}{% if side == 'Right' %}justify-content-end{% endif %}" id="menu_filters">
+        <div class="d-flex {% if side == 'Left' %}justify-content-start{% endif %}{% if side == 'Right' %}justify-content-end{% endif %}" id="menu_filters_{{side}}">
             {% include "includes/menu/menu_filters.html" %}
         </div>
     </div>
@@ -20,9 +20,11 @@
         <li class="list-group-item d-flex justify-content-between" role="button" hx-post="/menu/user_settings/{{side}}" hx-target="#offcanvas-container-{{side}}" hx-swap="innerHTML">
             <span>User Settings</span><span><i class="bi bi-chevron-right"></i></span>
         </li>
+        {% if current_user.admin %}
         <li class="list-group-item d-flex justify-content-between" role="button" hx-post="/menu/server_settings/{{side}}" hx-target="#offcanvas-container-{{side}}" hx-swap="innerHTML">
             <span>Server Settings</span><span><i class="bi bi-chevron-right"></i></span>
         </li>
+        {% endif %}
     </ul>
 </div>
 

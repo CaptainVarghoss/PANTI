@@ -1,0 +1,20 @@
+<div class="card my-2">
+    <div class="card-header h5 justify-content-between d-flex align-items-center">
+        <div class="" role="button" hx-get="/menu/filters/{{side}}" hx-target="#offcanvas-container-{{side}}" hx-swap="innerHTML"><i class="bi bi-chevron-left"></i>Back</div>
+        <span>Add New Filter</span>
+    </div>
+</div>
+
+<form method="POST" id="new_filter_form">
+    <div class="card">
+        <div class="card-body">
+            <div class="form-floating w-100">
+                <input type="text" class="form-control" placeholder="Filter Name" name="new_filter" id="new_filter" />
+                <label for="new_filter">Filter Name</label>
+            </div>
+        </div>
+        <div class="card-footer">
+            <button type="button" class="btn btn-success" hx-post="/settings/add_filter/save/{{side}}" hx-target="#offcanvas-container-{{side}}" hx-swap="innerHTML">Add</button>
+        </div>
+    </div>
+</form>
