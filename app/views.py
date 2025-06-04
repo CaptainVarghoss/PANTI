@@ -62,7 +62,7 @@ def live_updates():
     return Response(send_update(), mimetype='text/event-stream')
 
 def send_update():
-    template_url = '/search'
+    template_url = '/'
     yield f'data: <div hx-get="{template_url}" hx-target="#imagesBlock" hx-swap="afterbegin"></div>'
 
 def toggle_filter(id):

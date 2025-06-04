@@ -53,7 +53,7 @@ class ImageHandler():
                         print(f'Image: {self.filename} added to database. ID: {new_image.id}')
                         ## send new image to clients
                         from app.views import send_update
-                        #send_update()
+                        send_update()
                         return new_image.id
                     except Exception as e:
                         print(f'Error adding image to database: {e}')
