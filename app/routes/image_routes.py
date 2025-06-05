@@ -5,12 +5,14 @@ from app.routes.settings import get_settings
 
 image_routes = Blueprint('image_routes', __name__)
 
-@image_routes.route('/get_new_content')
+@image_routes.route('/get_thumbnail/<int:image_id>', methods=['GET'])
 @login_required
-def list_new_images():
-    settings = get_settings()
-    results = Image.query.order_by(Image.id.desc())
-    return render_template("includes/live_update.html", images=results, settings=settings)
+def get_new_image(image_id):
+    image = Image.query.get(image_id)
+    if not image:
+        return '', 404
+
+    return render_template("includes/thumbnail.html", i=image)
 
 @image_routes.route('/get-image/<path:checksum>')
 @login_required

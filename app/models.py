@@ -1,7 +1,7 @@
 from flask_login import UserMixin
 from sqlalchemy.sql import func
 from . import db
-import os
+import os, re
 
 image_tag_table = db.Table('image_tags',
     db.Column('images_id', db.Integer, db.ForeignKey('images.id'), primary_key=True),
@@ -134,10 +134,23 @@ def register_initial_data_listener(app):
         if not ImagePath.query.first():
             db.session.add(ImagePath(path=os.path.join(app.root_path, 'static/images'), description='Default Path', basepath=True, built_in=True))
         if not Filter.query.first():
-            db.session.add(Filter(name='NSFW', built_in=True, color='DarkRed', text_color='White', icon='explicit', header_display=True, enabled=False, search_terms="nude, penis, pussy, cock, handjob, fellatio, sex, nsfw, anal, vaginal, ass, blowjob, deepthroat"))
+            db.session.add(Filter(name='NSFW', built_in=True, color='DarkRed', text_color='White', icon='explicit', header_display=True, enabled=False, search_terms="nude, penis, pussy, cock, handjob, fellatio, anal, vaginal, ass, blowjob, deepthroat"))
             first_filter_tag = Tag.query.filter_by(name='NSFW').first()
             first_filter = Filter.query.first()
             first_filter.tags.append(first_filter_tag)
             db.session.commit()
 
     return
+
+def register_sqlite_regexp_function(app):
+    # Registers the custom REGEXP function for all SQLite connections
+    with app.app_context():
+        @db.event.listens_for(db.engine, "connect")
+        def _set_sqlite_regexp(dbapi_connection, connection_record):
+            dbapi_connection.create_function("regexp", 2, regexp)
+
+def regexp(expression, item):
+    # Custom REGEXP function for SQLite.
+    if item is None:
+        return False
+    return re.search(expression, item, re.IGNORECASE) is not None

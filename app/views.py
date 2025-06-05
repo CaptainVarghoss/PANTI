@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, Response
+from flask import Blueprint, render_template, request
 from flask_login import login_required, current_user
 from app.models import db, Image, Tag, ImagePath, UserFilter, Filter
 import re
@@ -56,14 +56,11 @@ def load_more_images():
 
     return render_template('pages/search.html', images=new_images, image_count=image_count, user_settings=user_settings, settings=settings, search=q, next_offset=offset + int(settings['thumb_num']), filters=filters, user_filters=user_filters)
 
-@views.route('/stream')
-@login_required
-def live_updates():
-    return Response(send_update(), mimetype='text/event-stream')
-
 def send_update():
-    template_url = '/'
-    yield f'data: <div hx-get="{template_url}" hx-target="#imagesBlock" hx-swap="afterbegin"></div>'
+    print('Update requested')
+    from main import socketio
+    socketio.emit('new_image')
+    print('Socket emmited: new_image')
 
 def toggle_filter(id):
     filter = UserFilter.query.filter_by(filter_id=id, user_id=current_user.id).first()
@@ -226,11 +223,13 @@ def construct_query(keywords):
 
     # Build conditions for excluded keywords
     for ex_keyword in all_excluded_keywords:
+        from app.models import regexp
+        regex_pattern = rf'\b{re.escape(ex_keyword)}\b'
         ex_search_condition = or_(
-            Image.meta.ilike(f"%{ex_keyword}%"),
-            Image.path.ilike(f"%{ex_keyword}%"),
-            Image.tags.any(Tag.name.ilike(f"%{ex_keyword}%")),
-            ImagePath.tags.any(Tag.name.ilike(f"%{ex_keyword}%"))
+            func.regexp(Image.meta, regex_pattern),
+            func.regexp(Image.path, regex_pattern),
+            Image.tags.any(func.lower(Tag.name) == func.lower(ex_keyword)),
+            ImagePath.tags.any(func.lower(Tag.name) == func.lower(ex_keyword))
         )
         # Exclude if it matches the keyword AND does NOT have any of the 'safe' tags
         exclusion_conditions.append(or_(not_(ex_search_condition), safe_tag_condition))

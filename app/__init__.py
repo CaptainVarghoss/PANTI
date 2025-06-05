@@ -3,6 +3,11 @@ from flask_login import LoginManager
 import os, json
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import event
+from flask_socketio import SocketIO
+from multiprocessing import Queue
+
+# Initialize the multiprocessing Queue globally
+socketio_queue_instance = Queue()
 
 db = SQLAlchemy()
 
@@ -44,6 +49,7 @@ def create_app():
     app = Flask(__name__)
     load_config(app)
     print('Creating app instance')
+
     # Initialize Database
     db.init_app(app)
     print("Checking for database..")
@@ -51,11 +57,14 @@ def create_app():
         print('   Database not found, creating..')
     else:
         print('   Loaded existing database.')
-    from app.models import User, ImagePath, register_initial_data_listener
+
+    from app.models import User, register_initial_data_listener, register_sqlite_regexp_function
     with app.app_context():
         db.create_all()
         register_initial_data_listener(app)
+        register_sqlite_regexp_function(app)
 
+    # Register Blueprints
     from app.views import views
     from app.routes.auth import auth
     from app.routes.image_routes import image_routes
@@ -68,6 +77,7 @@ def create_app():
     app.register_blueprint(settings, url_prefix="/settings")
     app.register_blueprint(tag_routes, url_prefix="/")
 
+    # Setup Flask-Login
     login_manager = LoginManager()
     login_manager.login_view = 'auth.login'
     login_manager.init_app(app)
@@ -75,15 +85,5 @@ def create_app():
     @login_manager.user_loader
     def load_user(id):
         return User.query.get(int(id))
-
-    with app.app_context():
-        #from .image_handler import scan_files
-        #scan_files()
-
-        from app.classes.watcher import FileWatcher
-        base_paths = ImagePath.query.filter_by(basepath=True).all()
-        for bp in base_paths:
-            file_watcher = FileWatcher()
-            file_watcher.watch(bp.path)
 
     return app

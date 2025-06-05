@@ -245,6 +245,24 @@ def add_filter_save(side):
     user_filters = get_user_filters()
     return render_template('includes/menu/menu_filter_settings.html', filters=filters, side=side, user_filters=user_filters)
 
+@settings.route('/save_filters/<side>', methods=['POST'])
+@login_required
+def save_filters(side):
+    if current_user.admin:
+        if request.method == 'POST':
+            filters = get_filters()
+            for f in filters:
+                f.search_terms = request.form.get(f'filter_{f.id}_search_terms')
+                if request.form.get(f'filter_{f.id}_admin_only'):
+                    f.admin_only = True
+                if request.form.get(f'filter_{f.id}_header_display'):
+                    f.header_display = True
+                db.session.commit()
+
+    filters = get_filters()
+    user_filters = get_user_filters()
+    return render_template('includes/menu/menu_filter_settings.html', filters=filters, side=side, user_filters=user_filters)
+
 @settings.route('/del_filter/<id>/<side>', methods=['POST'])
 @login_required
 def del_filter(id, side):
