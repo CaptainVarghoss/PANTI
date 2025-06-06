@@ -30,10 +30,8 @@ def home():
     filters = get_filters()
     user_filters = get_user_filters()
     images, image_count = db_get_images(limit=settings['thumb_num'], query=construct_query(q))
-    if current_user.admin:
-        tag_list = Tag.query
-    else:
-        tag_list = Tag.query.filter_by(admin_only=0)
+
+    tag_list = get_tags()
     dir_list = get_path_list()
 
     if search:
@@ -93,25 +91,31 @@ def get_offscreen_section(section, side):
 
         return render_template(f'includes/menu/menu_{section}.html', data=data, side=side, filters=filters, user_filters=user_filters, folder_list=folder_list, dir_list=dir_list, settings=settings, user_settings=user_settings, tag_list=tag_list)
 
-def db_get_images(order=Image.id.desc(), limit=60, offset=0, query=''):
+def db_get_images(order=Image.id.desc(), limit=60, offset=0, query='', image_id=None):
     base_query = Image.query.outerjoin(ImagePath, Image.path == ImagePath.path)
 
     # Apply the filter if a query is provided
     if query != '':
         base_query = base_query.filter(query)
 
-    # Apply ordering for both count and image retrieval
-    count_query = base_query.order_by(order)
-    images_query = base_query.order_by(order).limit(limit).offset(offset)
+    # Apply specific ID if provided
+    if image_id is not None:
+        base_query = base_query.filter(Image.id == image_id)
 
-    # Get the count *before* applying limit and offset
-    image_count = count_query.count()
-    images = images_query.all()  # Execute the query to get image objects.  Use .all()
+        image = base_query.first()
+        return image, (1 if image else 0)
+    else:
+        # Apply ordering for both count and image retrieval
+        count_query = base_query
+        image_count = count_query.count()
 
-    if image_count == 0:
-            return '', 0
+        if image_count == 0:
+            return [], 0
 
-    return images, image_count
+        images_query = base_query.order_by(order).limit(limit).offset(offset)
+        images = images_query.all()  # Execute the query to get image objects.  Use .all()
+
+        return images, image_count
 
 def construct_query(keywords):
     tokens = re.split(r'(\sand\s|\sAND\s|\sor\s|\sOR\s|\snot\s|\sNOT\s|\sLIKE\s|\sIN\s|\sNOT IN\s)', keywords)
@@ -195,61 +199,54 @@ def construct_query(keywords):
         disabled_filters = db.session.query(Filter).filter(Filter.id.in_(filter_ids_to_exclude)).all()
 
         for filter_obj in disabled_filters:
-            # Add keywords from search_terms
             if filter_obj.search_terms:
                 keywords_from_filter = [k.strip() for k in filter_obj.search_terms.split(',') if k.strip()]
                 all_excluded_keywords.update(keywords_from_filter)
 
-            # Add tags from the relationship
             if filter_obj.tags:
                 tags_from_filter = [tag.name.strip() for tag in filter_obj.tags if tag.name.strip()]
                 all_excluded_tags.update(tags_from_filter)
 
-            # Collect tags from neg_tags relationship that bypass exclusion
             if filter_obj.neg_tags:
                 neg_tags_from_filter = [tag.name.strip() for tag in filter_obj.neg_tags if tag.name.strip()]
                 all_neg_tags.update(neg_tags_from_filter)
 
-    exclusion_conditions = []
-
     # Define the 'safe' tag condition based on collected neg_tags
+    safe_tag_condition = false() # Default to false if no neg_tags
     if all_neg_tags:
-        # If there are neg_tags, an image is 'safe' if it has any of them
         safe_tag_condition = Image.tags.any(func.lower(Tag.name).in_([func.lower(t) for t in all_neg_tags]))
-    else:
-        # If no neg_tags are defined, then no tag can make an image "safe" from exclusion.
-        # This condition will effectively be False, meaning no image bypasses exclusion based on neg_tags.
-        safe_tag_condition = false() # SQLAlchemy's false()
+
+    exclusion_predicates = []
 
     # Build conditions for excluded keywords
     for ex_keyword in all_excluded_keywords:
-        from app.models import regexp
-        regex_pattern = rf'\b{re.escape(ex_keyword)}\b'
-        ex_search_condition = or_(
-            func.regexp(Image.meta, regex_pattern),
-            func.regexp(Image.path, regex_pattern),
+        regex_pattern = rf'(?i)\b{re.escape(ex_keyword)}\b'
+        ex_search_match = or_(
+            Image.meta.op('REGEXP')(regex_pattern),
+            Image.path.op('REGEXP')(regex_pattern),
             Image.tags.any(func.lower(Tag.name) == func.lower(ex_keyword)),
             ImagePath.tags.any(func.lower(Tag.name) == func.lower(ex_keyword))
         )
-        # Exclude if it matches the keyword AND does NOT have any of the 'safe' tags
-        exclusion_conditions.append(or_(not_(ex_search_condition), safe_tag_condition))
+        # An item is truly "excluded by keyword" if it matches the keyword AND does NOT have any safe tags
+        exclusion_predicates.append(and_(ex_search_match, not_(safe_tag_condition)))
 
     # Build conditions for excluded tags
     for ex_tag in all_excluded_tags:
-        ex_tag_condition = or_(
+        ex_tag_match = or_(
             Image.tags.any(func.lower(Tag.name) == func.lower(ex_tag)),
             ImagePath.tags.any(func.lower(Tag.name) == func.lower(ex_tag))
         )
-        # Exclude if it matches the tag AND does NOT have any of the 'safe' tags
-        exclusion_conditions.append(or_(not_(ex_tag_condition), safe_tag_condition))
+        # An item is truly "excluded by tag" if it matches the tag AND does NOT have any safe tags
+        exclusion_predicates.append(and_(ex_tag_match, not_(safe_tag_condition)))
 
-    # Combine all exclusion conditions
-    if exclusion_conditions:
-        combined_exclusion_condition = and_(*exclusion_conditions)
+    # Combine all exclusion predicates into a single 'should be excluded' condition
+    # If ANY of the exclusion predicates are true, the item should be excluded.
+    if exclusion_predicates:
+        should_be_excluded_condition = or_(*exclusion_predicates)
+        # We want to NOT include items that should be excluded
         if final_condition is None:
-            final_condition = combined_exclusion_condition
+            final_condition = not_(should_be_excluded_condition)
         else:
-            final_condition = and_(final_condition, combined_exclusion_condition)
+            final_condition = and_(final_condition, not_(should_be_excluded_condition))
 
-    # Return the final condition or an empty string if no conditions were ever built
     return final_condition if final_condition is not None else ''

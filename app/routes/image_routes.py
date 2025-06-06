@@ -1,16 +1,16 @@
 from flask import Blueprint, render_template, send_from_directory, json
 from flask_login import login_required, current_user
 from app.models import Image, Tag
-from app.routes.settings import get_settings
+from app.views import db_get_images, construct_query
 
 image_routes = Blueprint('image_routes', __name__)
 
 @image_routes.route('/get_thumbnail/<int:image_id>', methods=['GET'])
 @login_required
 def get_new_image(image_id):
-    image = Image.query.get(image_id)
+    image, count = db_get_images(image_id=image_id, query=construct_query(''))
     if not image:
-        return '', 404
+        return ''
 
     return render_template("includes/thumbnail.html", i=image)
 

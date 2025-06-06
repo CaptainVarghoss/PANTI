@@ -153,4 +153,5 @@ def regexp(expression, item):
     # Custom REGEXP function for SQLite.
     if item is None:
         return False
-    return re.search(expression, item, re.IGNORECASE) is not None
+    match = re.search(expression, item)
+    return match is not None

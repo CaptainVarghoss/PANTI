@@ -15,7 +15,7 @@ class ImageHandler():
         self.full_file_path = os.path.join(self.file_path, self.filename)
         self.checksum = self.get_checksum()
         self.mime = self.get_mime_type()
-        self.is_video = True if self.mime.startswith('video/') else False # More robust check for video mime
+        self.is_video = True if self.mime.startswith('video') else False # More robust check for video mime
         self.date_created = self.get_created_date()
         self.thumb_path = 'app/static/thumbnails/'
         self.lock_dir = lock_dir  # Directory for lock files
