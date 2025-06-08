@@ -1,4 +1,10 @@
 const socket = io();
+
+const eventName = '';
+socket.onAny((eventName, ...args) => {
+  console.log(`Received event: ${eventName} -- Data: ${args}`);
+});
+
 const htmxTriggerElement = document.getElementById('imagesBlock');
 
 function handleFileEvent(data, eventType) {
@@ -19,15 +25,15 @@ function handleFileEvent(data, eventType) {
     }
 }
 
-socket.on('file_created', function(data) {
-  console.log('File creation event.');
-  handleFileEvent(data, 'file_created');
-});
+// socket.on('file_created', function(data) {
+//   console.log('File creation event.');
+//   handleFileEvent(data, 'file_created');
+// });
 
-socket.on('file_modified', function(data) {
-  console.log('File modification event');
-  handleFileEvent(data, 'file_modified');
-});
+// socket.on('file_modified', function(data) {
+//   console.log('File modification event');
+//   handleFileEvent(data, 'file_modified');
+// });
 
 htmx.onLoad(function() {
   htmx.on(htmxTriggerElement, 'imageUpdateReady', function(evt) {
@@ -40,16 +46,23 @@ htmx.onLoad(function() {
   });
 });
 
-socket.on('connected', function(data) {
-  console.log('Client Connected.');
-});
+// socket.on('connected', function(data) {
+//   console.log('Client Connected.');
+// });
 
-socket.on('disconnected', function(data) {
-  console.log('Client Disconnected.');
-});
+// socket.on('disconnected', function(data) {
+//   console.log('Client Disconnected.');
+// });
+
+
 
 const fullsizeModal = document.getElementById('fullsizeModal');
 if (fullsizeModal) {
+    fullsizeModal.addEventListener('hide.bs.modal', event => {
+      if (document.activeElement) {
+        document.activeElement.blur();
+      }
+    });
     fullsizeModal.addEventListener('show.bs.modal', event => {
     // Button that triggered the modal
     const button = event.relatedTarget;

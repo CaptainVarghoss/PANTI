@@ -5,10 +5,17 @@ from app.views import db_get_images, construct_query
 
 image_routes = Blueprint('image_routes', __name__)
 
+def check_viewable(id):
+    image, count = db_get_images(image_id=id, query=construct_query(''))
+    if image:
+        return image
+    else:
+        return False
+
 @image_routes.route('/get_thumbnail/<int:image_id>', methods=['GET'])
 @login_required
 def get_new_image(image_id):
-    image, count = db_get_images(image_id=image_id, query=construct_query(''))
+    image = check_viewable(image_id)
     if not image:
         return ''
 

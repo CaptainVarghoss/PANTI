@@ -1,23 +1,27 @@
 from app.routes.settings import get_settings
-from app.__init__ import create_app
 from app.models import db, ImagePath
 from app.classes.image_handler import ImageHandler
 from app.helpers.io_handler import db_check_path
-import os, time, magic, threading
-from queue import Queue
+import os, time
 
-def startup_scan():
+import gevent
+from gevent.queue import Queue
+from gevent.threadpool import ThreadPool
+
+def startup_scan(app_instance):
     # Threaded Scan
     base_paths = ImagePath.query.filter_by(basepath=True).all()
     for bp in base_paths:
-        scanner_threaded = ScanFiles(path=bp.path)
-        scanner_threaded.scan_folder_threaded()
+        scanner_threaded = ScanFiles(path=bp.path, app_instance=app_instance)
+        scanner_threaded.scan_folder_gevent()
     return
 
 class ScanFiles():
-    def __init__(self, path=''):
-        from main import app
-        self.app = app
+    def __init__(self, path='', app_instance=None):
+        if app_instance is None:
+            raise ValueError("ScanFiles requires an app_instance")
+
+        self.app = app_instance
         self.settings = get_settings()
         if path == '':
             path_query = ImagePath.query.filter_by(basepath=True, built_in=True).first()
@@ -36,51 +40,45 @@ class ScanFiles():
 
         self.file_queue = Queue()
         self.dir_queue = Queue()
-        self.num_threads = 4 # You can adjust the number of threads
+        self.num_greenlets = 4 # You can adjust the number of threads
 
-    def scan_folder_threaded(self):
+    def scan_folder_gevent(self):
         scan_time = time.perf_counter()
-        print(f'Scanning files (threaded): {self.path}..')
+        print(f'Scanning files (gevent): {self.path}..')
 
         # Add files to the processing queue
         for f in self.file_list:
             self.file_queue.put(f)
 
         # Create and start file processing threads
-        file_threads = []
-        for _ in range(self.num_threads):
-            thread = threading.Thread(target=self._process_file)
-            thread.daemon = True
-            file_threads.append(thread)
-            thread.start()
+        file_greenlets = []
+        for _ in range(self.num_greenlets):
+            greenlet = gevent.spawn(self._process_file_gevent)
+            file_greenlets.append(greenlet)
 
         # Add subdirectories to the scanning queue
         for d in self.dir_list:
             self.dir_queue.put(d)
 
         # Create and start subdirectory scanning threads
-        dir_threads = []
-        for _ in range(self.num_threads):
-            thread = threading.Thread(target=self._scan_subdirectory)
-            thread.daemon = True
-            dir_threads.append(thread)
-            thread.start()
+        dir_greenlets = []
+        for _ in range(self.num_greenlets):
+            greenlet = gevent.spawn(self._scan_subdirectory_gevent)
+            dir_greenlets.append(greenlet)
 
         # Wait for all files to be processed
         self.file_queue.join()
-        # Signal worker threads to exit
-        for _ in range(self.num_threads):
+        # Signal worker greenlets to exit
+        for _ in range(self.num_greenlets):
             self.file_queue.put(None)
-        for thread in file_threads:
-            thread.join()
+        gevent.joinall(file_greenlets)
 
         # Wait for all subdirectories to be scanned
         self.dir_queue.join()
         # Signal worker threads to exit
-        for _ in range(self.num_threads):
+        for _ in range(self.num_greenlets):
             self.dir_queue.put(None)
-        for thread in dir_threads:
-            thread.join()
+        gevent.joinall(dir_greenlets)
 
         end_time = time.perf_counter()
         scan_time = end_time - scan_time
@@ -117,7 +115,7 @@ class ScanFiles():
             return [], 0, [], 0
         return file_list, len(file_list), dir_list, len(dir_list)
 
-    def _process_file(self):
+    def _process_file_gevent(self):
         with self.app.app_context():
             while True:
                 filename = self.file_queue.get()
@@ -139,12 +137,12 @@ class ScanFiles():
                 finally:
                     self.file_queue.task_done()
 
-    def _scan_subdirectory(self):
+    def _scan_subdirectory_gevent(self):
         with self.app.app_context():
             while True:
                 subdir = self.dir_queue.get()
                 if subdir is None:
                     break
-                sub_scanner = ScanFiles(os.path.join(self.path, subdir))
-                sub_scanner.scan_folder_threaded()
+                sub_scanner = ScanFiles(os.path.join(self.path, subdir), app_instance=self.app)
+                sub_scanner.scan_folder_gevent()
                 self.dir_queue.task_done()

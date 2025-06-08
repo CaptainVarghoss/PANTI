@@ -1,7 +1,8 @@
 from flask import Blueprint, render_template, request
 from flask_login import login_required, current_user
 from app.models import db, Image, Tag, ImagePath
-from app.routes.settings import get_settings
+from app.routes.image_routes import check_viewable
+
 import os
 
 tag_routes = Blueprint('tag_routes', __name__)
@@ -20,6 +21,10 @@ def tag_handler(op='get', image_id=0, tag_id=0):
                 if op == 'add':
                     image.tags.append(tag)
                     db.session.commit()
+                    viewable = check_viewable(image_id)
+                    if not viewable:
+                        from main import send_to_clients
+                        send_to_clients('tag_change', {'image_id': image_id})
                 elif op == 'del':
                     image.tags.remove(tag)
                     db.session.commit()

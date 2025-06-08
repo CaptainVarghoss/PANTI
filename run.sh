@@ -2,4 +2,4 @@
 
 source venv/bin/activate
 
-python main.py
+gunicorn -k gevent -c launch.py main:app
