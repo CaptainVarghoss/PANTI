@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request
+from flask import Blueprint, render_template, request, current_app
 from flask_login import login_required, current_user
 from app.models import db, Image, Tag, ImagePath, UserFilter, Filter
 import re
@@ -6,6 +6,8 @@ from sqlalchemy import or_, and_, not_, func
 from sqlalchemy.sql.expression import false
 from app.routes.settings import get_settings, get_user_settings, get_filters, get_user_filters, get_tags
 from app.helpers.io_handler import get_path_list
+import gevent
+from app.helpers.thumbnails import generate_image_thumbnail
 
 views = Blueprint('views', __name__)
 
@@ -31,6 +33,12 @@ def home():
     user_filters = get_user_filters()
     images, image_count = db_get_images(limit=settings['thumb_num'], query=construct_query(q))
 
+    thumbnail_greenlets = []
+    from main import socketio
+    for image in images:
+        g = gevent.spawn(generate_image_thumbnail, image, settings, current_app._get_current_object(), socketio)
+        thumbnail_greenlets.append(g)
+
     tag_list = get_tags()
     dir_list = get_path_list()
 
@@ -52,13 +60,13 @@ def load_more_images():
     q = request.args.get('q', '')
     new_images, image_count = db_get_images(limit=settings['thumb_num'], offset=offset, query=construct_query(q))
 
-    return render_template('pages/search.html', images=new_images, image_count=image_count, user_settings=user_settings, settings=settings, search=q, next_offset=offset + int(settings['thumb_num']), filters=filters, user_filters=user_filters)
-
-def send_update():
-    print('Update requested')
+    thumbnail_greenlets = []
     from main import socketio
-    socketio.emit('new_image')
-    print('Socket emmited: new_image')
+    for image in new_images:
+        g = gevent.spawn(generate_image_thumbnail, image, settings, current_app._get_current_object(), socketio)
+        thumbnail_greenlets.append(g)
+
+    return render_template('pages/search.html', images=new_images, image_count=image_count, user_settings=user_settings, settings=settings, search=q, next_offset=offset + int(settings['thumb_num']), filters=filters, user_filters=user_filters)
 
 def toggle_filter(id):
     filter = UserFilter.query.filter_by(filter_id=id, user_id=current_user.id).first()

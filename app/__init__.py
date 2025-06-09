@@ -9,8 +9,6 @@ from multiprocessing import Queue
 # Initialize the multiprocessing Queue globally
 socketio_queue_instance = Queue()
 
-db = SQLAlchemy()
-
 PORT = '5080'
 HOST = '127.0.0.1'
 CONFIG_FILE = 'config.json'
@@ -20,7 +18,13 @@ DEFAULT_CONFIG = {
     'SECRET_KEY': 'your_secret_key_here', # Replace with a strong, random key
     'HOST': HOST,
     'PORT': PORT,
-    'SERVER_NAME': f'{HOST}:{PORT}'
+    'SERVER_NAME': f'{HOST}:{PORT}',
+    'SQLALCHEMY_ENGINE_OPTIONS': {
+        'pool_size': 10, # Number of connections to keep alive in the pool
+        'max_overflow': 20, # Number of connections that can be created beyond pool_size
+        'pool_recycle': 3600, # Recycle connections after 1 hour (common for preventing stale connections)
+        'pool_pre_ping': True # Check if connection is alive before using it (good for flaky connections)
+    }
 }
 
 def load_config(app):
@@ -44,6 +48,7 @@ def create_default_config():
         json.dump(DEFAULT_CONFIG, f, indent=4)
     print(f"Created default configuration file: {CONFIG_FILE}")
 
+db = SQLAlchemy()
 
 def create_app():
     app = Flask(__name__)

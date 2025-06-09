@@ -3,6 +3,33 @@ const socket = io();
 const eventName = '';
 socket.onAny((eventName, ...args) => {
   console.log(`Received event: ${eventName} -- Data: ${args}`);
+
+  switch (eventName) {
+    case 'connect':
+        console.log('Connected to Socket.IO server');
+        break;
+    case 'disconnect':
+        console.log('Disconnected from Socket.IO server');
+        break;
+    case 'thumbnail_ready':
+        const data = args[0]; // Assuming data is the first argument
+        const imageId = data.image_id;
+        const checksum = data.checksum;
+        const imgElement = document.getElementById(`thumbnail-image-${imageId}`);
+        if (imgElement) {
+            imgElement.src = `/static/thumbnails/${checksum}.webp`;
+            imgElement.classList.remove('thumbnail-placeholder');
+            imgElement.classList.add('animate__animated', 'animate__fadeIn');
+
+            imgElement.addEventListener('animationend', () => {
+                imgElement.classList.remove('animate__animated', 'animate__fadeIn');
+            }, { once: true });
+        }
+        break;
+    // Add more cases for other event types if needed in the future
+    default:
+        console.log(`Unhandled event: ${eventName}`, args);
+  }
 });
 
 const htmxTriggerElement = document.getElementById('imagesBlock');
@@ -25,16 +52,6 @@ function handleFileEvent(data, eventType) {
     }
 }
 
-// socket.on('file_created', function(data) {
-//   console.log('File creation event.');
-//   handleFileEvent(data, 'file_created');
-// });
-
-// socket.on('file_modified', function(data) {
-//   console.log('File modification event');
-//   handleFileEvent(data, 'file_modified');
-// });
-
 htmx.onLoad(function() {
   htmx.on(htmxTriggerElement, 'imageUpdateReady', function(evt) {
     const imageId = evt.detail.imageId;
@@ -45,16 +62,6 @@ htmx.onLoad(function() {
     console.log(`HTMX requested ${imageId}`);
   });
 });
-
-// socket.on('connected', function(data) {
-//   console.log('Client Connected.');
-// });
-
-// socket.on('disconnected', function(data) {
-//   console.log('Client Disconnected.');
-// });
-
-
 
 const fullsizeModal = document.getElementById('fullsizeModal');
 if (fullsizeModal) {

@@ -80,6 +80,10 @@ div.thumbnail {
     width: 100%;
 }
 
+.thumbnail-placeholder {
+    opacity: 0;
+}
+
 .offcanvas-header {
     border-color: var(--clr-primary-a20);
 }

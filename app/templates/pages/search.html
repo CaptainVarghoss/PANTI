@@ -29,7 +29,7 @@
 {% endfor %}
 
 {% if images != [] %}
-<div id="load-more" hx-get="/load_more_images?q={{ search }}&offset={{ next_offset }}" hx-target="#imagesBlock" hx-trigger="intersect once" hx-swap="beforeend" hx-swap-oob="true">
+<div id="load-more" hx-get="/load_more_images?q={{ search }}&offset={{ next_offset }}" hx-target="#imagesBlock" hx-trigger="intersect once threshold:0.1" hx-swap="beforeend" hx-swap-oob="true">
     Loading more images... {{next_offset}}
 </div>
 {% else %}

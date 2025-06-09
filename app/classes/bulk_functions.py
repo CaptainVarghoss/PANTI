@@ -122,12 +122,16 @@ class ScanFiles():
                 if filename is None:
                     break
                 file_path = os.path.join(self.path, filename)
-                f_file = ImageHandler(file_path=self.path, filename=filename)
+                try:
+                    f_file = ImageHandler(file_path=self.path, filename=filename, app_instance=self.app)
+                except FileNotFoundError:
+                    print(f"Error: File not found during processing: {file_path}")
+                except Exception as e: # Keep this general catch for other issues
+                    print(f"Error processing {file_path}: {e}")
                 try:
                     mime = f_file.mime
                     if mime == 'image' or mime == 'video':
                         f_file.db_add_image()
-                        f_file.check_thumbnail()
                 except FileNotFoundError:
                     print(f"Error: File not found during processing: {file_path}")
                 except Exception as e:
