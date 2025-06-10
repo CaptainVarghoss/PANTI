@@ -1,9 +1,3 @@
-flask
-flask_login
-flask_sqlalchemy
-gunicorn
-gevent
-watchdog
-Pillow
-portalocker
-python-magic
+fastapi
+uvicorn[standard]
+python-multipart

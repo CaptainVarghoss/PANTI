@@ -1,5 +1,0 @@
-<div class="thumbnail" id="thumbnail_{{i.id}}">
-    <div role="button" data-bs-toggle="modal" data-bs-target="#fullsizeModal" hx-get="/get_image_info/{{i.id}}" hx-target="#imageModalInfo" hx-on="show.bs.modal: target.innerHTML='Loading...';" data-bs-modalimage="{{ url_for('image_routes.send_media', checksum=i.checksum) }}" data-bs-isvideo="{{i.is_video}}" data-image-id="{{i.id}}" class="m-0 g-0 p-0 rounded-4 thumbnail-sub">
-        <img id="thumbnail-image-{{i.id}}" class="thumbnail-placeholder" loading="lazy" src="{{ url_for('static', filename='thumbnails/' + i.checksum + '.webp') }}" />
-    </div>
-</div>
