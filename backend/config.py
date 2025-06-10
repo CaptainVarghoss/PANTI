@@ -32,3 +32,45 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173", # Keep for separate frontend development (Vite's default)
     "http://localhost:3000", # If you're using another dev port
 ]
+
+# --- Database Configuration ---
+# SQLite database file will be stored in the backend directory
+DATABASE_FILE = "sql_app.db"
+DATABASE_URL = f"sqlite:///{CURRENT_DIR / DATABASE_FILE}"
+
+# SQLAlchemy settings
+# connect_args is needed for SQLite to allow multiple threads to access the database
+# which is common in web servers.
+SQLALCHEMY_DATABASE_URL = DATABASE_URL
+SQLALCHEMY_CONNECT_ARGS = {"check_same_thread": False}
+
+
+# --- Media Configuration ---
+# Top-level static directory relative to project root
+STATIC_DIR_NAME = "static"
+STATIC_DIR = PROJECT_ROOT / STATIC_DIR_NAME
+
+DEFAULT_STATIC_IMAGES_DIR_NAME = "images"
+DEFAULT_STATIC_IMAGES_DIR = STATIC_DIR / DEFAULT_STATIC_IMAGES_DIR_NAME
+
+# Subdirectories for generated media within 'static'
+GENERATED_MEDIA_DIR_NAME = "generated_media"
+THUMBNAILS_DIR_NAME = "thumbnails"
+PREVIEWS_DIR_NAME = "previews"
+
+# Absolute paths for generated media storage
+GENERATED_MEDIA_ROOT = STATIC_DIR / GENERATED_MEDIA_DIR_NAME
+THUMBNAILS_DIR = GENERATED_MEDIA_ROOT / THUMBNAILS_DIR_NAME
+PREVIEWS_DIR = GENERATED_MEDIA_ROOT / PREVIEWS_DIR_NAME
+
+# Sizes for generated images
+THUMBNAIL_SIZE = (400, 400) # Width, Height
+PREVIEW_SIZE = (1024, 1024) # Width, Height
+
+# URL path where generated media will be served by FastAPI
+# All contents of STATIC_DIR will be served under this prefix
+STATIC_FILES_URL_PREFIX = "/static_assets"
+
+# Create these directories if they don't exist
+os.makedirs(THUMBNAILS_DIR, exist_ok=True)
+os.makedirs(PREVIEWS_DIR, exist_ok=True)
