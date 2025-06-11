@@ -22,8 +22,8 @@ def generate_image_versions(
 
         import config
 
-        thumbnail_output_dir = Path(os.path.join(str(config.THUMBNAILS_DIR), output_filename_base))
-        preview_output_dir = Path(os.path.join(str(config.PREVIEWS_DIR), output_filename_base))
+        thumbnail_output_dir = Path(str(config.THUMBNAILS_DIR))
+        preview_output_dir = Path(str(config.PREVIEWS_DIR))
 
         os.makedirs(thumbnail_output_dir, exist_ok=True)
         os.makedirs(preview_output_dir, exist_ok=True)
@@ -31,17 +31,18 @@ def generate_image_versions(
         # Generate Thumbnail
         thumb_img = img.copy()
         thumb_img.thumbnail(thumbnail_size)
-        thumb_filepath = thumbnail_output_dir / f"{output_filename_base}_thumb.jpg"
-        thumb_img.save(thumb_filepath, "JPEG")
-        generated_urls['thumbnail_url'] = f"{config.STATIC_FILES_URL_PREFIX}/{config.GENERATED_MEDIA_DIR_NAME}/{config.THUMBNAILS_DIR_NAME}/{output_filename_base}/{output_filename_base}_thumb.jpg"
+        thumb_filepath = thumbnail_output_dir / f"{output_filename_base}_thumb.webp"
+        thumb_img.save(thumb_filepath, "webp")
+        # FIX
+        generated_urls['thumbnail_url'] = f"{config.STATIC_FILES_URL_PREFIX}/{config.GENERATED_MEDIA_DIR_NAME}/{config.THUMBNAILS_DIR_NAME}/{output_filename_base}_thumb.webp"
         print(f"Generated thumbnail: {thumb_filepath}")
 
         # Generate Preview
         preview_img = img.copy()
         preview_img.thumbnail(preview_size)
-        preview_filepath = preview_output_dir / f"{output_filename_base}_preview.jpg"
-        preview_img.save(preview_filepath, "JPEG")
-        generated_urls['preview_url'] = f"{config.STATIC_FILES_URL_PREFIX}/{config.GENERATED_MEDIA_DIR_NAME}/{config.PREVIEWS_DIR_NAME}/{output_filename_base}/{output_filename_base}_preview.jpg"
+        preview_filepath = preview_output_dir / f"{output_filename_base}_preview.webp"
+        preview_img.save(preview_filepath, "webp")
+        generated_urls['preview_url'] = f"{config.STATIC_FILES_URL_PREFIX}/{config.GENERATED_MEDIA_DIR_NAME}/{config.PREVIEWS_DIR_NAME}/{output_filename_base}_preview.webp"
         print(f"Generated preview: {preview_filepath}")
 
     except PILImage.UnidentifiedImageError:

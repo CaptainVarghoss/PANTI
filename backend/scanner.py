@@ -23,7 +23,7 @@ SUPPORTED_MEDIA_TYPES = {
 }
 
 def get_file_checksum(filepath: str, block_size=65536):
-    """Calculates the SHA256 checksum of a file."""
+    # Calculates the SHA256 checksum of a file.
     sha256 = hashlib.sha256()
     try:
         with open(filepath, 'rb') as f:
@@ -35,12 +35,12 @@ def get_file_checksum(filepath: str, block_size=65536):
         return None
 
 def is_supported_media(filepath: str):
-    """Checks if a file is a supported image or video based on its MIME type."""
+    # Checks if a file is a supported image or video based on its MIME type.
     mime_type, _ = mimetypes.guess_type(filepath)
     return mime_type and mime_type in SUPPORTED_MEDIA_TYPES
 
 def parse_size_setting(size_str: str) -> Tuple[int, int]:
-    """Parses a comma-separated string 'width,height' into an integer tuple."""
+    # Parses a comma-separated string 'width,height' into an integer tuple.
     try:
         parts = [int(p.strip()) for p in size_str.split(',')]
         if len(parts) == 1: # Handle single value (e.g., "400" for 400x400)
@@ -53,43 +53,48 @@ def parse_size_setting(size_str: str) -> Tuple[int, int]:
     # Fallback to a reasonable default if parsing fails
     return (400, 400) # Default for thumb, or (1024,1024) for preview depending on context
 
+def generate_thumbnail_in_background(
+    image_id: int,
+    image_checksum: str,
+    original_filepath: str,
+    thumbnail_size: Tuple[int, int],
+    preview_size: Tuple[int, int]
+):
+    thread_db = database.SessionLocal() # This session is for this background thread
+    try:
+        print(f"Background: Starting thumbnail generation for image ID {image_id}, checksum {image_checksum}")
+        image_processor.generate_image_versions(
+            source_filepath=original_filepath,
+            output_filename_base=image_checksum,
+            thumbnail_size=thumbnail_size,
+            preview_size=preview_size
+        )
+        print(f"Background: Finished thumbnail generation for image ID {image_id}")
+    except Exception as e:
+        print(f"Background: Error generating thumbnail for image ID {image_id}: {e}")
+    finally:
+        thread_db.close()
+
 def process_and_update_image(
     image_id: int,
+    image_checksum: str,
     original_filepath: str,
     db_session: Session,
     thumbnail_size: Tuple[int, int], # New argument
     preview_size: Tuple[int, int]    # New argument
 ):
-    """
-    Generates thumbnails/previews for an image and updates its metadata in the DB.
-    This function should be run in a separate thread/process to avoid blocking.
-    """
     print(f"Processing image {image_id}: {original_filepath}")
 
-    unique_name_base = str(image_id)
+    output_filename_base = image_checksum
 
     generated_urls = image_processor.generate_image_versions(
         source_filepath=original_filepath,
-        output_filename_base=unique_name_base,
+        output_filename_base=output_filename_base,
         thumbnail_size=thumbnail_size, # Pass dynamic sizes
         preview_size=preview_size    # Pass dynamic sizes
     )
 
-    if generated_urls:
-        try:
-            db_image = db_session.query(models.Image).filter(models.Image.id == image_id).first()
-            if db_image:
-                current_meta = json.loads(db_image.meta) if db_image.meta else {}
-                current_meta.update(generated_urls)
-                db_image.meta = json.dumps(current_meta)
-                db_session.commit()
-                print(f"Updated metadata for image {image_id} with generated URLs.")
-            else:
-                print(f"Error: Image with ID {image_id} not found for metadata update.")
-        except Exception as e:
-            db_session.rollback()
-            print(f"Error updating image {image_id} metadata in DB: {e}")
-    else:
+    if not generated_urls:
         print(f"No generated URLs for image {image_id}. Skipping metadata update.")
 
 def scan_paths(db: Session):

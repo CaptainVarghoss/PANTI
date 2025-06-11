@@ -3,7 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
-import os
+from pathlib import Path
+import os, json
 from contextlib import asynccontextmanager
 import threading
 
@@ -12,6 +13,7 @@ import models
 import database
 import schemas
 import scanner
+from scanner import parse_size_setting, generate_thumbnail_in_background
 
 # --- Application Lifespan Context Manager ---
 @asynccontextmanager
@@ -262,14 +264,122 @@ def create_image(image: schemas.ImageCreate, db: Session = Depends(database.get_
 def read_images(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db)):
     # Eager load tags for Image
     images = db.query(models.Image).options(joinedload(models.Image.tags)).offset(skip).limit(limit).all()
-    return images
+
+    static_path = os.path.join(config.STATIC_FILES_URL_PREFIX, config.GENERATED_MEDIA_DIR_NAME)
+    thumbnails_path = os.path.join(static_path, config.THUMBNAILS_DIR_NAME)
+    previews_path = os.path.join(static_path, config.PREVIEWS_DIR_NAME)
+
+    print(thumbnails_path)
+
+    thumb_size_setting = db.query(models.Setting).filter_by(name='thumb_size').first()
+    preview_size_setting = db.query(models.Setting).filter_by(name='preview_size').first()
+    # FIX THIS
+    dynamic_thumbnail_size = config.THUMBNAIL_SIZE
+    dynamic_preview_size = config.PREVIEW_SIZE
+
+    if thumb_size_setting and thumb_size_setting.value:
+        parsed_thumb_size = parse_size_setting(thumb_size_setting.value)
+        if parsed_thumb_size:
+            dynamic_thumbnail_size = parsed_thumb_size
+
+    if preview_size_setting and preview_size_setting.value:
+        parsed_preview_size = parse_size_setting(preview_size_setting.value)
+        if parsed_preview_size:
+            dynamic_preview_size = parsed_preview_size
+
+    response_images = []
+    for img in images:
+        # Check if thumbnail exists, if not, trigger generation in background
+        expected_thumbnail_path = Path(config.THUMBNAILS_DIR) / f"{img.checksum}_thumb.webp"
+        if not os.path.exists(expected_thumbnail_path):
+            print(f"Thumbnail for {img.filename} (ID: {img.id}) not found. Triggering background generation.")
+            # Ensure original_filepath is extracted from meta
+            original_filepath = json.loads(img.meta).get("original_filepath") if img.meta else None
+            if original_filepath and Path(original_filepath).is_file():
+                thread = threading.Thread(
+                    target=generate_thumbnail_in_background, # Use the function from scanner.py
+                    args=(img.id, img.checksum, original_filepath, dynamic_thumbnail_size, dynamic_preview_size)
+                )
+                thread.daemon = True
+                thread.start()
+            else:
+                print(f"Could not trigger thumbnail generation for {img.filename}: original_filepath not found or invalid.")
+
+        img_dict = img.__dict__.copy()
+        img_dict.pop('_sa_instance_state', None)
+        # Convert meta string back to dict for Pydantic (though Pydantic can often handle JSON strings)
+        if isinstance(img_dict.get('meta'), str):
+             try:
+                 img_dict['meta'] = json.loads(img_dict['meta'])
+             except json.JSONDecodeError:
+                 img_dict['meta'] = {} # Fallback if meta is not valid JSON
+        elif img_dict.get('meta') is None: # Ensure meta is a dict, not None
+            img_dict['meta'] = {}
+
+        img_dict['thumbnails_path'] = thumbnails_path
+        img_dict['previews_path'] = previews_path
+        print(img_dict['thumbnails_path'])
+        # Validate and convert to Pydantic schema
+        response_images.append(schemas.Image(**img_dict))
+
+    return response_images
 
 @app.get("/api/images/{image_id}", response_model=schemas.Image)
 def read_image(image_id: int, db: Session = Depends(database.get_db)):
     db_image = db.query(models.Image).options(joinedload(models.Image.tags)).filter(models.Image.id == image_id).first()
     if db_image is None:
         raise HTTPException(status_code=404, detail="Image not found")
-    return db_image
+
+    # FIX THIS Fetch dynamic sizes from settings (same as in scanner.py for consistency)
+    static_path = os.path.join(config.STATIC_FILES_URL_PREFIX, config.GENERATED_MEDIA_DIR_NAME)
+    thumbnails_path = os.path.join(static_path, config.THUMBNAILS_DIR_NAME)
+    previews_path = os.path.join(static_path, config.PREVIEWS_DIR_NAME)
+
+    thumb_size_setting = db.query(models.Setting).filter_by(name='thumb_size').first()
+    preview_size_setting = db.query(models.Setting).filter_by(name='preview_size').first()
+
+    dynamic_thumbnail_size = config.THUMBNAIL_SIZE
+    dynamic_preview_size = config.PREVIEW_SIZE
+
+    if thumb_size_setting and thumb_size_setting.value:
+        parsed_thumb_size = parse_size_setting(thumb_size_setting.value)
+        if parsed_thumb_size:
+            dynamic_thumbnail_size = parsed_thumb_size
+
+    if preview_size_setting and preview_size_setting.value:
+        parsed_preview_size = parse_size_setting(preview_size_setting.value)
+        if parsed_preview_size:
+            dynamic_preview_size = parsed_preview_size
+
+    # Check if thumbnail exists, if not, trigger generation in background
+    expected_thumbnail_path = Path(config.THUMBNAILS_DIR) / f"{db_image.checksum}_thumb.webp"
+    if not expected_thumbnail_path.exists():
+        print(f"Thumbnail for {db_image.filename} (ID: {db_image.id}) not found. Triggering background generation.")
+        original_filepath = json.loads(db_image.meta).get("original_filepath") if db_image.meta else None
+        if original_filepath and Path(original_filepath).is_file():
+            thread = threading.Thread(
+                target=generate_thumbnail_in_background, # Use the function from scanner.py
+                args=(db_image.id, db_image.checksum, original_filepath, dynamic_thumbnail_size, dynamic_preview_size)
+            )
+            thread.daemon = True
+            thread.start()
+        else:
+            print(f"Could not trigger thumbnail generation for {db_image.filename}: original_filepath not found or invalid.")
+
+    img_dict = db_image.__dict__.copy() # Use .copy()
+    img_dict.pop('_sa_instance_state', None)
+    if isinstance(img_dict.get('meta'), str):
+        try:
+            img_dict['meta'] = json.loads(img_dict['meta'])
+        except json.JSONDecodeError:
+            img_dict['meta'] = {}
+    elif img_dict.get('meta') is None:
+        img_dict['meta'] = {}
+
+    img_dict['thumbnails_path'] = thumbnails_path
+    img_dict['previews_path'] = previews_path
+
+    return schemas.Image(**img_dict)
 
 @app.put("/api/images/{image_id}", response_model=schemas.Image)
 def update_image(image_id: int, image: schemas.ImageUpdate, db: Session = Depends(database.get_db)):
@@ -583,3 +693,14 @@ if config.FRONTEND_BUILD_DIR.is_dir():
 else:
     print(f"Frontend build directory not found at: {config.FRONTEND_BUILD_DIR}")
     print("Please run 'npm run build' in the frontend directory first.")
+
+# Mount the static directory for generated media
+if config.STATIC_DIR.is_dir():
+    app.mount(
+        config.STATIC_FILES_URL_PREFIX,
+        StaticFiles(directory=config.STATIC_DIR),
+        name="static_assets"
+    )
+    print(f"Serving static assets from: {config.STATIC_DIR} at URL prefix: {config.STATIC_FILES_URL_PREFIX}")
+else:
+    print(f"Static directory not found at: {config.STATIC_DIR}. Generated media will not be served.")

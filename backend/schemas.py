@@ -93,6 +93,8 @@ class Image(ImageBase):
     created_by: int
     modified_by: int
     tags: List[Tag] = [] # Nested Pydantic model for tags
+    thumbnails_path: Optional[str] = None
+    previews_path: Optional[str] = None
     class Config:
         orm_mode = True
 

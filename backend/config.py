@@ -30,6 +30,7 @@ CORS_ALLOWED_ORIGINS = [
     f"http://{HOST}:{PORT}",
     f"https://{HOST}:{PORT}", # Include HTTPS for production scenarios
     "http://localhost:5173", # Keep for separate frontend development (Vite's default)
+    "http://127.0.0.1:5173",
     "http://localhost:3000", # If you're using another dev port
 ]
 
@@ -37,10 +38,6 @@ CORS_ALLOWED_ORIGINS = [
 # SQLite database file will be stored in the backend directory
 DATABASE_FILE = "sql_app.db"
 DATABASE_URL = f"sqlite:///{CURRENT_DIR / DATABASE_FILE}"
-
-# SQLAlchemy settings
-# connect_args is needed for SQLite to allow multiple threads to access the database
-# which is common in web servers.
 SQLALCHEMY_DATABASE_URL = DATABASE_URL
 SQLALCHEMY_CONNECT_ARGS = {"check_same_thread": False}
 
