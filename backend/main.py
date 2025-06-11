@@ -4,9 +4,10 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from pathlib import Path
-import os, json
+import os, json, threading
 from contextlib import asynccontextmanager
-import threading
+from fastapi.security import OAuth2PasswordRequestForm
+from datetime import timedelta
 
 import config
 import models
@@ -14,14 +15,13 @@ import database
 import schemas
 import scanner
 from scanner import parse_size_setting, generate_thumbnail_in_background
+import auth
 
 # --- Application Lifespan Context Manager ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """
-    Handles application startup and shutdown events.
-    This is the modern way to manage lifecycle events in FastAPI.
-    """
+    # Handles application startup and shutdown events.
+
     # Startup Events
     print("Application startup initiated...")
     print("Creating database tables if they don't exist...")
@@ -85,6 +85,14 @@ async def lifespan(app: FastAPI):
                 first_filter.tags.append(first_filter_tag)
                 db.commit()
 
+        if not db.query(models.User).first():
+            print("No users found. Creating a default admin user: admin/adminpass")
+            hashed_password = auth.get_password_hash("adminpass")
+            admin_user = models.User(username="admin", password_hash=hashed_password, admin=True, login_allowed=True)
+            db.add(admin_user)
+            db.commit()
+            print("Default admin user created.")
+
         # Run the initial file scan during startup
         print("Running initial file scan...")
         def run_initial_scan_in_thread():
@@ -104,7 +112,7 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    # Shutdown Events (code here will run when the app shuts down)
+    # Shutdown Events
     print("Application shutdown initiated.")
 
 
@@ -120,22 +128,79 @@ app.add_middleware(
     allow_headers=["*"], # Allows all headers
 )
 
+# --- Authentication Endpoints ---
+@app.post("/api/signup/", response_model=schemas.User, status_code=status.HTTP_201_CREATED)
+def signup(user_data: schemas.UserCreate, db: Session = Depends(database.get_db)):
+    # Check if signup is allowed
+    allow_signup_setting = db.query(models.Setting).filter_by(name='allow_signup').first()
+    if allow_signup_setting and allow_signup_setting.value.lower() != 'true':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User signup is currently disabled by administrator."
+        )
+
+    db_user = db.query(models.User).filter(models.User.username == user_data.username).first()
+    if db_user:
+        raise HTTPException(status_code=400, detail="Username already registered")
+
+    hashed_password = auth.get_password_hash(user_data.password)
+    new_user = models.User(
+        username=user_data.username,
+        password_hash=hashed_password,
+        admin=user_data.admin, # Admins can create other admins via API
+        login_allowed=user_data.login_allowed # Admins can set login_allowed
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
+
+@app.post("/api/token", response_model=schemas.Token)
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(database.get_db)):
+    user = db.query(models.User).filter(models.User.username == form_data.username).first()
+
+    # Verify username and password hash first for any user
+    if not user or not auth.verify_password(form_data.password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Check global 'allow_login' setting. Admins are exempt from this global restriction.
+    allow_login_setting = db.query(models.Setting).filter_by(name='allow_login').first()
+    if allow_login_setting and allow_login_setting.value.lower() != 'true':
+        # If global login is disabled, *only* allow if the user is an admin
+        if not user.admin:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User login is currently disabled by administrator. Please contact an administrator."
+            )
+
+    # Check individual user's 'login_allowed' setting. Admins are exempt from this individual restriction as well.
+    if not user.login_allowed:
+        if not user.admin:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Your account login is disabled. Please contact an administrator."
+            )
+
+    # If we reach here, the user is authenticated and authorized to log in.
+    access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = auth.create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+
+@app.get("/api/users/me/", response_model=schemas.User)
+async def read_users_me(current_user: models.User = Depends(auth.get_current_user)):
+    # Retrieves information about the current authenticated user.
+    return current_user
+
 # --- API Endpoints ---
 
-@app.get("/api/message")
-async def read_root():
-    return {"message": "Hello from FastAPI!"}
-
-@app.get("/api/items/{item_id}")
-async def read_item(item_id: int, q: str = None):
-    return {"item_id": item_id, "q": q}
-
-@app.post("/api/data")
-async def create_data(data: dict):
-    return {"received_data": data, "message": "Data received successfully!"}
-
 @app.post("/api/scan-files/", summary="Trigger File System Scan", response_model=dict)
-def trigger_file_scan(): # No db dependency here, as it's handled in the thread
+def trigger_file_scan(current_user: models.User = Depends(auth.get_current_admin_user)):
     # Triggers a manual scan of configured image paths for new images/videos and subdirectories.
     print("Manual file scan triggered via API. Starting in background thread...")
 
@@ -157,7 +222,7 @@ def trigger_file_scan(): # No db dependency here, as it's handled in the thread
 
 # Tags
 @app.post("/api/tags/", response_model=schemas.Tag, status_code=status.HTTP_201_CREATED)
-def create_tag(tag: schemas.TagCreate, db: Session = Depends(database.get_db)):
+def create_tag(tag: schemas.TagCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
     db_tag = models.Tag(**tag.dict())
     db.add(db_tag)
     db.commit()
@@ -177,7 +242,7 @@ def read_tag(tag_id: int, db: Session = Depends(database.get_db)):
     return db_tag
 
 @app.put("/api/tags/{tag_id}", response_model=schemas.Tag)
-def update_tag(tag_id: int, tag: schemas.TagUpdate, db: Session = Depends(database.get_db)):
+def update_tag(tag_id: int, tag: schemas.TagUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
     db_tag = db.query(models.Tag).filter(models.Tag.id == tag_id).first()
     if db_tag is None:
         raise HTTPException(status_code=404, detail="Tag not found")
@@ -188,7 +253,7 @@ def update_tag(tag_id: int, tag: schemas.TagUpdate, db: Session = Depends(databa
     return db_tag
 
 @app.delete("/api/tags/{tag_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_tag(tag_id: int, db: Session = Depends(database.get_db)):
+def delete_tag(tag_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_admin_user)):
     db_tag = db.query(models.Tag).filter(models.Tag.id == tag_id).first()
     if db_tag is None:
         raise HTTPException(status_code=404, detail="Tag not found")
@@ -199,7 +264,7 @@ def delete_tag(tag_id: int, db: Session = Depends(database.get_db)):
 
 # ImagePaths
 @app.post("/api/imagepaths/", response_model=schemas.ImagePath, status_code=status.HTTP_201_CREATED)
-def create_image_path(path: schemas.ImagePathCreate, db: Session = Depends(database.get_db)):
+def create_image_path(path: schemas.ImagePathCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_admin_user)):
     db_image_path = models.ImagePath(**path.dict())
     db.add(db_image_path)
     db.commit()
@@ -220,7 +285,7 @@ def read_image_path(path_id: int, db: Session = Depends(database.get_db)):
     return db_image_path
 
 @app.put("/api/imagepaths/{path_id}", response_model=schemas.ImagePath)
-def update_image_path(path_id: int, path: schemas.ImagePathUpdate, db: Session = Depends(database.get_db)):
+def update_image_path(path_id: int, path: schemas.ImagePathUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_admin_user)):
     db_image_path = db.query(models.ImagePath).filter(models.ImagePath.id == path_id).first()
     if db_image_path is None:
         raise HTTPException(status_code=404, detail="ImagePath not found")
@@ -231,7 +296,7 @@ def update_image_path(path_id: int, path: schemas.ImagePathUpdate, db: Session =
     return db_image_path
 
 @app.delete("/api/imagepaths/{path_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_image_path(path_id: int, db: Session = Depends(database.get_db)):
+def delete_image_path(path_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_admin_user)):
     db_image_path = db.query(models.ImagePath).filter(models.ImagePath.id == path_id).first()
     if db_image_path is None:
         raise HTTPException(status_code=404, detail="ImagePath not found")
@@ -242,7 +307,7 @@ def delete_image_path(path_id: int, db: Session = Depends(database.get_db)):
 
 # Images
 @app.post("/api/images/", response_model=schemas.Image, status_code=status.HTTP_201_CREATED)
-def create_image(image: schemas.ImageCreate, db: Session = Depends(database.get_db)):
+def create_image(image: schemas.ImageCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
     db_image = models.Image(
         checksum=image.checksum,
         filename=image.filename,
@@ -382,7 +447,7 @@ def read_image(image_id: int, db: Session = Depends(database.get_db)):
     return schemas.Image(**img_dict)
 
 @app.put("/api/images/{image_id}", response_model=schemas.Image)
-def update_image(image_id: int, image: schemas.ImageUpdate, db: Session = Depends(database.get_db)):
+def update_image(image_id: int, image: schemas.ImageUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
     db_image = db.query(models.Image).filter(models.Image.id == image_id).first()
     if db_image is None:
         raise HTTPException(status_code=404, detail="Image not found")
@@ -417,50 +482,72 @@ def delete_image(image_id: int, db: Session = Depends(database.get_db)):
 
 # Users
 @app.post("/api/users/", response_model=schemas.User, status_code=status.HTTP_201_CREATED)
-def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
-    # You might want to hash the password here in a real application
-    db_user = models.User(username=user.username, password=user.password, admin=user.admin, login_allowed=user.login_allowed)
-    db.add(db_user)
+def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_admin_user)):
+    db_user = db.query(models.User).filter(models.User.username == user.username).first()
+    if db_user:
+        raise HTTPException(status_code=400, detail="Username already registered")
+
+    hashed_password = auth.get_password_hash(user.password) # HASH THE PASSWORD
+    new_user = models.User(
+        username=user.username,
+        password_hash=hashed_password,
+        admin=user.admin,
+        login_allowed=user.login_allowed
+    )
+    db.add(new_user)
     db.commit()
-    db.refresh(db_user)
-    return db_user
+    db.refresh(new_user)
+    return new_user
 
 @app.get("/api/users/", response_model=List[schemas.User])
-def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db)):
+def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_admin_user)):
     users = db.query(models.User).offset(skip).limit(limit).all()
     return users
 
 @app.get("/api/users/{user_id}", response_model=schemas.User)
-def read_user(user_id: int, db: Session = Depends(database.get_db)):
+def read_user(user_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_admin_user)):
     db_user = db.query(models.User).filter(models.User.id == user_id).first()
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
     return db_user
 
 @app.put("/api/users/{user_id}", response_model=schemas.User)
-def update_user(user_id: int, user: schemas.UserUpdate, db: Session = Depends(database.get_db)):
+def update_user(user_id: int, user: schemas.UserUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_admin_user)):
     db_user = db.query(models.User).filter(models.User.id == user_id).first()
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
-    for key, value in user.dict(exclude_unset=True).items():
+
+    # Only hash password if it's provided in the update (i.e., not None)
+    if user.password is not None:
+        db_user.password_hash = auth.get_password_hash(user.password) # HASH THE PASSWORD ON UPDATE
+
+    # Update other fields, excluding 'password' as it's handled separately
+    user_dict = user.dict(exclude_unset=True)
+    if 'password' in user_dict:
+        del user_dict['password'] # Prevent plain password from being set on the model
+
+    for key, value in user_dict.items():
         setattr(db_user, key, value)
+
     db.commit()
     db.refresh(db_user)
     return db_user
 
 @app.delete("/api/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_user(user_id: int, db: Session = Depends(database.get_db)):
+def delete_user(user_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_admin_user)): # PROTECTED
     db_user = db.query(models.User).filter(models.User.id == user_id).first()
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
+    if db_user.id == current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot delete your own user account")
     db.delete(db_user)
     db.commit()
     return
 
 
-# Settings
+# Settings (Protected for admins)
 @app.post("/api/settings/", response_model=schemas.Setting, status_code=status.HTTP_201_CREATED)
-def create_setting(setting: schemas.SettingCreate, db: Session = Depends(database.get_db)):
+def create_setting(setting: schemas.SettingCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_admin_user)): # PROTECTED
     db_setting = models.Setting(**setting.dict())
     db.add(db_setting)
     db.commit()
@@ -468,19 +555,19 @@ def create_setting(setting: schemas.SettingCreate, db: Session = Depends(databas
     return db_setting
 
 @app.get("/api/settings/", response_model=List[schemas.Setting])
-def read_settings(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db)):
+def read_settings(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_admin_user)): # PROTECTED
     settings = db.query(models.Setting).offset(skip).limit(limit).all()
     return settings
 
 @app.get("/api/settings/{setting_id}", response_model=schemas.Setting)
-def read_setting(setting_id: int, db: Session = Depends(database.get_db)):
+def read_setting(setting_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_admin_user)): # PROTECTED
     db_setting = db.query(models.Setting).filter(models.Setting.id == setting_id).first()
     if db_setting is None:
         raise HTTPException(status_code=404, detail="Setting not found")
     return db_setting
 
 @app.put("/api/settings/{setting_id}", response_model=schemas.Setting)
-def update_setting(setting_id: int, setting: schemas.SettingUpdate, db: Session = Depends(database.get_db)):
+def update_setting(setting_id: int, setting: schemas.SettingUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_admin_user)): # PROTECTED
     db_setting = db.query(models.Setting).filter(models.Setting.id == setting_id).first()
     if db_setting is None:
         raise HTTPException(status_code=404, detail="Setting not found")
@@ -491,7 +578,7 @@ def update_setting(setting_id: int, setting: schemas.SettingUpdate, db: Session 
     return db_setting
 
 @app.delete("/api/settings/{setting_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_setting(setting_id: int, db: Session = Depends(database.get_db)):
+def delete_setting(setting_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_admin_user)): # PROTECTED
     db_setting = db.query(models.Setting).filter(models.Setting.id == setting_id).first()
     if db_setting is None:
         raise HTTPException(status_code=404, detail="Setting not found")
@@ -500,9 +587,11 @@ def delete_setting(setting_id: int, db: Session = Depends(database.get_db)):
     return
 
 
-# UserSettings
+# UserSettings (Protected for authenticated users, can only manage their own or admin can manage all)
 @app.post("/api/usersettings/", response_model=schemas.UserSetting, status_code=status.HTTP_201_CREATED)
-def create_user_setting(user_setting: schemas.UserSettingCreate, db: Session = Depends(database.get_db)):
+def create_user_setting(user_setting: schemas.UserSettingCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)): # PROTECTED
+    if not current_user.admin and user_setting.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to create settings for other users.")
     db_user_setting = models.UserSetting(**user_setting.dict())
     db.add(db_user_setting)
     db.commit()
@@ -510,22 +599,29 @@ def create_user_setting(user_setting: schemas.UserSettingCreate, db: Session = D
     return db_user_setting
 
 @app.get("/api/usersettings/", response_model=List[schemas.UserSetting])
-def read_user_settings(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db)):
-    user_settings = db.query(models.UserSetting).offset(skip).limit(limit).all()
+def read_user_settings(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)): # PROTECTED
+    if current_user.admin: # Admins can see all user settings
+        user_settings = db.query(models.UserSetting).offset(skip).limit(limit).all()
+    else: # Regular users can only see their own
+        user_settings = db.query(models.UserSetting).filter(models.UserSetting.user_id == current_user.id).offset(skip).limit(limit).all()
     return user_settings
 
 @app.get("/api/usersettings/{user_setting_id}", response_model=schemas.UserSetting)
-def read_user_setting(user_setting_id: int, db: Session = Depends(database.get_db)):
+def read_user_setting(user_setting_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)): # PROTECTED
     db_user_setting = db.query(models.UserSetting).filter(models.UserSetting.id == user_setting_id).first()
     if db_user_setting is None:
         raise HTTPException(status_code=404, detail="UserSetting not found")
+    if not current_user.admin and db_user_setting.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to view this user setting.")
     return db_user_setting
 
 @app.put("/api/usersettings/{user_setting_id}", response_model=schemas.UserSetting)
-def update_user_setting(user_setting_id: int, user_setting: schemas.UserSettingUpdate, db: Session = Depends(database.get_db)):
+def update_user_setting(user_setting_id: int, user_setting: schemas.UserSettingUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)): # PROTECTED
     db_user_setting = db.query(models.UserSetting).filter(models.UserSetting.id == user_setting_id).first()
     if db_user_setting is None:
         raise HTTPException(status_code=404, detail="UserSetting not found")
+    if not current_user.admin and db_user_setting.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to update this user setting.")
     for key, value in user_setting.dict(exclude_unset=True).items():
         setattr(db_user_setting, key, value)
     db.commit()
@@ -533,18 +629,19 @@ def update_user_setting(user_setting_id: int, user_setting: schemas.UserSettingU
     return db_user_setting
 
 @app.delete("/api/usersettings/{user_setting_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_user_setting(user_setting_id: int, db: Session = Depends(database.get_db)):
+def delete_user_setting(user_setting_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)): # PROTECTED
     db_user_setting = db.query(models.UserSetting).filter(models.UserSetting.id == user_setting_id).first()
     if db_user_setting is None:
         raise HTTPException(status_code=404, detail="UserSetting not found")
+    if not current_user.admin and db_user_setting.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to delete this user setting.")
     db.delete(db_user_setting)
     db.commit()
     return
 
-
-# Filters
+# Filters (Protected for admins)
 @app.post("/api/filters/", response_model=schemas.Filter, status_code=status.HTTP_201_CREATED)
-def create_filter(filter_in: schemas.FilterCreate, db: Session = Depends(database.get_db)):
+def create_filter(filter_in: schemas.FilterCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_admin_user)): # PROTECTED
     db_filter = models.Filter(
         name=filter_in.name,
         enabled=filter_in.enabled,
@@ -578,20 +675,19 @@ def create_filter(filter_in: schemas.FilterCreate, db: Session = Depends(databas
     return db_filter
 
 @app.get("/api/filters/", response_model=List[schemas.Filter])
-def read_filters(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db)):
-    # Eager load tags and neg_tags for Filter
+def read_filters(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db)): # No protection, allow all users to see filters
     filters = db.query(models.Filter).options(joinedload(models.Filter.tags), joinedload(models.Filter.neg_tags)).offset(skip).limit(limit).all()
     return filters
 
 @app.get("/api/filters/{filter_id}", response_model=schemas.Filter)
-def read_filter(filter_id: int, db: Session = Depends(database.get_db)):
+def read_filter(filter_id: int, db: Session = Depends(database.get_db)): # No protection
     db_filter = db.query(models.Filter).options(joinedload(models.Filter.tags), joinedload(models.Filter.neg_tags)).filter(models.Filter.id == filter_id).first()
     if db_filter is None:
         raise HTTPException(status_code=404, detail="Filter not found")
     return db_filter
 
 @app.put("/api/filters/{filter_id}", response_model=schemas.Filter)
-def update_filter(filter_id: int, filter_in: schemas.FilterUpdate, db: Session = Depends(database.get_db)):
+def update_filter(filter_id: int, filter_in: schemas.FilterUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_admin_user)): # PROTECTED
     db_filter = db.query(models.Filter).filter(models.Filter.id == filter_id).first()
     if db_filter is None:
         raise HTTPException(status_code=404, detail="Filter not found")
@@ -602,7 +698,7 @@ def update_filter(filter_id: int, filter_in: schemas.FilterUpdate, db: Session =
 
     # Handle tags relationship update
     if filter_in.tag_ids is not None:
-        db_filter.tags.clear() # Clear existing tags
+        db_filter.tags.clear()
         for tag_id in filter_in.tag_ids:
             tag = db.query(models.Tag).filter(models.Tag.id == tag_id).first()
             if tag:
@@ -612,7 +708,7 @@ def update_filter(filter_id: int, filter_in: schemas.FilterUpdate, db: Session =
 
     # Handle neg_tags relationship update
     if filter_in.neg_tag_ids is not None:
-        db_filter.neg_tags.clear() # Clear existing neg_tags
+        db_filter.neg_tags.clear()
         for tag_id in filter_in.neg_tag_ids:
             tag = db.query(models.Tag).filter(models.Tag.id == tag_id).first()
             if tag:
@@ -625,7 +721,7 @@ def update_filter(filter_id: int, filter_in: schemas.FilterUpdate, db: Session =
     return db_filter
 
 @app.delete("/api/filters/{filter_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_filter(filter_id: int, db: Session = Depends(database.get_db)):
+def delete_filter(filter_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_admin_user)): # PROTECTED
     db_filter = db.query(models.Filter).filter(models.Filter.id == filter_id).first()
     if db_filter is None:
         raise HTTPException(status_code=404, detail="Filter not found")
@@ -634,9 +730,11 @@ def delete_filter(filter_id: int, db: Session = Depends(database.get_db)):
     return
 
 
-# UserFilters
+# UserFilters (These need to be protected for sure!)
 @app.post("/api/userfilters/", response_model=schemas.UserFilter, status_code=status.HTTP_201_CREATED)
-def create_user_filter(user_filter: schemas.UserFilterCreate, db: Session = Depends(database.get_db)):
+def create_user_filter(user_filter: schemas.UserFilterCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)): # PROTECTED
+    if not current_user.admin and user_filter.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to create settings for other users.")
     db_user_filter = models.UserFilter(**user_filter.dict())
     db.add(db_user_filter)
     db.commit()
@@ -644,22 +742,29 @@ def create_user_filter(user_filter: schemas.UserFilterCreate, db: Session = Depe
     return db_user_filter
 
 @app.get("/api/userfilters/", response_model=List[schemas.UserFilter])
-def read_user_filters(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db)):
-    user_filters = db.query(models.UserFilter).offset(skip).limit(limit).all()
+def read_user_filters(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)): # PROTECTED
+    if current_user.admin: # Admins can see all user filters
+        user_filters = db.query(models.UserFilter).offset(skip).limit(limit).all()
+    else: # Regular users can only see their own
+        user_filters = db.query(models.UserFilter).filter(models.UserFilter.user_id == current_user.id).offset(skip).limit(limit).all()
     return user_filters
 
 @app.get("/api/userfilters/{user_filter_id}", response_model=schemas.UserFilter)
-def read_user_filter(user_filter_id: int, db: Session = Depends(database.get_db)):
+def read_user_filter(user_filter_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)): # PROTECTED
     db_user_filter = db.query(models.UserFilter).filter(models.UserFilter.id == user_filter_id).first()
     if db_user_filter is None:
         raise HTTPException(status_code=404, detail="UserFilter not found")
+    if not current_user.admin and db_user_filter.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to view this user filter.")
     return db_user_filter
 
 @app.put("/api/userfilters/{user_filter_id}", response_model=schemas.UserFilter)
-def update_user_filter(user_filter_id: int, user_filter: schemas.UserFilterUpdate, db: Session = Depends(database.get_db)):
+def update_user_filter(user_filter_id: int, user_filter: schemas.UserFilterUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)): # PROTECTED
     db_user_filter = db.query(models.UserFilter).filter(models.UserFilter.id == user_filter_id).first()
     if db_user_filter is None:
         raise HTTPException(status_code=404, detail="UserFilter not found")
+    if not current_user.admin and db_user_filter.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to update this user filter.")
     for key, value in user_filter.dict(exclude_unset=True).items():
         setattr(db_user_filter, key, value)
     db.commit()
@@ -667,10 +772,12 @@ def update_user_filter(user_filter_id: int, user_filter: schemas.UserFilterUpdat
     return db_user_filter
 
 @app.delete("/api/userfilters/{user_filter_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_user_filter(user_filter_id: int, db: Session = Depends(database.get_db)):
+def delete_user_filter(user_filter_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)): # PROTECTED
     db_user_filter = db.query(models.UserFilter).filter(models.UserFilter.id == user_filter_id).first()
     if db_user_filter is None:
         raise HTTPException(status_code=404, detail="UserFilter not found")
+    if not current_user.admin and db_user_filter.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to delete this user filter.")
     db.delete(db_user_filter)
     db.commit()
     return

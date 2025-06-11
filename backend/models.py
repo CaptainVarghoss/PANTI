@@ -3,9 +3,6 @@ from sqlalchemy.orm import relationship, backref
 from database import Base
 
 # --- Association Tables ---
-# In standard SQLAlchemy, association tables are defined using `Table` and `Column`
-# and associated with the Base's metadata.
-
 image_tag_table = Table('image_tags', Base.metadata,
     Column('images_id', Integer, ForeignKey('images.id'), primary_key=True),
     Column('tag_id', Integer, ForeignKey('tags.id'), primary_key=True)
@@ -67,11 +64,10 @@ class Tag(Base):
 class User(Base):
     __tablename__ = 'users'
     id = Column(Integer, primary_key=True)
-    username = Column(String(150), unique=True)
-    password = Column(String(150))
+    username = Column(String(150), unique=True, nullable=False)
+    password_hash = Column(String(100), nullable=False)
     admin = Column(Boolean, default=False)
     login_allowed = Column(Boolean, default=False)
-    # Removed UserMixin as it's Flask-Login specific
 
 class Setting(Base):
     __tablename__ = 'settings'

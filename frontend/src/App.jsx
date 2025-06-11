@@ -1,57 +1,120 @@
-import { useState, useEffect } from 'react';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, Link } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import ImageGrid from "./components/ImageGrid";
+import Login from './pages/Login';
+import Signup from './pages/Signup';
 import './App.css';
-import ImageCard from "./components/ImageCard"; // Import the new ImageCard component
+
+
+const PublicOnlyRoute = () => {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    // Show a loading indicator while authentication status is being determined
+    return (
+      <div className="">
+        Loading authentication...
+      </div>
+    );
+  }
+
+  // If already authenticated, redirect to home page
+  return isAuthenticated ? <Navigate to="/" replace /> : <Outlet />;
+};
+
+const PrivateRoute = () => {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    // Show a loading indicator while authentication status is being determined
+    return (
+      <div className="">
+        Loading authentication...
+      </div>
+    );
+  }
+
+  // If not authenticated, redirect to login page
+  return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
+};
+
+const AdminRoute = () => {
+  const { isAuthenticated, isAdmin, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="">
+        Loading authentication...
+      </div>
+    );
+  }
+
+  // If not authenticated, redirect to login
+  // If authenticated but not admin, show forbidden or redirect to home
+  return isAuthenticated && isAdmin ? <Outlet /> : <Navigate to="/" replace />;
+};
+
+const Navbar = () => {
+  const { isAuthenticated, user, logout, isAdmin } = useAuth();
+
+  return (
+    <nav className="bg-gray-800 p-4 text-white shadow-lg">
+      <div className="container mx-auto flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-blue-400">Image Gallery</h1>
+        <div className="space-x-4">
+          {isAuthenticated ? (
+            <>
+              <span className="text-gray-300">Welcome, {user?.username}! {isAdmin && '(Admin)'}</span>
+              <button
+                onClick={logout}
+                className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200"
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200">
+                Login
+              </Link>
+              <Link to="/signup" className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200">
+                Signup
+              </Link>
+            </>
+          )}
+        </div>
+      </div>
+    </nav>
+  );
+};
 
 function App() {
 
-  // --- Image Grid State ---
-  const [images, setImages] = useState([]);
-  const [imagesLoading, setImagesLoading] = useState(true);
-  const [imagesError, setImagesError] = useState(null);
-
-  // Fetch images on component mount
-  useEffect(() => {
-    fetchImages();
-  }, []); // Empty dependency array means this runs once on mount
-
-  // --- Image Grid Functionality ---
-  const fetchImages = async () => {
-    setImagesLoading(true);
-    setImagesError(null);
-    try {
-      const response = await fetch('/api/images/');
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      setImages(data);
-    } catch (error) {
-      console.error('Error fetching images:', error);
-      setImagesError('Failed to load images. Ensure backend scanner has run and images exist.');
-    } finally {
-      setImagesLoading(false);
-    }
-  };
-
   return (
-    <div className="container">
-      <div className="">
-        {imagesLoading && <p className="">Loading images...</p>}
-        {imagesError && <p className="">{imagesError}</p>}
+    <Router>
+      <AuthProvider>
+        <Navbar />
+        <div className="min-h-screen bg-gray-900 text-gray-100">
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
 
-        {!imagesLoading && !imagesError && images.length === 0 && (
-          <p className="">No images found. Add some to your configured paths and run the scanner!</p>
-        )}
+            {/* Protected Routes (accessible only if isAuthenticated) */}
+            <Route element={<PrivateRoute />}>
+              <Route path="/" element={<ImageGrid />} /> {/* Home page, protected */}
+              {/* Add other user-accessible protected routes here */}
+            </Route>
 
-        {/* Responsive Grid for Images */}
-        <div className="">
-          {images.map((image) => (
-            // Render the ImageCard component for each image
-            <ImageCard key={image.id} image={image} />
-          ))}
+            {/* Catch-all for undefined routes */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
         </div>
-      </div>
-    </div>
+        <div className="image-grid">
+        </div>
+      </AuthProvider>
+    </Router>
   );
 }
 

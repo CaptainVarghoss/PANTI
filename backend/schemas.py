@@ -119,6 +119,19 @@ class User(UserBase):
     class Config:
         orm_mode = True
 
+# Schema for user login request
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+# Schema for JWT token response
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    username: Optional[str] = None
+
 # --- Setting Schemas ---
 class SettingBase(BaseModel):
     name: str
