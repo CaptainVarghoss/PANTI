@@ -1,8 +1,8 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session, joinedload
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from pathlib import Path
 import os, json, threading
 from contextlib import asynccontextmanager
@@ -554,20 +554,53 @@ def create_setting(setting: schemas.SettingCreate, db: Session = Depends(databas
     db.refresh(db_setting)
     return db_setting
 
-@app.get("/api/settings/", response_model=List[schemas.Setting])
-def read_settings(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_admin_user)): # PROTECTED
-    settings = db.query(models.Setting).offset(skip).limit(limit).all()
-    return settings
+@app.get("/api/settings/", response_model=Dict[str, str])
+def read_settings_tiered(
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user), # User must be logged in to get personalized settings
+    device_id: Optional[str] = Query(None, description="Unique ID of the client device for device-specific settings")
+):
+    # Retrieves a consolidated dictionary of settings, applying a tiered fallback:
+    # Device-specific setting -> User-specific setting -> Global setting.
+    # This endpoint requires authentication.
+    all_settings: Dict[str, str] = {}
+
+    # Fetch Global Settings
+    global_settings = db.query(models.Setting).all()
+    for setting in global_settings:
+        all_settings[setting.name] = setting.value
+
+    # Override with User-Specific Settings (if logged in)
+    user_settings = db.query(models.UserSetting).filter_by(user_id=current_user.id).all()
+    for user_setting in user_settings:
+        global_entry = db.query(models.Setting).filter_by(name=user_setting.name).first()
+        if global_entry: # Ensure there is a corresponding global setting
+            if not global_entry.admin_only: # User can override if global setting is not admin-only
+                all_settings[user_setting.name] = user_setting.value
+
+    # Override with Device-Specific Settings (if logged in and device_id provided)
+    if device_id:
+        device_settings = db.query(models.DeviceSetting).filter_by(
+            user_id=current_user.id,
+            device_id=device_id
+        ).all()
+        for device_setting in device_settings:
+            global_entry = db.query(models.Setting).filter_by(name=device_setting.name).first()
+            if global_entry:
+                if not global_entry.admin_only:
+                    all_settings[device_setting.name] = device_setting.value
+
+    return all_settings
 
 @app.get("/api/settings/{setting_id}", response_model=schemas.Setting)
-def read_setting(setting_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_admin_user)): # PROTECTED
+def read_setting(setting_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_admin_user)):
     db_setting = db.query(models.Setting).filter(models.Setting.id == setting_id).first()
     if db_setting is None:
         raise HTTPException(status_code=404, detail="Setting not found")
     return db_setting
 
 @app.put("/api/settings/{setting_id}", response_model=schemas.Setting)
-def update_setting(setting_id: int, setting: schemas.SettingUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_admin_user)): # PROTECTED
+def update_setting(setting_id: int, setting: schemas.SettingUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_admin_user)):
     db_setting = db.query(models.Setting).filter(models.Setting.id == setting_id).first()
     if db_setting is None:
         raise HTTPException(status_code=404, detail="Setting not found")
@@ -578,7 +611,7 @@ def update_setting(setting_id: int, setting: schemas.SettingUpdate, db: Session 
     return db_setting
 
 @app.delete("/api/settings/{setting_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_setting(setting_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_admin_user)): # PROTECTED
+def delete_setting(setting_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_admin_user)):
     db_setting = db.query(models.Setting).filter(models.Setting.id == setting_id).first()
     if db_setting is None:
         raise HTTPException(status_code=404, detail="Setting not found")
@@ -589,9 +622,15 @@ def delete_setting(setting_id: int, db: Session = Depends(database.get_db), curr
 
 # UserSettings (Protected for authenticated users, can only manage their own or admin can manage all)
 @app.post("/api/usersettings/", response_model=schemas.UserSetting, status_code=status.HTTP_201_CREATED)
-def create_user_setting(user_setting: schemas.UserSettingCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)): # PROTECTED
+def create_user_setting(user_setting: schemas.UserSettingCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
     if not current_user.admin and user_setting.user_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to create settings for other users.")
+
+    # Check if the global setting corresponding to this UserSetting's name is admin_only
+    global_setting = db.query(models.Setting).filter_by(name=user_setting.name).first()
+    if global_setting and global_setting.admin_only and not current_user.admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Setting '{user_setting.name}' is admin-only and cannot be overridden by regular users.")
+
     db_user_setting = models.UserSetting(**user_setting.dict())
     db.add(db_user_setting)
     db.commit()
@@ -599,15 +638,12 @@ def create_user_setting(user_setting: schemas.UserSettingCreate, db: Session = D
     return db_user_setting
 
 @app.get("/api/usersettings/", response_model=List[schemas.UserSetting])
-def read_user_settings(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)): # PROTECTED
-    if current_user.admin: # Admins can see all user settings
-        user_settings = db.query(models.UserSetting).offset(skip).limit(limit).all()
-    else: # Regular users can only see their own
-        user_settings = db.query(models.UserSetting).filter(models.UserSetting.user_id == current_user.id).offset(skip).limit(limit).all()
+def read_user_settings(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
+    user_settings = db.query(models.UserSetting).filter(models.UserSetting.user_id == current_user.id).offset(skip).limit(limit).all()
     return user_settings
 
 @app.get("/api/usersettings/{user_setting_id}", response_model=schemas.UserSetting)
-def read_user_setting(user_setting_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)): # PROTECTED
+def read_user_setting(user_setting_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
     db_user_setting = db.query(models.UserSetting).filter(models.UserSetting.id == user_setting_id).first()
     if db_user_setting is None:
         raise HTTPException(status_code=404, detail="UserSetting not found")
@@ -616,12 +652,18 @@ def read_user_setting(user_setting_id: int, db: Session = Depends(database.get_d
     return db_user_setting
 
 @app.put("/api/usersettings/{user_setting_id}", response_model=schemas.UserSetting)
-def update_user_setting(user_setting_id: int, user_setting: schemas.UserSettingUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)): # PROTECTED
+def update_user_setting(user_setting_id: int, user_setting: schemas.UserSettingUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
     db_user_setting = db.query(models.UserSetting).filter(models.UserSetting.id == user_setting_id).first()
     if db_user_setting is None:
         raise HTTPException(status_code=404, detail="UserSetting not found")
     if not current_user.admin and db_user_setting.user_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to update this user setting.")
+
+    # Check if the global setting corresponding to this UserSetting's name is admin_only
+    global_setting = db.query(models.Setting).filter_by(name=user_setting.name).first()
+    if global_setting and global_setting.admin_only and not current_user.admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Setting '{user_setting.name}' is admin-only and cannot be overridden by regular users.")
+
     for key, value in user_setting.dict(exclude_unset=True).items():
         setattr(db_user_setting, key, value)
     db.commit()
@@ -629,7 +671,7 @@ def update_user_setting(user_setting_id: int, user_setting: schemas.UserSettingU
     return db_user_setting
 
 @app.delete("/api/usersettings/{user_setting_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_user_setting(user_setting_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)): # PROTECTED
+def delete_user_setting(user_setting_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
     db_user_setting = db.query(models.UserSetting).filter(models.UserSetting.id == user_setting_id).first()
     if db_user_setting is None:
         raise HTTPException(status_code=404, detail="UserSetting not found")
@@ -639,9 +681,94 @@ def delete_user_setting(user_setting_id: int, db: Session = Depends(database.get
     db.commit()
     return
 
+# NEW CRUD Endpoints for DeviceSettings
+@app.post("/api/devicesettings/", response_model=schemas.DeviceSetting, status_code=status.HTTP_201_CREATED)
+def create_device_setting(device_setting: schemas.DeviceSettingCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)): # PROTECTED
+    # A user can create/update their own device settings, or an admin can create/update for any user.
+    if not current_user.admin and device_setting.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to create device settings for other users.")
+
+    # Check if the global setting corresponding to this DeviceSetting's name is admin_only
+    global_setting = db.query(models.Setting).filter_by(name=device_setting.name).first()
+    if global_setting and global_setting.admin_only and not current_user.admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Setting '{device_setting.name}' is admin-only and cannot be overridden by regular users at the device level.")
+
+    db_device_setting = models.DeviceSetting(**device_setting.dict())
+    db.add(db_device_setting)
+    db.commit()
+    db.refresh(db_device_setting)
+    return db_device_setting
+
+@app.get("/api/devicesettings/", response_model=List[schemas.DeviceSetting])
+def read_device_settings(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user), # PROTECTED
+    target_user_id: Optional[int] = Query(None, description="Filter by user ID (admin only)")
+):
+    # Retrieves a list of device settings.
+    if current_user.admin:
+        query = db.query(models.DeviceSetting)
+        if target_user_id is not None:
+            query = query.filter(models.DeviceSetting.user_id == target_user_id)
+        device_settings = query.offset(skip).limit(limit).all()
+    else:
+        # Regular users can only view their own device settings
+        if target_user_id is not None and target_user_id != current_user.id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to view other users' device settings.")
+        device_settings = db.query(models.DeviceSetting).filter(models.DeviceSetting.user_id == current_user.id).offset(skip).limit(limit).all()
+    return device_settings
+
+@app.get("/api/devicesettings/{device_setting_id}", response_model=schemas.DeviceSetting)
+def read_device_setting(device_setting_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)): # PROTECTED
+    db_device_setting = db.query(models.DeviceSetting).filter(models.DeviceSetting.id == device_setting_id).first()
+    if db_device_setting is None:
+        raise HTTPException(status_code=404, detail="DeviceSetting not found")
+
+    if not current_user.admin and db_device_setting.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to view this device setting.")
+    return db_device_setting
+
+@app.put("/api/devicesettings/{device_setting_id}", response_model=schemas.DeviceSetting)
+def update_device_setting(device_setting_id: int, device_setting: schemas.DeviceSettingUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)): # PROTECTED
+    db_device_setting = db.query(models.DeviceSetting).filter(models.DeviceSetting.id == device_setting_id).first()
+    if db_device_setting is None:
+        raise HTTPException(status_code=404, detail="DeviceSetting not found")
+
+    if not current_user.admin and db_device_setting.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to update this device setting.")
+
+    # If the user tries to change user_id and is not an admin
+    if not current_user.admin and device_setting.user_id is not None and device_setting.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to change user_id of device settings.")
+
+    # Check if the global setting corresponding to this DeviceSetting's name is admin_only
+    global_setting = db.query(models.Setting).filter_by(name=device_setting.name).first()
+    if global_setting and global_setting.admin_only and not current_user.admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Setting '{device_setting.name}' is admin-only and cannot be overridden by regular users at the device level.")
+
+    for key, value in device_setting.dict(exclude_unset=True).items():
+        setattr(db_device_setting, key, value)
+    db.commit()
+    db.refresh(db_device_setting)
+    return db_device_setting
+
+@app.delete("/api/devicesettings/{device_setting_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_device_setting(device_setting_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)): # PROTECTED
+    db_device_setting = db.query(models.DeviceSetting).filter(models.DeviceSetting.id == device_setting_id).first()
+    if db_device_setting is None:
+        raise HTTPException(status_code=404, detail="DeviceSetting not found")
+
+    if not current_user.admin and db_device_setting.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to delete this device setting.")
+    db.delete(db_device_setting)
+    db.commit()
+    return
+
 # Filters (Protected for admins)
 @app.post("/api/filters/", response_model=schemas.Filter, status_code=status.HTTP_201_CREATED)
-def create_filter(filter_in: schemas.FilterCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_admin_user)): # PROTECTED
+def create_filter(filter_in: schemas.FilterCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_admin_user)):
     db_filter = models.Filter(
         name=filter_in.name,
         enabled=filter_in.enabled,

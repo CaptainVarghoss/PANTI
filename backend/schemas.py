@@ -172,6 +172,28 @@ class UserSetting(UserSettingBase):
     class Config:
         orm_mode = True
 
+# --- DeviceSetting Schemas ---
+class DeviceSettingBase(BaseModel):
+    name: str
+    user_id: int
+    device_id: str # Unique ID for the device
+    value: str
+
+class DeviceSettingCreate(DeviceSettingBase):
+    pass
+
+class DeviceSettingUpdate(DeviceSettingBase):
+    name: Optional[str] = None
+    user_id: Optional[int] = None
+    device_id: Optional[str] = None
+    value: Optional[str] = None
+
+class DeviceSetting(DeviceSettingBase):
+    id: int
+
+    class Config:
+        orm_mode = True
+
 # --- Filter Schemas ---
 class FilterBase(BaseModel):
     name: str

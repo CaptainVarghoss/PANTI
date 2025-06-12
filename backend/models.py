@@ -63,26 +63,39 @@ class Tag(Base):
 
 class User(Base):
     __tablename__ = 'users'
-    id = Column(Integer, primary_key=True)
-    username = Column(String(150), unique=True, nullable=False)
-    password_hash = Column(String(100), nullable=False)
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True, nullable=False)
+    password_hash = Column(String, nullable=False)
     admin = Column(Boolean, default=False)
-    login_allowed = Column(Boolean, default=False)
+    login_allowed = Column(Boolean, default=True)
+    user_settings = relationship("UserSetting", back_populates="user")
+    device_settings = relationship("DeviceSetting", back_populates="user")
 
 class Setting(Base):
-    __tablename__ = 'settings'
-    id = Column(Integer, primary_key=True)
-    name = Column(String(250), unique=True)
-    value = Column(String(250))
-    admin_only = Column(Boolean, default=False)
+    __tablename__ = "settings"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True, nullable=False)
+    value = Column(String, nullable=False)
+    admin_only = Column(Boolean, default=False) # Whether this setting is only editable by admins
+
 
 class UserSetting(Base):
-    __tablename__ = 'user_settings'
-    id = Column(Integer, primary_key=True)
-    name = Column(String(250))
-    user_id = Column(Integer) # Consider adding ForeignKey here if you have a User relationship
-    device_id = Column(String(250))
-    value = Column(String(250))
+    __tablename__ = "user_settings"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    value = Column(String, nullable=False)
+    user = relationship("User", back_populates="user_settings")
+
+
+class DeviceSetting(Base):
+    __tablename__ = "device_settings"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    device_id = Column(String, index=True, nullable=False)
+    value = Column(String, nullable=False)
+    user = relationship("User", back_populates="device_settings")
 
 class Filter(Base):
     __tablename__ = 'filters'
@@ -103,7 +116,7 @@ class Filter(Base):
 class UserFilter(Base):
     __tablename__ = 'user_filters'
     id = Column(Integer, primary_key=True)
-    filter_id = Column(Integer) # Consider adding ForeignKey here
-    user_id = Column(Integer)   # Consider adding ForeignKey here
+    filter_id = Column(Integer)
+    user_id = Column(Integer)
     enabled = Column(Boolean, default=False)
 

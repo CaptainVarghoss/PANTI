@@ -33,21 +33,19 @@ function ImageGrid() {
   };
 
   return (
-    <div className="">
-    {imagesLoading && <p className="">Loading images...</p>}
-    {imagesError && <p className="">{imagesError}</p>}
+    <div className="image-grid" key="imageGrid">
+      {imagesLoading && <p className="">Loading images...</p>}
+      {imagesError && <p className="">{imagesError}</p>}
 
-    {!imagesLoading && !imagesError && images.length === 0 && (
-        <p className="">No images found. Add some to your configured paths and run the scanner!</p>
-    )}
+      {!imagesLoading && !imagesError && images.length === 0 && (
+          <p className="">No images found. Add some to your configured paths and run the scanner!</p>
+      )}
 
-    {/* Responsive Grid for Images */}
-    <div className="">
-        {images.map((image) => (
-        // Render the ImageCard component for each image
-        <ImageCard key={image.id} image={image} />
-        ))}
-    </div>
+      {/* Responsive Grid for Images */}
+      {images.map((image) => (
+      // Render the ImageCard component for each image
+      <ImageCard key={image.id} image={image} />
+      ))}
     </div>
   )
 }
