@@ -126,7 +126,7 @@ function App() {
         <SideBar isOpen={isLeftSidebarOpen} onClose={closeAllSidebars} side="left" />
         {/* Render Right Sidebar */}
         <SideBar isOpen={isRightSidebarOpen} onClose={closeAllSidebars} side="right" />
-        <div className="main-container">
+        <div className="app-content">
           <Routes>
 
             {/* Public only routes */}

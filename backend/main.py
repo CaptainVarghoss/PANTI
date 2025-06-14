@@ -619,6 +619,15 @@ def delete_setting(setting_id: int, db: Session = Depends(database.get_db), curr
     db.commit()
     return
 
+@app.get("/api/global-settings/", response_model=List[schemas.Setting])
+def read_all_global_settings(
+    skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_admin_user) # PROTECTED
+):
+    # Retrieves all global settings as a list of Setting objects.
+    settings = db.query(models.Setting).offset(skip).limit(limit).all()
+    return settings
+
 
 # UserSettings (Protected for authenticated users, can only manage their own or admin can manage all)
 @app.post("/api/usersettings/", response_model=schemas.UserSetting, status_code=status.HTTP_201_CREATED)

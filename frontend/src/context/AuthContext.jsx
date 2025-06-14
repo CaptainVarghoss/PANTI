@@ -191,6 +191,7 @@ export const AuthProvider = ({ children }) => {
     isAdmin,
     settings,
     deviceId,
+    fetchSettings,
   };
 
   return (
