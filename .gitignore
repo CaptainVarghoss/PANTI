@@ -4,4 +4,4 @@ venv
 .vscode
 instance
 config.json
-*.db
+sql_app.db
