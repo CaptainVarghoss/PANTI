@@ -684,6 +684,49 @@ def read_all_global_settings(
     settings = db.query(models.Setting).offset(skip).limit(limit).all()
     return settings
 
+# User-accessible settings with overrides
+@app.get("/api/user-accessible-settings/", response_model=List[schemas.Setting])
+def read_user_accessible_settings(
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+    device_id: Optional[str] = Query(None, description="Optional device ID to fetch device-specific overrides.")
+):
+    # Retrieves settings that are accessible to the current user,
+    # with user-specific and device-specific overrides applied to global settings
+    # that are not admin-only. Returns full metadata for each setting.
+
+    # 1. Fetch all global settings that are NOT admin_only
+    global_settings = db.query(models.Setting).filter(models.Setting.admin_only == False).all()
+
+    # Create a dictionary for quick lookup and to hold the final overridden values
+    # Initialize with copies of global settings (including metadata)
+    user_view_settings_map = {
+        s.name: schemas.Setting.model_validate({c.name: getattr(s, c.name) for c in s.__table__.columns})
+        for s in global_settings
+    }
+
+    # 2. Apply User-specific overrides
+    user_overrides = db.query(models.UserSetting).filter(models.UserSetting.user_id == current_user.id).all()
+    for user_override in user_overrides:
+        if user_override.name in user_view_settings_map:
+            # Overwrite the value with the user's specific setting
+            user_view_settings_map[user_override.name].value = user_override.value
+            user_view_settings_map[user_override.name].source = 'user' # Add a source indicator
+
+    # 3. Apply Device-specific overrides (if device_id is provided)
+    if device_id:
+        device_overrides = db.query(models.DeviceSetting).filter(
+            models.DeviceSetting.user_id == current_user.id,
+            models.DeviceSetting.device_id == device_id
+        ).all()
+        for device_override in device_overrides:
+            if device_override.name in user_view_settings_map:
+                # Device settings take precedence over user settings
+                user_view_settings_map[device_override.name].value = device_override.value
+                user_view_settings_map[device_override.name].source = 'device' # Add a source indicator
+
+    # Return the list of Pydantic Setting objects
+    return list(user_view_settings_map.values())
 
 # UserSettings (Protected for authenticated users, can only manage their own or admin can manage all)
 @app.post("/api/usersettings/", response_model=schemas.UserSetting, status_code=status.HTTP_201_CREATED)
@@ -750,7 +793,7 @@ def delete_user_setting(user_setting_id: int, db: Session = Depends(database.get
     return
 
 # DeviceSettings
-app.post("/api/devicesettings/", response_model=schemas.DeviceSetting, status_code=status.HTTP_201_CREATED)
+@app.post("/api/devicesettings/", response_model=schemas.DeviceSetting, status_code=status.HTTP_201_CREATED)
 def create_device_setting(device_setting: schemas.DeviceSettingCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
     if not current_user.admin and device_setting.user_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to create device settings for other users.")
