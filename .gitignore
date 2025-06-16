@@ -4,3 +4,4 @@ venv
 .vscode
 instance
 config.json
+*.db
