@@ -137,6 +137,10 @@ class SettingBase(BaseModel):
     name: str
     value: str
     admin_only: Optional[bool] = False
+    display_name: Optional[str] = None
+    description: Optional[str] = None
+    group: Optional[str] = None
+    input_type: Optional[str] = None
 
 class SettingCreate(SettingBase):
     pass
@@ -145,6 +149,10 @@ class SettingUpdate(SettingBase):
     name: Optional[str] = None
     value: Optional[str] = None
     admin_only: Optional[bool] = None
+    display_name: Optional[str] = None
+    description: Optional[str] = None
+    group: Optional[str] = None
+    input_type: Optional[str] = None
 
 class Setting(SettingBase):
     id: int

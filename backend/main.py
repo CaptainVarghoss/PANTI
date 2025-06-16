@@ -45,24 +45,60 @@ async def lifespan(app: FastAPI):
 
         if not db.query(models.Setting).first():
             print("Adding initial Settings...")
-            db.add(models.Setting(name='sidebar', value='Left'))
-            db.add(models.Setting(name='allow_signup', value='False', admin_only=True))
-            db.add(models.Setting(name='allow_login', value='False', admin_only=True))
-            db.add(models.Setting(name='allow_tag_add', value='False', admin_only=True))
-            db.add(models.Setting(name='allow_tag_remove', value='False', admin_only=True))
-            db.add(models.Setting(name='allow_tag_create', value='False', admin_only=True))
-            db.add(models.Setting(name='allow_tag_delete', value='False', admin_only=True))
-            db.add(models.Setting(name='allow_tag_edit', value='False', admin_only=True))
-            db.add(models.Setting(name='allow_folder_tag_add', value='False', admin_only=True))
-            db.add(models.Setting(name='allow_folder_tag_remove', value='False', admin_only=True))
-            db.add(models.Setting(name='thumb_size', value='400', admin_only=True))
-            db.add(models.Setting(name='flyout', value='False', admin_only=True))
-            db.add(models.Setting(name='flyout_address', value='False', admin_only=True))
-            db.add(models.Setting(name='thumb_num', value='60'))
-            db.add(models.Setting(name='enable_previews', value='False'))
-            db.add(models.Setting(name='preview_size', value='1024', admin_only=True))
-            db.add(models.Setting(name='thumb_offset', value='0'))
-            db.add(models.Setting(name='theme', value='default'))
+            db.add(models.Setting(name='sidebar', value='Left', admin_only=False,
+                                 display_name='Sidebar Display', description='Controls which sidebars are enabled (Left, Right, Both).',
+                                 group='Appearance', input_type='custom_sidebar_switches'))
+            db.add(models.Setting(name='allow_signup', value='False', admin_only=True,
+                                 display_name='Allow New User Signup', description='If enabled, new users can register themselves. Admin only.',
+                                 group='Security', input_type='switch'))
+            db.add(models.Setting(name='allow_login', value='False', admin_only=True,
+                                 display_name='Allow User Login', description='If disabled, only admins can log in. Admin only.',
+                                 group='Security', input_type='switch'))
+            db.add(models.Setting(name='allow_tag_add', value='False', admin_only=True,
+                                 display_name='Allow Tag Add to Image', description='Allow users to add existing tags to images.',
+                                 group='Permissions', input_type='switch'))
+            db.add(models.Setting(name='allow_tag_remove', value='False', admin_only=True,
+                                 display_name='Allow Tag Remove from Image', description='Allow users to remove tags from images.',
+                                 group='Permissions', input_type='switch'))
+            db.add(models.Setting(name='allow_tag_create', value='False', admin_only=True,
+                                 display_name='Allow Tag Creation', description='Allow users to create new tags.',
+                                 group='Permissions', input_type='switch'))
+            db.add(models.Setting(name='allow_tag_delete', value='False', admin_only=True,
+                                 display_name='Allow Tag Deletion', description='Allow users to delete tags permanently.',
+                                 group='Permissions', input_type='switch'))
+            db.add(models.Setting(name='allow_tag_edit', value='False', admin_only=True,
+                                 display_name='Allow Tag Edit', description='Allow users to edit existing tags (name, color, etc.).',
+                                 group='Permissions', input_type='switch'))
+            db.add(models.Setting(name='allow_folder_tag_add', value='False', admin_only=True,
+                                 display_name='Allow Folder Tag Add', description='Allow users to add tags to folders.',
+                                 group='Permissions', input_type='switch'))
+            db.add(models.Setting(name='allow_folder_tag_remove', value='False', admin_only=True,
+                                 display_name='Allow Folder Tag Remove', description='Allow users to remove tags from folders.',
+                                 group='Permissions', input_type='switch'))
+            db.add(models.Setting(name='thumb_size', value='400', admin_only=True,
+                                 display_name='Thumbnail Size (px)', description='Max dimension for generated image thumbnails.',
+                                 group='Media', input_type='number'))
+            db.add(models.Setting(name='flyout', value='False', admin_only=True,
+                                 display_name='Enable Flyout Mode', description='Enable flyout mode for external media display.',
+                                 group='Flyout', input_type='switch'))
+            db.add(models.Setting(name='flyout_address', value='False', admin_only=True,
+                                 display_name='Flyout Server Address', description='Address for the flyout server if enabled.',
+                                 group='Flyout', input_type='text'))
+            db.add(models.Setting(name='thumb_num', value='60', admin_only=False,
+                                 display_name='Thumbnails Per Page', description='Number of thumbnails to display per page in the image grid.',
+                                 group='Appearance', input_type='number'))
+            db.add(models.Setting(name='enable_previews', value='False', admin_only=False,
+                                 display_name='Enable Previews', description='Enable generation and display of larger image previews.',
+                                 group='Media', input_type='switch'))
+            db.add(models.Setting(name='preview_size', value='1024', admin_only=True,
+                                 display_name='Preview Size (px)', description='Max dimension for generated image previews.',
+                                 group='Media', input_type='number'))
+            db.add(models.Setting(name='thumb_offset', value='0', admin_only=False,
+                                 display_name='Thumbnail Offset', description='Change this to increase or decrease thumbnail size.',
+                                 group='Appearance', input_type='number'))
+            db.add(models.Setting(name='theme', value='default', admin_only=False,
+                                 display_name='Default Theme', description='The default visual theme of the application (e.g., "default", "dark", "light").',
+                                 group='Appearance', input_type='text')) # Could be a dropdown in future
             db.commit()
 
         if not db.query(models.ImagePath).first():
@@ -554,43 +590,63 @@ def create_setting(setting: schemas.SettingCreate, db: Session = Depends(databas
     db.refresh(db_setting)
     return db_setting
 
-@app.get("/api/settings/", response_model=Dict[str, str])
+@app.get("/api/settings/", response_model=List[schemas.Setting])
 def read_settings_tiered(
     db: Session = Depends(database.get_db),
-    current_user: models.User = Depends(auth.get_current_user), # User must be logged in to get personalized settings
+    current_user: models.User = Depends(auth.get_current_user),
     device_id: Optional[str] = Query(None, description="Unique ID of the client device for device-specific settings")
 ):
-    # Retrieves a consolidated dictionary of settings, applying a tiered fallback:
-    # Device-specific setting -> User-specific setting -> Global setting.
-    # This endpoint requires authentication.
-    all_settings: Dict[str, str] = {}
+    # Retrieves a consolidated list of settings with full metadata,
+    # applying a tiered fallback: Device-specific value -> User-specific value -> Global value.
 
-    # Fetch Global Settings
-    global_settings = db.query(models.Setting).all()
-    for setting in global_settings:
-        all_settings[setting.name] = setting.value
+    # Fetch all global settings first, as these contain the metadata (display_name, input_type, etc.)
+    global_settings_map = {s.name: s for s in db.query(models.Setting).all()}
 
-    # Override with User-Specific Settings (if logged in)
+    tiered_settings_list: List[schemas.Setting] = [
+        schemas.Setting.model_validate({c.name: getattr(global_setting_obj, c.name) for c in global_setting_obj.__table__.columns})
+        for global_setting_obj in global_settings_map.values()
+    ]
+
+    # Convert tiered_settings_list to a map for easy lookup by name during overrides
+    tiered_settings_map_by_name = {s.name: s for s in tiered_settings_list}
+
+    # 2. Override with User-Specific Settings (if logged in)
     user_settings = db.query(models.UserSetting).filter_by(user_id=current_user.id).all()
     for user_setting in user_settings:
-        global_entry = db.query(models.Setting).filter_by(name=user_setting.name).first()
-        if global_entry: # Ensure there is a corresponding global setting
-            if not global_entry.admin_only: # User can override if global setting is not admin-only
-                all_settings[user_setting.name] = user_setting.value
+        if user_setting.name in tiered_settings_map_by_name:
+            setting_to_override = tiered_settings_map_by_name[user_setting.name]
+            original_global_setting = global_settings_map.get(user_setting.name)
 
-    # Override with Device-Specific Settings (if logged in and device_id provided)
+            # Only apply override if corresponding global setting exists and is NOT admin_only
+            if original_global_setting and not original_global_setting.admin_only:
+                setting_to_override.value = user_setting.value
+            else:
+                # This case implies a UserSetting exists for an admin_only global setting,
+                # which should be prevented by create/update endpoints. Log as warning.
+                print(f"Warning: UserSetting '{user_setting.name}' found for admin-only global setting or missing global setting. Ignoring override in tiered view.")
+
+
+    # 3. Override with Device-Specific Settings (if logged in and device_id provided)
     if device_id:
         device_settings = db.query(models.DeviceSetting).filter_by(
             user_id=current_user.id,
             device_id=device_id
         ).all()
         for device_setting in device_settings:
-            global_entry = db.query(models.Setting).filter_by(name=device_setting.name).first()
-            if global_entry:
-                if not global_entry.admin_only:
-                    all_settings[device_setting.name] = device_setting.value
+            if device_setting.name in tiered_settings_map_by_name:
+                setting_to_override = tiered_settings_map_by_name[device_setting.name]
+                original_global_setting = global_settings_map.get(device_setting.name)
 
-    return all_settings
+                # Only apply override if corresponding global setting exists and is NOT admin_only
+                if original_global_setting and not original_global_setting.admin_only:
+                    setting_to_override.value = device_setting.value
+                else:
+                    # This case implies a DeviceSetting exists for an admin_only global setting,
+                    # which should be prevented by create/update endpoints. Log as warning.
+                    print(f"Warning: DeviceSetting '{device_setting.name}' found for admin-only global setting or missing global setting. Ignoring override in tiered view.")
+
+    # Return the list of Pydantic Setting objects with their final, tiered values
+    return list(tiered_settings_map_by_name.values())
 
 @app.get("/api/settings/{setting_id}", response_model=schemas.Setting)
 def read_setting(setting_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_admin_user)):
@@ -622,7 +678,7 @@ def delete_setting(setting_id: int, db: Session = Depends(database.get_db), curr
 @app.get("/api/global-settings/", response_model=List[schemas.Setting])
 def read_all_global_settings(
     skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db),
-    current_user: models.User = Depends(auth.get_current_admin_user) # PROTECTED
+    current_user: models.User = Depends(auth.get_current_admin_user)
 ):
     # Retrieves all global settings as a list of Setting objects.
     settings = db.query(models.Setting).offset(skip).limit(limit).all()
@@ -635,10 +691,11 @@ def create_user_setting(user_setting: schemas.UserSettingCreate, db: Session = D
     if not current_user.admin and user_setting.user_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to create settings for other users.")
 
-    # Check if the global setting corresponding to this UserSetting's name is admin_only
     global_setting = db.query(models.Setting).filter_by(name=user_setting.name).first()
-    if global_setting and global_setting.admin_only and not current_user.admin:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Setting '{user_setting.name}' is admin-only and cannot be overridden by regular users.")
+    if not global_setting:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Cannot create user setting for non-existent global setting '{user_setting.name}'.")
+    if global_setting.admin_only: # If the global setting itself is admin_only, no user can override it.
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Setting '{user_setting.name}' is an admin-only global setting and cannot be overridden by any user.")
 
     db_user_setting = models.UserSetting(**user_setting.dict())
     db.add(db_user_setting)
@@ -668,10 +725,12 @@ def update_user_setting(user_setting_id: int, user_setting: schemas.UserSettingU
     if not current_user.admin and db_user_setting.user_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to update this user setting.")
 
-    # Check if the global setting corresponding to this UserSetting's name is admin_only
-    global_setting = db.query(models.Setting).filter_by(name=user_setting.name).first()
-    if global_setting and global_setting.admin_only and not current_user.admin:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Setting '{user_setting.name}' is admin-only and cannot be overridden by regular users.")
+    # Get the name from the existing db_user_setting to check against global setting rules
+    setting_name_for_check = db_user_setting.name # Use existing name
+
+    global_setting = db.query(models.Setting).filter_by(name=setting_name_for_check).first()
+    if global_setting and global_setting.admin_only: # If the global setting itself is admin_only, no user can override it.
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Setting '{setting_name_for_check}' is an admin-only global setting and cannot be overridden by any user.")
 
     for key, value in user_setting.dict(exclude_unset=True).items():
         setattr(db_user_setting, key, value)
@@ -690,17 +749,17 @@ def delete_user_setting(user_setting_id: int, db: Session = Depends(database.get
     db.commit()
     return
 
-# NEW CRUD Endpoints for DeviceSettings
-@app.post("/api/devicesettings/", response_model=schemas.DeviceSetting, status_code=status.HTTP_201_CREATED)
-def create_device_setting(device_setting: schemas.DeviceSettingCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)): # PROTECTED
-    # A user can create/update their own device settings, or an admin can create/update for any user.
+# DeviceSettings
+app.post("/api/devicesettings/", response_model=schemas.DeviceSetting, status_code=status.HTTP_201_CREATED)
+def create_device_setting(device_setting: schemas.DeviceSettingCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
     if not current_user.admin and device_setting.user_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to create device settings for other users.")
 
-    # Check if the global setting corresponding to this DeviceSetting's name is admin_only
     global_setting = db.query(models.Setting).filter_by(name=device_setting.name).first()
-    if global_setting and global_setting.admin_only and not current_user.admin:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Setting '{device_setting.name}' is admin-only and cannot be overridden by regular users at the device level.")
+    if not global_setting:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Cannot create device setting for non-existent global setting '{device_setting.name}'.")
+    if global_setting.admin_only: # If the global setting itself is admin_only, no user can override it.
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Setting '{device_setting.name}' is an admin-only global setting and cannot be overridden by any user at the device level.")
 
     db_device_setting = models.DeviceSetting(**device_setting.dict())
     db.add(db_device_setting)
@@ -730,7 +789,7 @@ def read_device_settings(
     return device_settings
 
 @app.get("/api/devicesettings/{device_setting_id}", response_model=schemas.DeviceSetting)
-def read_device_setting(device_setting_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)): # PROTECTED
+def read_device_setting(device_setting_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
     db_device_setting = db.query(models.DeviceSetting).filter(models.DeviceSetting.id == device_setting_id).first()
     if db_device_setting is None:
         raise HTTPException(status_code=404, detail="DeviceSetting not found")
@@ -740,7 +799,7 @@ def read_device_setting(device_setting_id: int, db: Session = Depends(database.g
     return db_device_setting
 
 @app.put("/api/devicesettings/{device_setting_id}", response_model=schemas.DeviceSetting)
-def update_device_setting(device_setting_id: int, device_setting: schemas.DeviceSettingUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)): # PROTECTED
+def update_device_setting(device_setting_id: int, device_setting: schemas.DeviceSettingUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
     db_device_setting = db.query(models.DeviceSetting).filter(models.DeviceSetting.id == device_setting_id).first()
     if db_device_setting is None:
         raise HTTPException(status_code=404, detail="DeviceSetting not found")
@@ -748,14 +807,15 @@ def update_device_setting(device_setting_id: int, device_setting: schemas.Device
     if not current_user.admin and db_device_setting.user_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to update this device setting.")
 
-    # If the user tries to change user_id and is not an admin
     if not current_user.admin and device_setting.user_id is not None and device_setting.user_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to change user_id of device settings.")
 
-    # Check if the global setting corresponding to this DeviceSetting's name is admin_only
-    global_setting = db.query(models.Setting).filter_by(name=device_setting.name).first()
-    if global_setting and global_setting.admin_only and not current_user.admin:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Setting '{device_setting.name}' is admin-only and cannot be overridden by regular users at the device level.")
+    # Get the name from the existing db_device_setting to check against global setting rules
+    setting_name_for_check = db_device_setting.name # Use existing name
+
+    global_setting = db.query(models.Setting).filter_by(name=setting_name_for_check).first()
+    if global_setting and global_setting.admin_only: # If the global setting itself is admin_only, no user can override it.
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Setting '{setting_name_for_check}' is an admin-only global setting and cannot be overridden by any user at the device level.")
 
     for key, value in device_setting.dict(exclude_unset=True).items():
         setattr(db_device_setting, key, value)
@@ -764,7 +824,7 @@ def update_device_setting(device_setting_id: int, device_setting: schemas.Device
     return db_device_setting
 
 @app.delete("/api/devicesettings/{device_setting_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_device_setting(device_setting_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)): # PROTECTED
+def delete_device_setting(device_setting_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
     db_device_setting = db.query(models.DeviceSetting).filter(models.DeviceSetting.id == device_setting_id).first()
     if db_device_setting is None:
         raise HTTPException(status_code=404, detail="DeviceSetting not found")

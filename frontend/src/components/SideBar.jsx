@@ -41,9 +41,6 @@ function Sidebar({ isOpen, onClose, side }) {
       {/* Sidebar content */}
       <div className={sidebarClasses}>
         <div className={`sidebar-header sidebar-header--${side}`}>
-          <h2 className="sidebar-title">
-            {currentPanel === 'settings' ? 'Settings' : `Menu (${side === 'left' ? 'Left' : 'Right'})`}
-          </h2>
           <button onClick={onClose} className="navbar-toggle-button" aria-label="Close menu">
             <svg className="navbar-toggle-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7"></path>

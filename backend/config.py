@@ -10,6 +10,16 @@ HOST = os.getenv("APP_HOST", "0.0.0.0")
 # Port number for the FastAPI server.
 PORT = int(os.getenv("APP_PORT", 8000))
 
+# --- Security Settings ---
+# Access Token Expiration Time (in minutes)
+# Example: 30 minutes, 7 days (10080), 30 days (43200)
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 43200)) # Default to 30 minutes
+
+# Secret key for JWT token signing.
+# IMPORTANT: In production, always set this via an environment variable (e.g., SECRET_KEY="your_actual_strong_key").
+# You can generate a strong key using: openssl rand -hex 32
+SECRET_KEY = os.getenv("SECRET_KEY", "your-super-secret-key-replace-me") # Default placeholder
+
 # --- Frontend Build Configuration ---
 # Name of the frontend directory relative to 'your-fullstack-app'
 FRONTEND_DIR_NAME = "frontend"
@@ -31,7 +41,6 @@ CORS_ALLOWED_ORIGINS = [
     f"https://{HOST}:{PORT}", # Include HTTPS for production scenarios
     "http://localhost:5173", # Keep for separate frontend development (Vite's default)
     "http://127.0.0.1:5173",
-    "http://localhost:3000", # If you're using another dev port
 ]
 
 # --- Database Configuration ---

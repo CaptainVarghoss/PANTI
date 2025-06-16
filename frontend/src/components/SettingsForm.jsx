@@ -41,18 +41,6 @@ function SettingsForm({ onClose, onBack, side }) {
           ← Back to Main Menu
         </button>
 
-        <h3 className="settings-section-title">Settings Overview</h3>
-
-        <h4 className="settings-subsection-title">Currently Applied Settings:</h4>
-        <ul className="settings-list">
-          {Object.entries(settings).map(([key, value]) => (
-            <li key={key} className="settings-list-item">
-              <strong>{key}:</strong> {String(value)}
-            </li>
-          ))}
-        </ul>
-
-        <h4 className="settings-subsection-title">Manage Settings:</h4>
         <nav className="settings-sub-nav">
           <a href="#" onClick={(e) => { e.preventDefault(); setCurrentSubPanel('device'); }} className="settings-link">
             Device Specific Settings
@@ -66,10 +54,6 @@ function SettingsForm({ onClose, onBack, side }) {
             </a>
           )}
         </nav>
-
-        <button onClick={onClose} className="settings-close-button">
-          Close Sidebar
-        </button>
       </div>
 
       {/* Device Specific Settings Panel */}

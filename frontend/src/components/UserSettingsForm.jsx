@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
+import Tooltip from './Tooltip'; // Assuming you'll create a Tooltip component
 
 /**
  * Component for editing user-specific settings.
@@ -10,36 +11,43 @@ import { useAuth } from '../context/AuthContext';
  * @param {function} props.onClose - Callback to close the parent sidebar.
  */
 function UserSettingsForm({ onBack, onClose }) {
-  const { user, token, fetchSettings } = useAuth();
+  const { user, token, isAuthenticated, loading: authLoading, rawSettingsList, fetchSettings } = useAuth(); // NEW: rawSettingsList
+  
   const [userSettings, setUserSettings] = useState({}); // Stores user's current settings
-  const [loading, setLoading] = useState(true);
+  const [loadingLocal, setLoadingLocal] = useState(true); // Local loading for this component's data fetch
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
-  // Example: user-specific theme preference
+  // Individual states for user-editable settings
   const [themeValue, setThemeValue] = useState('');
 
-  const fetchUserSettings = async () => {
-    if (!user || !token) {
-      setError("User not authenticated.");
-      setLoading(false);
+  // Find metadata for relevant settings
+  const themeMetadata = rawSettingsList.find(s => s.name === 'theme');
+
+  const fetchUserSettings = useCallback(async () => {
+    if (authLoading || !user || !token) {
+      if (!authLoading) {
+        setError("User not authenticated.");
+        setLoadingLocal(false);
+      }
       return;
     }
-    setLoading(true);
+    setLoadingLocal(true);
+    setError('');
     try {
       const response = await fetch(`/api/usersettings/?user_id=${user.id}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (response.ok) {
         const data = await response.json();
-        // Convert array to a map for easy lookup
         const settingsMap = data.reduce((acc, setting) => {
-          acc[setting.name] = setting; // Store the full setting object to get ID for PUT/DELETE
+          acc[setting.name] = setting;
           return acc;
         }, {});
         setUserSettings(settingsMap);
+        
         // Initialize form fields with fetched data
-        setThemeValue(settingsMap.theme?.value || ''); // Assuming 'theme' is a user-editable setting
+        setThemeValue(settingsMap.theme?.value || '');
       } else {
         setError(`Failed to fetch user settings: ${response.statusText}`);
       }
@@ -47,21 +55,35 @@ function UserSettingsForm({ onBack, onClose }) {
       console.error('Error fetching user settings:', err);
       setError('Network error while fetching user settings.');
     } finally {
-      setLoading(false);
+      setLoadingLocal(false);
     }
-  };
+  }, [user, token, authLoading]); // Dependencies for useCallback
 
   useEffect(() => {
-    fetchUserSettings();
-  }, [user, token]); // Re-fetch if user or token changes
+    if (!authLoading && isAuthenticated) {
+      fetchUserSettings();
+    } else if (!authLoading && !isAuthenticated) {
+      setLoadingLocal(false);
+      setError("User not authenticated.");
+      setUserSettings({});
+      setThemeValue('');
+    }
+  }, [isAuthenticated, authLoading, fetchUserSettings]); // Re-fetch if auth status changes
 
   const handleUpdateUserSetting = async (settingName, value) => {
     setMessage('');
     setError('');
 
     if (!user || !token) {
-      setError("User not authenticated.");
+      setError("User not authenticated. Please log in.");
       return;
+    }
+
+    // Find the global setting metadata to check admin_only status
+    const globalSettingMetadata = rawSettingsList.find(s => s.name === settingName);
+    if (globalSettingMetadata && globalSettingMetadata.admin_only) {
+        setError(`"${globalSettingMetadata.display_name || settingName}" is an admin-only setting and cannot be overridden by users.`);
+        return;
     }
 
     try {
@@ -88,7 +110,8 @@ function UserSettingsForm({ onBack, onClose }) {
 
       if (value === '' && !existingSetting) {
           setMessage(`'${settingName}' setting already cleared.`);
-          return; // No action needed if already cleared
+          await fetchSettings(); // Re-fetch to ensure context is up-to-date
+          return;
       }
 
 
@@ -102,7 +125,7 @@ function UserSettingsForm({ onBack, onClose }) {
       });
 
       if (response.ok) {
-        setMessage(`User setting '${settingName}' updated successfully!`);
+        setMessage(`User setting '${globalSettingMetadata?.display_name || settingName}' updated successfully!`);
         await fetchUserSettings(); // Re-fetch to update local state
         await fetchSettings(); // Re-fetch global context settings to reflect changes
       } else {
@@ -115,11 +138,25 @@ function UserSettingsForm({ onBack, onClose }) {
     }
   };
 
-  if (loading) {
+  if (authLoading || loadingLocal) {
     return (
       <div className="settings-sub-form-container">
         <p className="settings-loading">Loading user settings...</p>
       </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+        <div className="settings-sub-form-container">
+            <button onClick={onBack} className="settings-back-button">
+                ← Back to Settings Menu
+            </button>
+            <p className="settings-message error">User not authenticated. Please log in to manage user settings.</p>
+            <button onClick={onClose} className="settings-close-button">
+                Close Sidebar
+            </button>
+        </div>
     );
   }
 
@@ -134,28 +171,34 @@ function UserSettingsForm({ onBack, onClose }) {
       {message && <p className="settings-message success">{message}</p>}
       {error && <p className="settings-message error">{error}</p>}
 
-      <h4 className="settings-subsection-title">Set Your Preferred Theme:</h4>
-      <form onSubmit={(e) => { e.preventDefault(); handleUpdateUserSetting('theme', themeValue); }} className="settings-edit-form">
-        <label htmlFor="userTheme" className="settings-label">
-          Theme:
-        </label>
-        <select
-          id="userTheme"
-          value={themeValue}
-          onChange={(e) => setThemeValue(e.target.value)}
-          className="settings-input"
-        >
-          <option value="default">Default</option>
-          <option value="dark">Dark</option>
-          <option value="light">Light</option>
-          <option value="">(Reset to Global)</option> {/* Option to clear user setting */}
-        </select>
-        <button type="submit" className="settings-submit-button">
-          Update Theme
-        </button>
-      </form>
-
-      {/* You can add more user-specific settings here */}
+      <h4 className="settings-subsection-title">Appearance:</h4> {/* Example Group */}
+      <div className="settings-item-group"> {/* New container for grouped settings */}
+        {themeMetadata && ( // Ensure metadata exists before rendering
+          <div className="settings-edit-form-item"> {/* Individual setting item */}
+            <label htmlFor="userTheme" className="settings-label">
+              {themeMetadata.display_name}:
+              {themeMetadata.description && (
+                <Tooltip content={themeMetadata.description} />
+              )}
+            </label>
+            <select
+              id="userTheme"
+              value={themeValue}
+              onChange={(e) => {
+                setThemeValue(e.target.value);
+                handleUpdateUserSetting('theme', e.target.value); // Immediate update
+              }}
+              className="settings-input"
+              disabled={themeMetadata.admin_only && !user.admin} // Disable if admin_only (though theme is not)
+            >
+              <option value="default">Default</option>
+              <option value="dark">Dark</option>
+              <option value="light">Light</option>
+              <option value="">(Reset to Global)</option>
+            </select>
+          </div>
+        )}
+      </div>
 
       <button onClick={onClose} className="settings-close-button">
         Close Sidebar

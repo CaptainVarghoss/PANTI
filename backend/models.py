@@ -76,7 +76,11 @@ class Setting(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True, nullable=False)
     value = Column(String, nullable=False)
-    admin_only = Column(Boolean, default=False) # Whether this setting is only editable by admins
+    admin_only = Column(Boolean, default=False)
+    display_name = Column(String, nullable=True) # User-friendly name for display
+    description = Column(String, nullable=True)  # Detailed explanation for tooltip
+    group = Column(String, nullable=True)       # For grouping settings in UI (e.g., 'General', 'Security', 'Media')
+    input_type = Column(String, nullable=True)  # 'text', 'number', 'switch', 'custom_sidebar_switches'
 
 
 class UserSetting(Base):
@@ -85,6 +89,7 @@ class UserSetting(Base):
     name = Column(String, nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     value = Column(String, nullable=False)
+
     user = relationship("User", back_populates="user_settings")
 
 
@@ -95,7 +100,9 @@ class DeviceSetting(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     device_id = Column(String, index=True, nullable=False)
     value = Column(String, nullable=False)
+
     user = relationship("User", back_populates="device_settings")
+
 
 class Filter(Base):
     __tablename__ = 'filters'

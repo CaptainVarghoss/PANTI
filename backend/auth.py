@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 import models
 import database
+import config
 
 # --- Password Hashing ---
 # Used for hashing and verifying passwords
@@ -23,9 +24,9 @@ def get_password_hash(password):
 
 # --- JWT Configuration ---
 # Generate a strong secret key for production: openssl rand -hex 32
-SECRET_KEY = os.getenv("SECRET_KEY", "your-super-secret-key-replace-me") # IMPORTANT: Replace in production
+SECRET_KEY = config.SECRET_KEY
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30 # How long the access token is valid
+ACCESS_TOKEN_EXPIRE_MINUTES = config.ACCESS_TOKEN_EXPIRE_MINUTES
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/login") # Point to your login endpoint
 

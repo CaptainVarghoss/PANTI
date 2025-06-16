@@ -1,205 +1,157 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { v4 as uuidv4 } from 'uuid';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 
-// Create the AuthContext
-export const AuthContext = createContext(null);
+const AuthContext = createContext(null);
 
-/**
- * Provides authentication state and functions to its children.
- * Manages access token storage, user data, settings, login, and logout.
- */
+export const useAuth = () => useContext(AuthContext);
+
 export const AuthProvider = ({ children }) => {
-  // Initialize token and user from localStorage (for persistence across sessions)
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [settings, setSettings] = useState({});
-  const [deviceId, setDeviceId] = useState(localStorage.getItem('deviceId'));
-  const navigate = useNavigate();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true); // Initial loading for auth status
+  const [error, setError] = useState(null);
+  const [deviceId, setDeviceId] = useState(() => localStorage.getItem('deviceId') || crypto.randomUUID());
 
-  // Effect to generate and persist deviceId on first load
+  // NEW: State to hold all tiered settings with metadata
+  const [settings, setSettings] = useState({}); // Tiered settings (name: value)
+  const [rawSettingsList, setRawSettingsList] = useState([]); // List of full setting objects with metadata
+
+  // Store deviceId in localStorage if it's new
   useEffect(() => {
-    if (!deviceId) {
-      const newDeviceId = uuidv4();
-      localStorage.setItem('deviceId', newDeviceId);
-      setDeviceId(newDeviceId);
+    if (!localStorage.getItem('deviceId')) {
+      localStorage.setItem('deviceId', deviceId);
     }
   }, [deviceId]);
 
-  // Function to save token to localStorage
-  const saveToken = (newToken) => {
+  const login = useCallback((newToken, userData) => {
+    localStorage.setItem('token', newToken);
     setToken(newToken);
-    if (newToken) {
-      localStorage.setItem('token', newToken);
-    } else {
-      localStorage.removeItem('token');
-    }
-  };
+    setUser(userData);
+    setIsAuthenticated(true);
+    setIsAdmin(userData?.admin || false);
+    setError(null);
+  }, []);
 
-  // Function to fetch user data using the token
-  const fetchUser = async (current_token) => {
-    if (!current_token) {
-      setUser(null);
-      setLoading(false);
+  const logout = useCallback(() => {
+    localStorage.removeItem('token');
+    setToken(null);
+    setUser(null);
+    setIsAuthenticated(false);
+    setIsAdmin(false);
+    setSettings({}); // Clear settings on logout
+    setRawSettingsList([]); // Clear raw settings on logout
+    setError(null);
+  }, []);
+
+  // NEW: Helper to parse setting values based on input_type
+  const parseSettingValue = useCallback((value, input_type) => {
+    if (input_type === 'switch') {
+      return value.toLowerCase() === 'true';
+    }
+    if (input_type === 'number') {
+      const num = parseFloat(value);
+      return isNaN(num) ? value : num; // Return original string if not a valid number
+    }
+    return value; // Default to string
+  }, []);
+
+  // NEW/MODIFIED: Fetch all settings from backend (tiered view)
+  const fetchSettings = useCallback(async () => {
+    if (!token) {
+      setSettings({});
+      setRawSettingsList([]);
       return;
     }
     try {
-      const response = await fetch('/api/users/me/', {
-        headers: {
-          'Authorization': `Bearer ${current_token}`,
-        },
-      });
-      if (response.ok) {
-        const userData = await response.json();
-        setUser(userData);
-      } else {
-        // If token is invalid or expired, clear it
-        console.error("Failed to fetch user data, token might be invalid or expired.");
-        saveToken(null);
-        setUser(null);
-      }
-    } catch (error) {
-      console.error("Error fetching user data:", error);
-      saveToken(null); // Clear token on network/other errors
-      setUser(null);
-    } finally {
-      //setLoading(false);
-    }
-  };
-
-  // Function to fetch global/user/device settings
-  const fetchSettings = async () => {
-    // Only fetch settings if deviceId is available
-    if (!deviceId) {
-        console.warn("Device ID not available, skipping settings fetch.");
-        setLoading(false);
-        return;
-    }
-
-    try {
-      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      // Pass device_id as a query parameter
       const response = await fetch(`/api/settings/?device_id=${deviceId}`, {
-        headers: headers,
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
       if (response.ok) {
-        const settingsData = await response.json();
-        setSettings(settingsData);
-      } else {
-        console.error("Failed to fetch settings:", response.statusText);
-        // If settings fetching fails, provide a fallback or sensible defaults
-        setSettings({ sidebar: 'left' });
-      }
-    } catch (error) {
-      console.error("Error fetching settings:", error);
-      setSettings({ sidebar: 'left' }); // Fallback on network error
-    } finally {
-      setLoading(false);
-    }
-  };
+        const data = await response.json(); // This will be List[schemas.Setting]
+        setRawSettingsList(data); // Store the full list with metadata
 
-  // Effect to load user data and settings when token or deviceId changes
+        // Transform the list into a simple name-value map for easy access in components
+        const newSettingsMap = {};
+        data.forEach(setting => {
+          newSettingsMap[setting.name] = parseSettingValue(setting.value, setting.input_type);
+        });
+        setSettings(newSettingsMap); // Store the processed values
+      } else {
+        console.error("Failed to fetch settings:", response.status, response.statusText);
+        // Optionally handle specific errors, e.g., if token is invalid, force logout
+        if (response.status === 401 || response.status === 403) {
+            console.error("AuthContext: Token expired or unauthorized fetching settings. Forcing logout.");
+            logout();
+        }
+        setError("Failed to fetch settings.");
+      }
+    } catch (err) {
+      console.error("Network error fetching settings:", err);
+      setError("Network error fetching settings.");
+    }
+  }, [token, deviceId, logout, parseSettingValue]); // Depend on deviceId and parseSettingValue
+
+  // Effect to authenticate user on token change or initial load
   useEffect(() => {
-    // Only run if deviceId is present (it's generated by its own useEffect)
-    if (deviceId) {
-      const loadInitialData = async () => {
-        setLoading(true);
-        // Fetch user first to get current_user.id for settings API if needed
-        // (though current /api/settings/ directly takes user from token if present)
-        await fetchUser(token);
-        await fetchSettings();
-      };
-      loadInitialData();
-    }
-  }, [token, deviceId]);
-
-  // Login function
-  const login = async (username, password) => {
-    const formData = new URLSearchParams();
-    formData.append('username', username);
-    formData.append('password', password);
-
-    try {
-      const response = await fetch('/api/token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: formData.toString(),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        saveToken(data.access_token);
-        // fetchUser will be called by useEffect due to token change
-        navigate('/'); // Redirect to home page after successful login
+    const authenticateUser = async () => {
+      setLoading(true);
+      setError(null);
+      if (token) {
+        try {
+          const response = await fetch('/api/users/me/', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          if (response.ok) {
+            const userData = await response.json();
+            setUser(userData);
+            setIsAuthenticated(true);
+            setIsAdmin(userData.admin);
+            // Fetch settings immediately after successful user authentication
+            await fetchSettings();
+          } else {
+            console.error('Failed to verify token:', response.status, response.statusText);
+            logout(); // Invalidate token if verification fails
+          }
+        } catch (err) {
+          console.error('Network error during token verification:', err);
+          logout(); // Treat network errors during auth check as logout
+        } finally {
+          setLoading(false);
+        }
       } else {
-        const errorData = await response.json();
-        console.error('Login failed:', errorData.detail);
-        return { success: false, message: errorData.detail || 'Login failed' };
+        setLoading(false);
+        logout(); // No token, ensure logged out state
       }
-    } catch (error) {
-      console.error('Network error during login:', error);
-      return { success: false, message: 'Network error during login' };
-    }
-    return { success: true };
-  };
+    };
 
-  // Signup function
-  const signup = async (username, password, admin = false, login_allowed = false) => {
-    try {
-      const response = await fetch('/api/signup/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password, admin, login_allowed }),
-      });
+    authenticateUser();
+  }, [token, logout, fetchSettings]); // Add fetchSettings to dependencies
 
-      if (response.ok) {
-        // Optionally log in the user immediately after signup
-        // await login(username, password);
-        return { success: true, message: "Signup successful. You can now log in." };
-      } else {
-        const errorData = await response.json();
-        console.error('Signup failed:', errorData.detail);
-        return { success: false, message: errorData.detail || 'Signup failed' };
-      }
-    } catch (error) {
-      console.error('Network error during signup:', error);
-      return { success: false, message: 'Network error during signup' };
-    }
-  };
-
-  // Logout function
-  const logout = () => {
-    saveToken(null);
-    setUser(null);
-    navigate('/login'); // Redirect to login page after logout
-  };
-
-  const isAdmin = user && user.admin;
-
-  const authContextValue = {
+  // Memoize the context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({
     token,
     user,
-    loading,
-    isAuthenticated: !!token && !!user, // User is authenticated if token and user data exist
-    login,
-    signup,
-    logout,
+    isAuthenticated,
     isAdmin,
-    settings,
+    loading,
+    error,
     deviceId,
-    fetchSettings,
-  };
+    settings, // NEW: Tiered settings (name: value map)
+    rawSettingsList, // NEW: Full list of setting objects with metadata
+    login,
+    logout,
+    fetchSettings, // Expose fetchSettings for manual refresh
+  }), [token, user, isAuthenticated, isAdmin, loading, error, deviceId, settings, rawSettingsList, login, logout, fetchSettings]);
 
   return (
-    <AuthContext.Provider value={authContextValue}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
 };
-
-// Custom hook for easy access to AuthContext
-export const useAuth = () => useContext(AuthContext);
