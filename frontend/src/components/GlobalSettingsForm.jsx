@@ -22,8 +22,6 @@ function GlobalSettingsForm({ onBack, onClose }) {
     textInputStates,
     numberInputStates,
     handleBooleanToggle,
-    handleToggleLeft,
-    handleToggleRight,
     handleTextInputChange,
     handleTextInputBlur,
     handleNumberInputChange,
@@ -107,29 +105,6 @@ function GlobalSettingsForm({ onBack, onClose }) {
                             disabled={commonProps.disabled}
                           />
                         </>
-                      );
-                    case 'custom_sidebar_switches':
-                      return (
-                        <div className="sidebar-switch-group">
-                          <p className="settings-label">
-                            {commonProps.label}
-                            {commonProps.description && (
-                              <Tooltip content={commonProps.description} />
-                            )}
-                          </p>
-                          <Switch
-                            isOn={switchStates['sidebarLeftEnabled'] || false}
-                            handleToggle={handleToggleLeft}
-                            label="Left Sidebar"
-                            disabled={commonProps.disabled}
-                          />
-                          <Switch
-                            isOn={switchStates['sidebarRightEnabled'] || false}
-                            handleToggle={handleToggleRight}
-                            label="Right Sidebar"
-                            disabled={commonProps.disabled}
-                          />
-                        </div>
                       );
                     case 'text':
                     default:

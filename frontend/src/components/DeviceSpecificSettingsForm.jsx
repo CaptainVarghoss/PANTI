@@ -1,13 +1,12 @@
-// frontend/src/components/DeviceSpecificSettingsForm.jsx
-
 import React, { useState } from 'react';
 import Switch from './Switch';
 import Tooltip from './Tooltip';
-import useSettingsFormLogic from '../hooks/useSettingsFormLogic'; // Import the new hook
+import useSettingsFormLogic from '../hooks/useSettingsFormLogic';
 
 /**
  * Component for managing device-specific user settings.
- * Now refactored to use `useSettingsFormLogic` hook.
+ * It now includes a toggle to switch between applying device-specific overrides
+ * or viewing read-only global settings.
  *
  * @param {object} props - Component props.
  * @param {function} props.onBack - Callback to return to the previous settings menu.
@@ -28,15 +27,15 @@ function DeviceSpecificSettingsForm({ onBack, onClose }) {
     switchStates,
     textInputStates,
     numberInputStates,
+    useDeviceSettingsOverrideEnabled,
     handleBooleanToggle,
-    handleToggleLeft,
-    handleToggleRight,
     handleTextInputChange,
     handleTextInputBlur,
     handleNumberInputChange,
     handleNumberInputBlur,
+    handleUseDeviceSettingsOverrideToggle,
     isAuthenticated
-  } = useSettingsFormLogic('device', deviceId); // Specify 'device' form type and pass deviceId
+  } = useSettingsFormLogic('device', deviceId);
 
   if (loadingLocal) {
     return (
@@ -71,16 +70,36 @@ function DeviceSpecificSettingsForm({ onBack, onClose }) {
       {message && <p className="settings-message success">{message}</p>}
       {error && <p className="settings-message error">{error}</p>}
 
-      <div className="global-settings-list"> {/* Reusing this class for general styling */}
+      {/* Toggle for "Use Device Specific Settings" */}
+      <div className="device-settings-toggle-container">
+        <label className="device-settings-toggle-label">
+          Use Device Specific Settings
+          <Tooltip content="When enabled, these settings will override global defaults for this specific device. When disabled, this device will use global settings." />
+        </label>
+        <Switch
+          isOn={useDeviceSettingsOverrideEnabled}
+          handleToggle={handleUseDeviceSettingsOverrideToggle}
+          label=""
+        />
+      </div>
+
+      <p className="device-settings-info-text">
+        {useDeviceSettingsOverrideEnabled
+          ? "Device-specific settings are active. Changes made here will override global settings."
+          : "Device-specific settings are currently disabled. This device is using global settings (read-only mode). Toggle the switch above to enable editing."}
+      </p>
+
+      <div className="settings-list-container">
         {Object.entries(groupedSettings).map(([groupName, settingsInGroup]) => (
           <div key={groupName} className="settings-group">
             <h4 className="settings-group-title">{groupName}</h4>
             {settingsInGroup.map((setting) => (
-              <div key={setting.id} className="global-setting-item">
+              <div key={setting.id} className="settings-item">
                 {(() => {
+                  const isDisabled = !useDeviceSettingsOverrideEnabled || setting.admin_only;
                   const commonProps = {
                     label: setting.display_name || setting.name.replace(/_/g, ' '),
-                    disabled: setting.admin_only, // Will always be false as admin_only settings are filtered out
+                    disabled: isDisabled,
                     description: setting.description,
                   };
 
@@ -113,29 +132,6 @@ function DeviceSpecificSettingsForm({ onBack, onClose }) {
                             disabled={commonProps.disabled}
                           />
                         </>
-                      );
-                    case 'custom_sidebar_switches':
-                      return (
-                        <div className="sidebar-switch-group">
-                          <span className="settings-label">
-                            {commonProps.label}
-                            {commonProps.description && (
-                              <Tooltip content={commonProps.description} />
-                            )}
-                          </span>
-                          <Switch
-                            isOn={switchStates['sidebarLeftEnabled'] || false}
-                            handleToggle={handleToggleLeft}
-                            label="Left Sidebar"
-                            disabled={commonProps.disabled}
-                          />
-                          <Switch
-                            isOn={switchStates['sidebarRightEnabled'] || false}
-                            handleToggle={handleToggleRight}
-                            label="Right Sidebar"
-                            disabled={commonProps.disabled}
-                          />
-                        </div>
                       );
                     case 'text':
                     default:

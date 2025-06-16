@@ -13,7 +13,6 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const [deviceId, setDeviceId] = useState(() => localStorage.getItem('deviceId') || crypto.randomUUID());
 
-  // NEW: State to hold all tiered settings with metadata
   const [settings, setSettings] = useState({}); // Tiered settings (name: value)
   const [rawSettingsList, setRawSettingsList] = useState([]); // List of full setting objects with metadata
 
@@ -39,24 +38,23 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setIsAuthenticated(false);
     setIsAdmin(false);
-    setSettings({}); // Clear settings on logout
-    setRawSettingsList([]); // Clear raw settings on logout
+    setSettings({});
+    setRawSettingsList([]);
     setError(null);
   }, []);
 
-  // NEW: Helper to parse setting values based on input_type
   const parseSettingValue = useCallback((value, input_type) => {
     if (input_type === 'switch') {
       return value.toLowerCase() === 'true';
     }
     if (input_type === 'number') {
       const num = parseFloat(value);
-      return isNaN(num) ? value : num; // Return original string if not a valid number
+      return isNaN(num) ? value : num;
     }
-    return value; // Default to string
+    return value;
   }, []);
 
-  // NEW/MODIFIED: Fetch all settings from backend (tiered view)
+  // Fetch all settings from backend (tiered view)
   const fetchSettings = useCallback(async () => {
     if (!token) {
       setSettings({});
@@ -64,12 +62,25 @@ export const AuthProvider = ({ children }) => {
       return;
     }
     try {
-      // Pass device_id as a query parameter
-      const response = await fetch(`/api/settings/?device_id=${deviceId}`, {
+
+      const useDeviceSettingsOverride = localStorage.getItem('use_device_settings_override') === 'true';
+
+      let endpoint = '/api/settings/';
+      // Conditionally add device_id to the endpoint based on the local storage flag
+      if (useDeviceSettingsOverride && deviceId) {
+        endpoint += `?device_id=${deviceId}`;
+        console.log(`AuthContext: Fetching device-tiered settings for device_id: ${deviceId}`);
+      } else {
+        console.log("AuthContext: Fetching global settings (device override disabled or no deviceId).");
+      }
+
+      const response = await fetch(endpoint, {
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          'Authorization': `Bearer ${token}`,
+          'Cache-Control': 'no-store' // Ensure no caching
+        },
       });
+
       if (response.ok) {
         const data = await response.json(); // This will be List[schemas.Setting]
         setRawSettingsList(data); // Store the full list with metadata
@@ -142,11 +153,11 @@ export const AuthProvider = ({ children }) => {
     loading,
     error,
     deviceId,
-    settings, // NEW: Tiered settings (name: value map)
-    rawSettingsList, // NEW: Full list of setting objects with metadata
+    settings,
+    rawSettingsList,
     login,
     logout,
-    fetchSettings, // Expose fetchSettings for manual refresh
+    fetchSettings,
   }), [token, user, isAuthenticated, isAdmin, loading, error, deviceId, settings, rawSettingsList, login, logout, fetchSettings]);
 
   return (

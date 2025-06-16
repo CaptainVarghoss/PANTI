@@ -489,6 +489,86 @@
     color: #a0aec0;
 }
 
+.device-settings-toggle-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    border-bottom: 1px solid #4a4a4a; /* A darker gray */
+    margin-bottom: 1rem;
+    background-color: #333; /* Darker background */
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.device-settings-toggle-label {
+    font-size: 1.125rem; /* Equivalent to text-lg */
+    font-weight: 600;    /* Equivalent to font-semibold */
+    color: #f7fafc;      /* Equivalent to text-white */
+    display: flex;
+    align-items: center; /* Align tooltip with text */
+}
+
+.device-settings-info-text {
+    font-size: 0.875rem; /* Equivalent to text-sm */
+    color: #a0aec0;      /* Equivalent to text-gray-400 */
+    margin-bottom: 1rem;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+
+.settings-list-container {
+    /* Add any container styles for the grouped settings */
+}
+
+.settings-item {
+    /* General styling for each setting row */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #555;
+}
+
+.settings-item:last-child {
+    border-bottom: none; /* No border for the last item in a group */
+}
+
+/* Styles for inputs and labels within settings-item */
+.settings-label {
+    color: #e2e8f0; /* Light text color */
+    display: flex;
+    align-items: center;
+    gap: 0.5rem; /* Space between label text and tooltip */
+}
+
+.settings-input {
+    background-color: #4a4a4a;
+    border: 1px solid #666;
+    color: #f7fafc;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.25rem;
+    width: 100%; /* Adjust as needed */
+    max-width: 150px; /* Example max width */
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
+}
+
+.settings-input:disabled {
+    background-color: #2d3748; /* Darker background for disabled */
+    color: #a0aec0; /* Lighter text for disabled */
+    cursor: not-allowed;
+}
+
+.sidebar-switch-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem; /* Space between the main label and the individual switches */
+}
+
+.sidebar-switch-group .switch-label { /* Assuming your Switch component has a .switch-label */
+    margin-left: 0; /* Override default left margin if any */
+}
+
 /* --- Switch Component Styles --- */
 .switch-container {
   display: flex;

@@ -132,26 +132,8 @@ class SettingUpdate(SettingBase):
 
 class Setting(SettingBase):
     id: int
-    source: Optional[str] = None # 'global', 'user', 'device' - added by backend logic for tiered settings
-    model_config = ConfigDict(from_attributes=True) # Directly use ConfigDict
-
-# --- UserSetting Schemas ---
-class UserSettingBase(BaseModel):
-    name: str
-    user_id: int
-    value: str
-
-class UserSettingCreate(UserSettingBase):
-    pass
-
-class UserSettingUpdate(UserSettingBase):
-    name: Optional[str] = None
-    user_id: Optional[int] = None
-    value: Optional[str] = None
-
-class UserSetting(UserSettingBase):
-    id: int
-    model_config = ConfigDict(from_attributes=True) # Directly use ConfigDict
+    source: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)
 
 # --- DeviceSetting Schemas ---
 class DeviceSettingBase(BaseModel):
@@ -171,7 +153,7 @@ class DeviceSettingUpdate(DeviceSettingBase):
 
 class DeviceSetting(DeviceSettingBase):
     id: int
-    model_config = ConfigDict(from_attributes=True) # Directly use ConfigDict
+    model_config = ConfigDict(from_attributes=True)
 
 # --- Filter Schemas ---
 class FilterBase(BaseModel):

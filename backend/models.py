@@ -109,17 +109,6 @@ class Setting(Base):
     input_type = Column(String, default='text') # 'text', 'number', 'switch', 'custom_sidebar_switches'
 
 
-class UserSetting(Base):
-    __tablename__ = "user_settings"
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    value = Column(String, nullable=False)
-
-    # Ensure that a user can only have one override per setting name
-    __table_args__ = (UniqueConstraint('user_id', 'name', name='_user_setting_uc'),)
-
-
 class DeviceSetting(Base):
     __tablename__ = "device_settings"
     id = Column(Integer, primary_key=True, index=True)

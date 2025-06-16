@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import DeviceSpecificSettingsForm from './DeviceSpecificSettingsForm'; // Import new sub-form
-import UserSettingsForm from './UserSettingsForm';         // Import new sub-form
-import GlobalSettingsForm from './GlobalSettingsForm';       // Import new sub-form
+import DeviceSpecificSettingsForm from './DeviceSpecificSettingsForm';
+import GlobalSettingsForm from './GlobalSettingsForm';
 
 /**
  * SettingsForm component acts as a router/container for different settings views
@@ -16,7 +15,7 @@ import GlobalSettingsForm from './GlobalSettingsForm';       // Import new sub-f
  */
 function SettingsForm({ onClose, onBack, side }) {
   const { user, settings, isAdmin } = useAuth(); // Get user, settings, isAdmin from AuthContext
-  const [currentSubPanel, setCurrentSubPanel] = useState('overview'); // 'overview', 'device', 'user', 'global'
+  const [currentSubPanel, setCurrentSubPanel] = useState('overview');
 
   const handleBackToOverview = () => {
     setCurrentSubPanel('overview');
@@ -45,9 +44,6 @@ function SettingsForm({ onClose, onBack, side }) {
           <a href="#" onClick={(e) => { e.preventDefault(); setCurrentSubPanel('device'); }} className="settings-link">
             Device Specific Settings
           </a>
-          <a href="#" onClick={(e) => { e.preventDefault(); setCurrentSubPanel('user'); }} className="settings-link">
-            User Settings ({user?.username})
-          </a>
           {isAdmin && (
             <a href="#" onClick={(e) => { e.preventDefault(); setCurrentSubPanel('global'); }} className="settings-link">
               Global Server Settings (Admin)
@@ -59,11 +55,6 @@ function SettingsForm({ onClose, onBack, side }) {
       {/* Device Specific Settings Panel */}
       <div className={getSubPanelClassName('device')}>
         <DeviceSpecificSettingsForm onBack={handleBackToOverview} onClose={onClose} />
-      </div>
-
-      {/* User Settings Panel */}
-      <div className={getSubPanelClassName('user')}>
-        <UserSettingsForm onBack={handleBackToOverview} onClose={onClose} />
       </div>
 
       {/* Global Settings Panel */}

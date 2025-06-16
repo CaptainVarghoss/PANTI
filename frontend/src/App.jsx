@@ -60,9 +60,8 @@ const AdminRoute = () => {
 const Navbar = ({ toggleLeftSidebar, toggleRightSidebar }) => {
   const { isAuthenticated, user, logout, isAdmin, settings } = useAuth();
 
-  const sidebarSetting = settings.sidebar ? settings.sidebar.toLowerCase() : 'left'; // Default to 'left'
-  const showLeftToggle = sidebarSetting === 'left' || sidebarSetting === 'both';
-  const showRightToggle = sidebarSetting === 'right' || sidebarSetting === 'both';
+  const showLeftToggle = settings.sidebar_left_enabled === true;
+  const showRightToggle = settings.sidebar_right_enabled === true;
 
   return (
     <nav className="navbar">
@@ -97,10 +96,6 @@ const Navbar = ({ toggleLeftSidebar, toggleRightSidebar }) => {
 function App() {
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(false);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
-
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  }
 
   const toggleLeftSidebar = () => {
     setIsLeftSidebarOpen(!isLeftSidebarOpen);

@@ -1,24 +1,30 @@
-// frontend/src/hooks/useSettingsFormLogic.js
-
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 /**
  * A custom React hook to encapsulate the common logic for settings forms
- * (Global, User, and Device-Specific settings).
+ * (Global and Device-Specific settings).
  * Handles fetching, state management for various input types, and updating settings.
  *
- * @param {string} formType - 'global', 'user', or 'device'. Determines API endpoints and logic.
+ * @param {string} formType - 'global' or 'device'. Determines API endpoints and logic.
  * @param {string} [deviceId] - Required if formType is 'device'. The unique ID of the device.
  * @returns {object} An object containing states and handlers needed by the settings forms.
  */
 function useSettingsFormLogic(formType, deviceId = null) {
   const { user, token, isAdmin, isAuthenticated, loading: authLoading, fetchSettings } = useAuth();
 
-  const [settingsList, setSettingsList] = useState([]); // List of full setting objects (Global, User-accessible, or Device-accessible)
+  const [settingsList, setSettingsList] = useState([]); // List of full setting objects (Global or Device-accessible)
   const [loadingLocal, setLoadingLocal] = useState(true);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+
+  // State to manage the global 'use_device_settings' toggle, specific to the device form
+  // This will control if device overrides are active or if global settings are read-only.
+  const [useDeviceSettingsOverrideEnabled, setUseDeviceSettingsOverrideEnabled] = useState(() => {
+    // Initialize from localStorage
+    const storedValue = localStorage.getItem('use_device_settings_override');
+    return storedValue === 'true'; // Default to false if not found or invalid
+  });
 
   // States for individual boolean/custom switches, dynamically updated
   const [switchStates, setSwitchStates] = useState({});
@@ -33,19 +39,6 @@ function useSettingsFormLogic(formType, deviceId = null) {
     return isNaN(num) ? '' : num;
   }, []);
 
-  // Helper function to determine sidebar value based on switch states
-  const getSidebarValueFromSwitches = useCallback((leftEnabled, rightEnabled) => {
-    if (leftEnabled && rightEnabled) {
-      return 'both';
-    } else if (leftEnabled) {
-      return 'left';
-    } else if (rightEnabled) {
-      return 'right';
-    } else {
-      return 'left';
-    }
-  }, []);
-
   // Main fetch function, dynamic based on formType
   const fetchCurrentSettings = useCallback(async () => {
     console.log(`useSettingsFormLogic (${formType}): fetchCurrentSettings called.`);
@@ -55,33 +48,32 @@ function useSettingsFormLogic(formType, deviceId = null) {
     let endpoint = '';
     let headers = { 'Authorization': `Bearer ${token}` };
 
-    // Determine the API endpoint based on formType
+    if (!isAuthenticated || !user || !token) {
+        setLoadingLocal(false);
+        setError("User not authenticated.");
+        return;
+    }
+
     if (formType === 'global') {
-      if (!isAdmin || !user || !token) {
+      if (!isAdmin) {
         setError("Access Denied: Only administrators can view global settings.");
         setLoadingLocal(false);
         return;
       }
       endpoint = '/api/global-settings/';
-    } else if (formType === 'user') {
-      if (!isAuthenticated || !user || !token) {
-        setError("User not authenticated to view user settings.");
-        setLoadingLocal(false);
-        return;
-      }
-      endpoint = '/api/user-accessible-settings/';
     } else if (formType === 'device') {
-      if (!isAuthenticated || !user || !token) {
-        setError("User not authenticated to view device settings.");
-        setLoadingLocal(false);
-        return;
-      }
       if (!deviceId) {
         setError("Device ID is missing for device settings.");
         setLoadingLocal(false);
         return;
       }
-      endpoint = `/api/user-accessible-settings/?device_id=${deviceId}`;
+      // For device settings, we fetch the tiered settings which include global,
+      // and device overrides if 'use_device_settings' is true.
+      if (useDeviceSettingsOverrideEnabled) {
+        endpoint = `/api/settings/?device_id=${deviceId}`;
+      } else {
+        endpoint = `/api/settings/`; // Request only global settings
+      }
     } else {
       setError("Invalid form type provided.");
       setLoadingLocal(false);
@@ -93,24 +85,21 @@ function useSettingsFormLogic(formType, deviceId = null) {
       if (response.ok) {
         const rawData = await response.json();
 
-        // Filter data based on form type (e.g., user/device forms only show non-admin settings)
-        const dataToProcess = formType === 'global' ? rawData : rawData.filter(setting => !setting.admin_only);
+        // For the 'device' formType, filter out admin-only settings
+        // Note: 'use_device_settings' is no longer expected from backend for client-side toggle
+        const dataToProcess = formType === 'device' ? rawData.filter(setting => !setting.admin_only) : rawData;
         setSettingsList(dataToProcess);
 
         const initialSwitchStates = {};
         const initialTextInputStates = {};
         const initialNumberInputStates = {};
 
+        // Populate initial states based on the values in rawData
         dataToProcess.forEach(setting => {
           const value = setting.value;
           switch (setting.input_type) {
             case 'switch':
               initialSwitchStates[setting.name] = parseBooleanSetting(value);
-              break;
-            case 'custom_sidebar_switches':
-              initialSwitchStates['sidebarLeftEnabled'] = (value.toLowerCase() === 'left' || value.toLowerCase() === 'both');
-              initialSwitchStates['sidebarRightEnabled'] = (value.toLowerCase() === 'right' || value.toLowerCase() === 'both');
-              console.log(`useSettingsFormLogic (${formType}): Initializing sidebar switches. Value: "${value}". Left: ${initialSwitchStates['sidebarLeftEnabled']}, Right: ${initialSwitchStates['sidebarRightEnabled']}`);
               break;
             case 'number':
               initialNumberInputStates[setting.name] = parseNumberSetting(value);
@@ -124,7 +113,7 @@ function useSettingsFormLogic(formType, deviceId = null) {
         setSwitchStates(initialSwitchStates);
         setTextInputStates(initialTextInputStates);
         setNumberInputStates(initialNumberInputStates);
-        
+
         console.log(`useSettingsFormLogic (${formType}): Initial Switch States after fetch:`, initialSwitchStates);
         setError('');
       } else {
@@ -156,6 +145,7 @@ function useSettingsFormLogic(formType, deviceId = null) {
       setSwitchStates({});
       setTextInputStates({});
       setNumberInputStates({});
+      setError(""); // Clear error to avoid showing old errors if unauthenticated
       if (!isAuthenticated) {
         setError("User not authenticated.");
       } else if (formType === 'device' && !deviceId) {
@@ -197,10 +187,6 @@ function useSettingsFormLogic(formType, deviceId = null) {
       actualValueToSave = valueToSave ? 'True' : 'False';
     } else if (settingMetadata.input_type === 'number' && typeof valueToSave === 'number') {
       actualValueToSave = String(valueToSave);
-    } else if (settingMetadata.input_type === 'custom_sidebar_switches') {
-      // For sidebar, valueToSave is already the combined string ('left', 'right', 'both', '')
-      actualValueToSave = valueToSave;
-      console.log(`useSettingsFormLogic (${formType}): Sidebar update logic - Using pre-calculated value: "${actualValueToSave}"`);
     }
 
     // Determine API endpoint and payload based on formType
@@ -210,30 +196,15 @@ function useSettingsFormLogic(formType, deviceId = null) {
             console.warn(`useSettingsFormLogic (${formType}): Attempted to change global setting ${settingName} by non-admin.`);
             return;
         }
-        apiEndpoint = `/api/settings/${settingMetadata.id}`;
+        apiEndpoint = `/api/settings/${settingMetadata.id}`; // Update global setting by ID
         requestBody = { name: settingName, value: actualValueToSave };
-    } else if (formType === 'user') {
-        if (settingMetadata.admin_only) {
-            setError(`"${settingMetadata.display_name}" is an admin-only setting and cannot be overridden by user.`);
-            console.warn(`useSettingsFormLogic (${formType}): Attempted to override admin-only setting ${settingName} by user.`);
+    } else if (formType === 'device') {
+        // Only allow updates if device settings are enabled
+        if (!useDeviceSettingsOverrideEnabled) {
+            setError("Device-specific settings are disabled. Please enable the toggle to make changes.");
+            console.warn("Attempted to update device settings when the override toggle is off.");
             return;
         }
-        // For user settings, check if it exists, then PUT/POST
-        const existingUserSettingResponse = await fetch(`/api/usersettings/?user_id=${user.id}&name=${settingName}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const existingUserSettingData = await existingUserSettingResponse.json();
-
-        if (existingUserSettingData && existingUserSettingData.length > 0) {
-            apiEndpoint = `/api/usersettings/${existingUserSettingData[0].id}`;
-            requestBody = { value: actualValueToSave };
-            // apiMethod remains 'PUT'
-        } else {
-            apiEndpoint = '/api/usersettings/';
-            apiMethod = 'POST'; // Set to POST for new creation
-            requestBody = { user_id: user.id, name: settingName, value: actualValueToSave };
-        }
-    } else if (formType === 'device') {
         if (settingMetadata.admin_only) {
             setError(`"${settingMetadata.display_name}" is an admin-only setting and cannot be overridden by device.`);
             console.warn(`useSettingsFormLogic (${formType}): Attempted to override admin-only setting ${settingName} by device.`);
@@ -279,36 +250,29 @@ function useSettingsFormLogic(formType, deviceId = null) {
         const errorData = await response.json();
         setError(`Failed to update setting: ${errorData.detail || response.statusText}`);
         console.error(`useSettingsFormLogic (${formType}): Failed to update ${settingName}:`, errorData);
-        // Log the full response for more details
         console.error(`useSettingsFormLogic (${formType}): Response Status: ${response.status}, Body:`, errorData);
       }
     } catch (err) {
       console.error(`useSettingsFormLogic (${formType}): Network error or failed to update setting:`, err);
       setError('Network error or failed to update setting.');
     }
-  }, [formType, user, token, isAdmin, isAuthenticated, deviceId, settingsList, fetchCurrentSettings, fetchSettings]);
+  }, [formType, user, token, isAdmin, isAuthenticated, deviceId, settingsList, fetchCurrentSettings, fetchSettings, useDeviceSettingsOverrideEnabled]);
 
 
-  // Toggle handlers for switches that immediately trigger updates
-  const handleToggleLeft = useCallback(() => {
-    setSwitchStates(prev => {
-      const newLeftState = !prev['sidebarLeftEnabled'];
-      const newState = { ...prev, sidebarLeftEnabled: newLeftState };
-      const sidebarValueToSend = getSidebarValueFromSwitches(newLeftState, prev['sidebarRightEnabled']);
-      handleUpdateSetting('sidebar', sidebarValueToSend);
-      return newState;
-    });
-  }, [getSidebarValueFromSwitches, handleUpdateSetting]);
+  // New toggle handler for the 'use_device_settings' global setting
+  const handleUseDeviceSettingsOverrideToggle = useCallback(async () => {
+    setMessage('');
+    setError('');
 
-  const handleToggleRight = useCallback(() => {
-    setSwitchStates(prev => {
-      const newRightState = !prev['sidebarRightEnabled'];
-      const newState = { ...prev, sidebarRightEnabled: newRightState };
-      const sidebarValueToSend = getSidebarValueFromSwitches(prev['sidebarLeftEnabled'], newRightState);
-      handleUpdateSetting('sidebar', sidebarValueToSend);
-      return newState;
-    });
-  }, [getSidebarValueFromSwitches, handleUpdateSetting]);
+    const newValue = !useDeviceSettingsOverrideEnabled;
+    localStorage.setItem('use_device_settings_override', newValue ? 'true' : 'false');
+    setUseDeviceSettingsOverrideEnabled(newValue);
+    setMessage(`'Use Device Specific Settings' set to ${newValue ? 'Enabled' : 'Disabled'}.`);
+    console.log(`'Use Device Specific Settings' toggled to: ${newValue}`);
+
+    await fetchSettings();
+    await fetchCurrentSettings();
+  }, [useDeviceSettingsOverrideEnabled, fetchCurrentSettings, fetchSettings]);
 
   // Generic toggle handler for single boolean switches
   const handleBooleanToggle = useCallback((settingName) => () => {
@@ -372,13 +336,13 @@ function useSettingsFormLogic(formType, deviceId = null) {
     switchStates,
     textInputStates,
     numberInputStates,
+    useDeviceSettingsOverrideEnabled, // Export the new state
     handleBooleanToggle,
-    handleToggleLeft,
-    handleToggleRight,
     handleTextInputChange,
     handleTextInputBlur,
     handleNumberInputChange,
     handleNumberInputBlur,
+    handleUseDeviceSettingsOverrideToggle, // Export the new handler
     isAuthenticated, // Export for conditional rendering in components
     isAdmin // Export for conditional rendering in components
   };
