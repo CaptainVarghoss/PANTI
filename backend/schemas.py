@@ -52,22 +52,23 @@ class Tag(TagBase):
 # --- ImagePath Schemas ---
 class ImagePathBase(BaseModel):
     path: str
+    short_name: Optional[str] = None
     description: Optional[str] = None
     ignore: bool = False
     admin_only: bool = True
     basepath: bool = False
     built_in: bool = False
+    parent: Optional[str] = None
 
 class ImagePathCreate(ImagePathBase):
     pass
 
 class ImagePathUpdate(ImagePathBase):
     path: Optional[str] = None
+    short_name: Optional[str] = None
     description: Optional[str] = None
     ignore: Optional[bool] = None
     admin_only: Optional[bool] = None
-    basepath: Optional[bool] = None
-    built_in: Optional[bool] = None
     tag_ids: Optional[List[int]] = None # For associating tags on update
 
 class ImagePath(ImagePathBase):

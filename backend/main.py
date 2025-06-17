@@ -114,7 +114,7 @@ async def lifespan(app: FastAPI):
             # Use the directory defined in config.py
             image_path_to_add = str(config.DEFAULT_STATIC_IMAGES_DIR)
             os.makedirs(image_path_to_add, exist_ok=True) # Ensure the directory exists
-            db.add(models.ImagePath(path=image_path_to_add, description='Default Path', basepath=True, built_in=True))
+            db.add(models.ImagePath(path=image_path_to_add, description='Default Path', basepath=True, built_in=True, short_name='Default Path'))
             db.commit()
 
         if not db.query(models.Filter).first():

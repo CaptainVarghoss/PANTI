@@ -11,6 +11,15 @@ router = APIRouter()
 
 # --- Setting Endpoints ---
 
+@router.get("/global-settings/", response_model=List[schemas.Setting])
+def read_all_global_settings(
+    skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_admin_user)
+):
+    # Retrieves all global settings as a list of Setting objects.
+    settings = db.query(models.Setting).offset(skip).limit(limit).all()
+    return settings
+
 @router.post("/settings/", response_model=schemas.Setting, status_code=status.HTTP_201_CREATED)
 def create_setting(setting: schemas.SettingCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_admin_user)):
     # Creates a new global setting. Only accessible by admin users.

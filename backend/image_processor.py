@@ -97,6 +97,7 @@ def scan_paths(db: Session):
                         path=subdir_full_path,
                         parent=root, # Set parent to the immediate parent directory
                         description=f"Auto-added: {d}",
+                        short_name=f"{d}",
                         ignore=False,
                         admin_only=False,
                         basepath=False, # auto-added are NOT basepath
@@ -153,7 +154,7 @@ def scan_paths(db: Session):
                     process_thread = threading.Thread(
                         target=process_and_update_image,
                         args=(new_img_model.id, original_filepath, thread_db_for_processing,
-                              thumb_size, preview_size)
+                              thumb_size)
                     )
                     process_thread.daemon = True
                     process_thread.start()

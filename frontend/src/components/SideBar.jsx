@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext'; // To check user roles for admin links
 import SettingsForm from './SettingsForm';
+import ImagePathsManagement from './ImagePathsManagement';
 
 /**
  * A reusable Sidebar component that slides in and out using standard CSS.
@@ -11,9 +12,9 @@ import SettingsForm from './SettingsForm';
  * @param {function} props.onClose - Callback function to close the sidebar.
  */
 function Sidebar({ isOpen, onClose, side }) {
-  const { isAdmin } = useAuth(); // Get admin status from AuthContext
+  const { isAdmin, isAuthenticated } = useAuth(); // Get admin status from AuthContext
   const [currentPanel, setCurrentPanel] = useState('menu');
-  const [showSettingsForm, setShowSettingsForm] = useState(false);
+  /*const [showSettingsForm, setShowSettingsForm] = useState(false);*/
   const sidebarClasses = `sidebar sidebar--${side} ${isOpen ? `sidebar--${side}--open` : ''}`;
   const overlayClasses = `sidebar-overlay ${isOpen ? 'sidebar-overlay--visible' : ''}`;
 
@@ -24,6 +25,11 @@ function Sidebar({ isOpen, onClose, side }) {
 
   const handleBackToMenu = () => {
     setCurrentPanel('menu');
+  };
+
+  const handleShowFolders = (e) => { // New handler for folders
+    e.preventDefault();
+    setCurrentPanel('folders');
   };
 
   React.useEffect(() => {
@@ -54,6 +60,8 @@ function Sidebar({ isOpen, onClose, side }) {
             ${currentPanel === 'menu' ? 'panel-active' : 'panel-inactive'}`}
           >
             <nav className="sidebar-nav">
+              <a href="#" onClick={handleShowFolders} className="sidebar-link">Manage Folders</a>
+
               <a href="#" onClick={handleShowSettings} className="sidebar-link">Settings</a>
             </nav>
           </div>
@@ -63,6 +71,12 @@ function Sidebar({ isOpen, onClose, side }) {
             ${currentPanel === 'settings' ? 'panel-active' : 'panel-inactive'}`}
           >
             <SettingsForm onClose={onClose} onBack={handleBackToMenu} side={side} />
+          </div>
+          <div className={`sidebar-panel
+                       ${currentPanel === 'folders' ? (side === 'left' ? 'panel-slide-in-from-left' : 'panel-slide-in-from-right') : (side === 'left' ? 'panel-slide-out-to-left' : 'panel-slide-out-to-right')}
+                       ${currentPanel === 'folders' ? 'panel-active' : 'panel-inactive'}`}
+          >
+            <ImagePathsManagement onBack={handleBackToMenu} />
           </div>
         </div>
       </div>

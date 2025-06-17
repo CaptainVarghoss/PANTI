@@ -68,11 +68,13 @@ class ImagePath(Base):
     __tablename__ = "imagepaths"
     id = Column(Integer, primary_key=True, index=True)
     path = Column(String, unique=True, index=True, nullable=False)
+    short_name = Column(String, unique=True, index=True, nullable=False)
     description = Column(String)
     ignore = Column(Boolean, default=False)
     admin_only = Column(Boolean, default=True)
     basepath = Column(Boolean, default=False)
     built_in = Column(Boolean, default=False)
+    parent = Column(String)
 
     tags = relationship("Tag", secondary=imagepath_tags, back_populates="image_paths")
 
