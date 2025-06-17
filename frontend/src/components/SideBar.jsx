@@ -54,33 +54,7 @@ function Sidebar({ isOpen, onClose, side }) {
             ${currentPanel === 'menu' ? 'panel-active' : 'panel-inactive'}`}
           >
             <nav className="sidebar-nav">
-              <Link
-                to="/"
-                onClick={onClose}
-                className="sidebar-link"
-              >
-                Home (Image Grid)
-              </Link>
-              {/* Example of an admin-only link */}
-              {isAdmin && (
-                <Link
-                  to="/tags"
-                  onClick={onClose}
-                  className="sidebar-link"
-                >
-                  Manage Tags (Admin)
-                </Link>
-              )}
               <a href="#" onClick={handleShowSettings} className="sidebar-link">Settings</a>
-              {/* Add more menu items here */}
-              <a
-                href="https://github.com/your-repo/your-fullstack-app" // Replace with your actual GitHub repo
-                target="_blank"
-                rel="noopener noreferrer"
-                className="sidebar-link"
-              >
-                GitHub Repo
-              </a>
             </nav>
           </div>
 
