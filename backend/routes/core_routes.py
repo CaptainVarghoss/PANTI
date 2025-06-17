@@ -4,7 +4,7 @@ import threading
 from typing import Dict, Any
 
 import database
-import scanner
+import image_processor
 import auth
 import models
 
@@ -22,7 +22,7 @@ def trigger_file_scan(current_user: models.User = Depends(auth.get_current_admin
     def run_scan_in_thread():
         thread_db = database.SessionLocal()
         try:
-            scanner.scan_paths(thread_db)
+            image_processor.scan_paths(thread_db)
         finally:
             thread_db.close()
 

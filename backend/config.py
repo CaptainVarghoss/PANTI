@@ -70,8 +70,8 @@ THUMBNAILS_DIR = GENERATED_MEDIA_ROOT / THUMBNAILS_DIR_NAME
 PREVIEWS_DIR = GENERATED_MEDIA_ROOT / PREVIEWS_DIR_NAME
 
 # Sizes for generated images
-THUMBNAIL_SIZE = (400, 400) # Width, Height
-PREVIEW_SIZE = (1024, 1024) # Width, Height
+THUMBNAIL_SIZE = 400 # Width, Height
+PREVIEW_SIZE = 1024 # Width, Height
 
 # URL path where generated media will be served by FastAPI
 # All contents of STATIC_DIR will be served under this prefix

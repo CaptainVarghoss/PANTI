@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
-from typing import List, Optional
+from typing import List
 from pathlib import Path
 import os, json, threading
 
@@ -9,7 +9,7 @@ import database
 import models
 import schemas
 import config
-import scanner
+import image_processor
 
 router = APIRouter()
 
@@ -46,38 +46,49 @@ def read_images(skip: int = 0, limit: int = 100, db: Session = Depends(database.
     images = db.query(models.Image).options(joinedload(models.Image.tags)).offset(skip).limit(limit).all()
 
     # Get static path information from config
+
+    # FIX THIS
+    # shouldn't need these paths, thumbnail and preview generators can have them instead
     static_path = os.path.join(config.STATIC_FILES_URL_PREFIX, config.GENERATED_MEDIA_DIR_NAME)
-    thumbnails_path = os.path.join(static_path, config.THUMBNAILS_DIR_NAME)
-    previews_path = os.path.join(static_path, config.PREVIEWS_DIR_NAME)
+    actual_path = os.path.join(config.STATIC_DIR, config.GENERATED_MEDIA_DIR_NAME)
+    thumbnails_path = config.THUMBNAILS_DIR_NAME
+    previews_path = config.PREVIEWS_DIR_NAME
 
     thumb_size_setting = db.query(models.Setting).filter_by(name='thumb_size').first()
     preview_size_setting = db.query(models.Setting).filter_by(name='preview_size').first()
 
-    dynamic_thumbnail_size = config.THUMBNAIL_SIZE
-    dynamic_preview_size = config.PREVIEW_SIZE
+    # FIX THIS
+    # If database size cannot be found, Set in database from config then use db value
+    config_thumbnail_size = config.THUMBNAIL_SIZE
+    config_preview_size = config.PREVIEW_SIZE
+
+    thumb_size = 400
+    preview_size = 1024
 
     if thumb_size_setting and thumb_size_setting.value:
-        parsed_thumb_size = scanner.parse_size_setting(thumb_size_setting.value)
-        if parsed_thumb_size:
-            dynamic_thumbnail_size = parsed_thumb_size
+        thumb_size = int(thumb_size_setting.value)
+    else:
+        thumb_size = config_thumbnail_size
 
     if preview_size_setting and preview_size_setting.value:
-        parsed_preview_size = scanner.parse_size_setting(preview_size_setting.value)
-        if parsed_preview_size:
-            dynamic_preview_size = parsed_preview_size
+        preview_size = int(preview_size_setting.value)
+    else:
+        preview_size = config_preview_size
 
     response_images = []
     for img in images:
         # Check if thumbnail exists, if not, trigger generation in background
-        expected_thumbnail_path = Path(config.THUMBNAILS_DIR) / img.checksum / f"{img.checksum}_thumb.jpg"
-        if not expected_thumbnail_path.exists():
+        # FIX THIS
+        # Thumbnail/preview generators should be called and check for themselves
+        expected_thumbnail_path = os.path.join(actual_path, thumbnails_path, f"{img.checksum}_thumb.webp")
+        if not os.path.exists(expected_thumbnail_path):
             print(f"Thumbnail for {img.filename} (ID: {img.id}) not found. Triggering background generation.")
             # Ensure original_filepath is extracted from meta
             original_filepath = json.loads(img.meta).get("original_filepath") if img.meta else None
             if original_filepath and Path(original_filepath).is_file():
                 thread = threading.Thread(
-                    target=scanner.generate_thumbnail_in_background,
-                    args=(img.id, img.checksum, original_filepath, dynamic_thumbnail_size, dynamic_preview_size)
+                    target=image_processor.generate_thumbnail_in_background,
+                    args=(img.id, img.checksum, original_filepath, thumb_size)
                 )
                 thread.daemon = True
                 thread.start()
@@ -96,8 +107,8 @@ def read_images(skip: int = 0, limit: int = 100, db: Session = Depends(database.
             img_dict['meta'] = {}
 
         img_dict['static_path'] = static_path
-        img_dict['thumbnails_path'] = thumbnails_path
-        img_dict['previews_path'] = previews_path
+        img_dict['thumbnails_path'] = os.path.join(static_path, thumbnails_path)
+        img_dict['previews_path'] = os.path.join(static_path, previews_path)
 
         response_images.append(schemas.Image(**img_dict))
 
@@ -113,36 +124,45 @@ def read_image(image_id: int, db: Session = Depends(database.get_db)):
     if db_image is None:
         raise HTTPException(status_code=404, detail="Image not found")
 
+    # FIX THIS
+    # shouldn't need these paths, thumbnail and preview generators can have them instead
     static_path = os.path.join(config.STATIC_FILES_URL_PREFIX, config.GENERATED_MEDIA_DIR_NAME)
     thumbnails_path = os.path.join(static_path, config.THUMBNAILS_DIR_NAME)
     previews_path = os.path.join(static_path, config.PREVIEWS_DIR_NAME)
 
-    # Fetch dynamic sizes from settings
+    # Fetch sizes from settings
     thumb_size_setting = db.query(models.Setting).filter_by(name='thumb_size').first()
     preview_size_setting = db.query(models.Setting).filter_by(name='preview_size').first()
 
-    dynamic_thumbnail_size = config.THUMBNAIL_SIZE
-    dynamic_preview_size = config.PREVIEW_SIZE
+    # FIX THIS
+    # If database size cannot be found, Set in database from config then use db value
+    config_thumbnail_size = config.THUMBNAIL_SIZE
+    config_preview_size = config.PREVIEW_SIZE
+
+    thumb_size = 400
+    preview_size = 1024
 
     if thumb_size_setting and thumb_size_setting.value:
-        parsed_thumb_size = scanner.parse_size_setting(thumb_size_setting.value)
-        if parsed_thumb_size:
-            dynamic_thumbnail_size = parsed_thumb_size
+        thumb_size = int(thumb_size_setting.value)
+    else:
+        thumb_size = config_thumbnail_size
 
     if preview_size_setting and preview_size_setting.value:
-        parsed_preview_size = scanner.parse_size_setting(preview_size_setting.value)
-        if parsed_preview_size:
-            dynamic_preview_size = parsed_preview_size
+        preview_size = int(preview_size_setting.value)
+    else:
+        preview_size = config_preview_size
 
     # Check if thumbnail exists, if not, trigger generation in background
-    expected_thumbnail_path = Path(config.THUMBNAILS_DIR) / db_image.checksum / f"{db_image.checksum}_thumb.jpg"
-    if not expected_thumbnail_path.exists():
+    # FIX THIS
+    # Thumbnail/preview generators should be called and check for themselves
+    expected_thumbnail_path = os.path.join(thumbnails_path, f"{db_image.checksum}_thumb.webp")
+    if not os.path.exists(expected_thumbnail_path):
         print(f"Thumbnail for {db_image.filename} (ID: {db_image.id}) not found. Triggering background generation.")
         original_filepath = json.loads(db_image.meta).get("original_filepath") if db_image.meta else None
         if original_filepath and Path(original_filepath).is_file():
             thread = threading.Thread(
-                target=scanner.generate_thumbnail_in_background,
-                args=(db_image.id, db_image.checksum, original_filepath, dynamic_thumbnail_size, dynamic_preview_size)
+                target=image_processor.generate_thumbnail_in_background,
+                args=(db_image.id, db_image.checksum, original_filepath, thumb_size)
             )
             thread.daemon = True
             thread.start()

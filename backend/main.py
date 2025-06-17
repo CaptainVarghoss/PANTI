@@ -4,11 +4,10 @@ from fastapi.staticfiles import StaticFiles
 import os, threading
 from contextlib import asynccontextmanager
 
-
 import config
 import models
 import database
-import scanner
+import image_processor
 import auth
 
 # Import APIRouters
@@ -19,10 +18,9 @@ from routes import tag_routes
 from routes import image_path_routes
 from routes import image_routes
 from routes import setting_routes
-from routes import device_setting_routes
+#from routes import device_setting_routes
 from routes import filter_routes
-from routes import user_filter_routes
-from routes import todo_routes
+#from routes import user_filter_routes
 
 # --- Application Lifespan Context Manager ---
 @asynccontextmanager
@@ -144,7 +142,7 @@ async def lifespan(app: FastAPI):
         def run_initial_scan_in_thread():
             thread_db = database.SessionLocal()
             try:
-                scanner.scan_paths(thread_db)
+                image_processor.scan_paths(thread_db)
             finally:
                 thread_db.close()
 
