@@ -12,7 +12,7 @@ import ImagePathsManagement from './ImagePathsManagement';
  * @param {function} props.onClose - Callback function to close the sidebar.
  */
 function Sidebar({ isOpen, onClose, side }) {
-  const { isAdmin, isAuthenticated } = useAuth(); // Get admin status from AuthContext
+  const { isAdmin, isAuthenticated, logout } = useAuth(); // Get admin status from AuthContext
   const [currentPanel, setCurrentPanel] = useState('menu');
   /*const [showSettingsForm, setShowSettingsForm] = useState(false);*/
   const sidebarClasses = `sidebar sidebar--${side} ${isOpen ? `sidebar--${side}--open` : ''}`;
@@ -30,6 +30,12 @@ function Sidebar({ isOpen, onClose, side }) {
   const handleShowFolders = (e) => { // New handler for folders
     e.preventDefault();
     setCurrentPanel('folders');
+  };
+
+  const handleLogout = () => {
+    onClose();
+    logout(); // Call the logout function from AuthContext
+    navigate('/login'); // Redirect to login page after logout
   };
 
   React.useEffect(() => {
@@ -63,6 +69,8 @@ function Sidebar({ isOpen, onClose, side }) {
               <a href="#" onClick={handleShowFolders} className="sidebar-link">Manage Folders</a>
 
               <a href="#" onClick={handleShowSettings} className="sidebar-link">Settings</a>
+
+              <button onClick={handleLogout} className="">Logout</button>
             </nav>
           </div>
 

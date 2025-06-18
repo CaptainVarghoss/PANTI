@@ -4,6 +4,16 @@ const AuthContext = createContext(null);
 
 export const useAuth = () => useContext(AuthContext);
 
+// Fallback function for crypto.randomUUID()
+const generateFallbackUUID = () => {
+  // A simple, generally unique enough ID for client-side device tracking
+  // Not a true UUIDv4, but sufficient for this purpose if crypto.randomUUID is absent.
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
+
 export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [user, setUser] = useState(null);
@@ -11,140 +21,201 @@ export const AuthProvider = ({ children }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true); // Initial loading for auth status
   const [error, setError] = useState(null);
-  const [deviceId, setDeviceId] = useState(() => localStorage.getItem('deviceId') || crypto.randomUUID());
 
+  const [deviceId, setDeviceId] = useState(() => {
+    const storedDeviceId = localStorage.getItem('deviceId');
+    if (storedDeviceId) {
+      return storedDeviceId;
+    }
+    // Use crypto.randomUUID() if available, otherwise use fallback
+    const newDeviceId = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
+      ? crypto.randomUUID()
+      : generateFallbackUUID();
+    localStorage.setItem('deviceId', newDeviceId);
+    return newDeviceId;
+  });
+
+  // State to hold all tiered settings with metadata
   const [settings, setSettings] = useState({}); // Tiered settings (name: value)
   const [rawSettingsList, setRawSettingsList] = useState([]); // List of full setting objects with metadata
 
-  // Store deviceId in localStorage if it's new
-  useEffect(() => {
-    if (!localStorage.getItem('deviceId')) {
-      localStorage.setItem('deviceId', deviceId);
-    }
-  }, [deviceId]);
-
-  const login = useCallback((newToken, userData) => {
-    localStorage.setItem('token', newToken);
-    setToken(newToken);
-    setUser(userData);
-    setIsAuthenticated(true);
-    setIsAdmin(userData?.admin || false);
-    setError(null);
-  }, []);
-
-  const logout = useCallback(() => {
-    localStorage.removeItem('token');
-    setToken(null);
-    setUser(null);
-    setIsAuthenticated(false);
-    setIsAdmin(false);
-    setSettings({});
-    setRawSettingsList([]);
-    setError(null);
-  }, []);
-
+  // Helper to parse setting values based on input_type
   const parseSettingValue = useCallback((value, input_type) => {
     if (input_type === 'switch') {
       return value.toLowerCase() === 'true';
     }
     if (input_type === 'number') {
       const num = parseFloat(value);
-      return isNaN(num) ? value : num;
+      return isNaN(num) ? value : num; // Return original string if not a valid number
     }
-    return value;
+    return value; // Default to string
   }, []);
 
   // Fetch all settings from backend (tiered view)
-  const fetchSettings = useCallback(async () => {
-    if (!token) {
+  const fetchSettings = useCallback(async (authToken) => {
+    // Only fetch settings if there's an authentication token
+    if (!authToken) {
       setSettings({});
       setRawSettingsList([]);
       return;
     }
     try {
-
-      const useDeviceSettingsOverride = localStorage.getItem('use_device_settings_override') === 'true';
-
-      let endpoint = '/api/settings/';
-      // Conditionally add device_id to the endpoint based on the local storage flag
-      if (useDeviceSettingsOverride && deviceId) {
-        endpoint += `?device_id=${deviceId}`;
-        console.log(`AuthContext: Fetching device-tiered settings for device_id: ${deviceId}`);
-      } else {
-        console.log("AuthContext: Fetching global settings (device override disabled or no deviceId).");
-      }
-
-      const response = await fetch(endpoint, {
+      // Pass device_id as a query parameter for tiered settings
+      const response = await fetch(`/api/settings/?device_id=${deviceId}`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Cache-Control': 'no-store' // Ensure no caching
-        },
+          'Authorization': `Bearer ${authToken}` // Use provided token for this fetch
+        }
       });
-
       if (response.ok) {
         const data = await response.json(); // This will be List[schemas.Setting]
         setRawSettingsList(data); // Store the full list with metadata
 
         // Transform the list into a simple name-value map for easy access in components
         const newSettingsMap = {};
+        // Ensure that `sidebar_left_enabled` and `sidebar_right_enabled` are parsed correctly
         data.forEach(setting => {
-          newSettingsMap[setting.name] = parseSettingValue(setting.value, setting.input_type);
+          if (setting.name === 'sidebar_left_enabled' || setting.name === 'sidebar_right_enabled' || setting.input_type === 'switch') {
+            newSettingsMap[setting.name] = setting.value.toLowerCase() === 'true';
+          } else {
+            newSettingsMap[setting.name] = parseSettingValue(setting.value, setting.input_type);
+          }
         });
         setSettings(newSettingsMap); // Store the processed values
       } else {
         console.error("Failed to fetch settings:", response.status, response.statusText);
-        // Optionally handle specific errors, e.g., if token is invalid, force logout
-        if (response.status === 401 || response.status === 403) {
-            console.error("AuthContext: Token expired or unauthorized fetching settings. Forcing logout.");
-            logout();
-        }
+        // If the token is invalid or unauthorized, it might indicate a session issue.
+        // Do NOT call logout directly here to avoid loops. Let the main auth check handle it.
         setError("Failed to fetch settings.");
       }
     } catch (err) {
       console.error("Network error fetching settings:", err);
       setError("Network error fetching settings.");
     }
-  }, [token, deviceId, logout, parseSettingValue]); // Depend on deviceId and parseSettingValue
+  }, [deviceId, parseSettingValue]); // Dependencies for useCallback: deviceId, parseSettingValue
 
-  // Effect to authenticate user on token change or initial load
+  // The main login function - now handles the API calls
+  const login = useCallback(async (username, password) => {
+    setLoading(true);
+    setError(null); // Clear any previous errors
+
+    try {
+      // Step 1: Get Access Token from /api/token
+      const tokenResponse = await fetch('/api/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded', // Required for OAuth2PasswordRequestForm
+        },
+        body: new URLSearchParams({
+          username: username,
+          password: password,
+        }).toString(),
+      });
+
+      if (!tokenResponse.ok) {
+        const errorData = await tokenResponse.json();
+        const errorMessage = errorData.detail || 'Login failed';
+        setError(errorMessage);
+        setLoading(false);
+        return { success: false, message: errorMessage };
+      }
+
+      const tokenData = await tokenResponse.json();
+      const newToken = tokenData.access_token;
+      localStorage.setItem('token', newToken); // Store token in local storage
+
+      // Step 2: Fetch User Data using the new token from /api/users/me/
+      const userResponse = await fetch('/api/users/me/', {
+        headers: {
+          'Authorization': `Bearer ${newToken}`,
+        },
+      });
+
+      if (!userResponse.ok) {
+        localStorage.removeItem('token'); // Clear token if user data fetch fails (e.g., token invalid)
+        const errorData = await userResponse.json();
+        const errorMessage = errorData.detail || 'Failed to fetch user data after login.';
+        setError(errorMessage);
+        setLoading(false);
+        return { success: false, message: errorMessage };
+      }
+
+      const userData = await userResponse.json();
+
+      // Step 3: Update authentication states
+      setToken(newToken);
+      setUser(userData);
+      setIsAuthenticated(true);
+      setIsAdmin(userData.admin);
+
+      // Step 4: Fetch settings using the new token and user data
+      await fetchSettings(newToken); // Pass the new token explicitly
+
+      setLoading(false);
+      return { success: true, message: 'Login successful!' };
+
+    } catch (err) {
+      console.error('Login process error:', err);
+      setError('Network error or unexpected issue during login.');
+      setLoading(false);
+      return { success: false, message: 'Network error or unexpected issue during login.' };
+    }
+  }, [fetchSettings]); // `fetchSettings` is a dependency as `login` calls it.
+
+  // The logout function - purely client-side operation for JWT
+  const logout = useCallback(() => {
+    localStorage.removeItem('token'); // Remove token from local storage
+    setToken(null);
+    setUser(null);
+    setIsAuthenticated(false);
+    setIsAdmin(false);
+    setSettings({}); // Clear settings on logout
+    setRawSettingsList([]); // Clear raw settings on logout
+    setError(null); // Clear any errors
+    setLoading(false); // Ensure loading is false after logout
+  }, []);
+
+  // Effect to re-authenticate user on initial load or token changes
   useEffect(() => {
-    const authenticateUser = async () => {
+    const checkAuthStatus = async () => {
       setLoading(true);
-      setError(null);
-      if (token) {
+      setError(null); // Clear previous errors
+      const storedToken = localStorage.getItem('token');
+
+      if (storedToken) {
         try {
+          // Attempt to fetch user data using the stored token
           const response = await fetch('/api/users/me/', {
             headers: {
-              'Authorization': `Bearer ${token}`
+              'Authorization': `Bearer ${storedToken}`
             }
           });
           if (response.ok) {
             const userData = await response.json();
+            setToken(storedToken); // Ensure token state is set
             setUser(userData);
             setIsAuthenticated(true);
             setIsAdmin(userData.admin);
-            // Fetch settings immediately after successful user authentication
-            await fetchSettings();
+            await fetchSettings(storedToken); // Fetch settings for the authenticated user
           } else {
-            console.error('Failed to verify token:', response.status, response.statusText);
-            logout(); // Invalidate token if verification fails
+            console.error('Failed to verify token on startup:', response.status, response.statusText);
+            logout(); // If token verification fails, consider the user logged out
           }
         } catch (err) {
-          console.error('Network error during token verification:', err);
+          console.error('Network error during token verification on startup:', err);
           logout(); // Treat network errors during auth check as logout
         } finally {
-          setLoading(false);
+          setLoading(false); // Authentication check is complete
         }
       } else {
-        setLoading(false);
-        logout(); // No token, ensure logged out state
+        setLoading(false); // No token, so not authenticated
+        logout(); // Ensure all auth states are reset to logged out
       }
     };
 
-    authenticateUser();
-  }, [token, logout, fetchSettings]); // Add fetchSettings to dependencies
+    checkAuthStatus();
+  }, [logout, fetchSettings]); // Dependencies for useEffect: logout and fetchSettings
 
-  // Memoize the context value to prevent unnecessary re-renders
+  // Memoize the context value to prevent unnecessary re-renders of consumers
   const contextValue = useMemo(() => ({
     token,
     user,
@@ -153,11 +224,11 @@ export const AuthProvider = ({ children }) => {
     loading,
     error,
     deviceId,
-    settings,
-    rawSettingsList,
-    login,
+    settings, // Tiered settings (name: value map)
+    rawSettingsList, // Full list of setting objects with metadata
+    login, // The centralized login function
     logout,
-    fetchSettings,
+    fetchSettings, // Expose fetchSettings for manual refresh if needed
   }), [token, user, isAuthenticated, isAdmin, loading, error, deviceId, settings, rawSettingsList, login, logout, fetchSettings]);
 
   return (

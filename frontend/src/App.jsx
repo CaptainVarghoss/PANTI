@@ -1,21 +1,27 @@
+// frontend/src/App.jsx
+
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import ImageGrid from "./components/ImageGrid";
+import ImageGrid from "./components/ImageGrid"; // Assuming ImageGrid is now a page component
 import Login from './pages/Login';
 import Signup from './pages/Signup';
-import NavSearchBar from './components/NavSearchBar';
-import SideBar from './components/SideBar';
+import Navbar from './components/Navbar'; // Import Navbar from its own file
+import SideBar from './components/SideBar'; // Import SideBar
+
 import './App.css';
 
-
+/**
+ * Route protector for public-only pages (e.g., login, signup).
+ * Redirects to the home page (/) if the user is already authenticated.
+ */
 const PublicOnlyRoute = () => {
   const { isAuthenticated, loading } = useAuth();
 
+  // Show a loading indicator while authentication status is being determined
   if (loading) {
-    // Show a loading indicator while authentication status is being determined
     return (
-      <div className="">
+      <div className="loading-full-page">
         Loading authentication...
       </div>
     );
@@ -25,13 +31,17 @@ const PublicOnlyRoute = () => {
   return isAuthenticated ? <Navigate to="/" replace /> : <Outlet />;
 };
 
+/**
+ * Route protector for private (authenticated) pages.
+ * Redirects to the login page (/login) if the user is not authenticated.
+ */
 const PrivateRoute = () => {
   const { isAuthenticated, loading } = useAuth();
 
+  // Show a loading indicator while authentication status is being determined
   if (loading) {
-    // Show a loading indicator while authentication status is being determined
     return (
-      <div className="">
+      <div className="loading-full-page">
         Loading authentication...
       </div>
     );
@@ -41,55 +51,43 @@ const PrivateRoute = () => {
   return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
 };
 
+/**
+ * Route protector for admin-only pages.
+ * Redirects to home (/) if not authenticated or not an admin.
+ */
 const AdminRoute = () => {
   const { isAuthenticated, isAdmin, loading } = useAuth();
 
   if (loading) {
     return (
-      <div className="">
+      <div className="loading-full-page">
         Loading authentication...
       </div>
     );
   }
 
   // If not authenticated, redirect to login
-  // If authenticated but not admin, show forbidden or redirect to home
+  // If authenticated but not an admin, redirect to home (or a dedicated forbidden page)
   return isAuthenticated && isAdmin ? <Outlet /> : <Navigate to="/" replace />;
 };
 
-const Navbar = ({ toggleLeftSidebar, toggleRightSidebar }) => {
-  const { isAuthenticated, user, logout, isAdmin, settings } = useAuth();
+/**
+ * Component to handle logout.
+ * It calls the logout function from AuthContext and then redirects.
+ */
+const LogoutPage = () => {
+  const { logout } = useAuth();
+  const navigate = useNavigate(); // Import useNavigate for redirection
 
-  const showLeftToggle = settings.sidebar_left_enabled === true;
-  const showRightToggle = settings.sidebar_right_enabled === true;
+  useEffect(() => {
+    logout(); // Perform the logout action
+    navigate('/login', { replace: true }); // Redirect to login page after logout
+  }, [logout, navigate]); // Depend on logout and navigate to ensure effect runs correctly
 
   return (
-    <nav className="navbar">
-      <div className="navbar-container">
-        {showLeftToggle && (
-          <button onClick={toggleLeftSidebar} className="navbar-toggle-button navbar-toggle-button--left" aria-label="Open left menu">
-            <svg className="navbar-toggle-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7"></path>
-            </svg>
-          </button>
-        )}
-
-        <div className="navbar-search">
-          {isAuthenticated && (
-            <NavSearchBar />
-          )}
-        </div>
-
-        {/* Right Sidebar Toggle Button */}
-        {showRightToggle && (
-          <button onClick={toggleRightSidebar} className="navbar-toggle-button navbar-toggle-button--right" aria-label="Open right menu">
-            <svg className="navbar-toggle-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7"></path>
-            </svg>
-          </button>
-        )}
-      </div>
-    </nav>
+    <div className="loading-full-page">
+      Logging out...
+    </div>
   );
 };
 
@@ -97,14 +95,15 @@ function App() {
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(false);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
 
+  // Toggle functions for sidebars, ensuring only one is open at a time
   const toggleLeftSidebar = () => {
     setIsLeftSidebarOpen(!isLeftSidebarOpen);
-    if (isRightSidebarOpen) setIsRightSidebarOpen(false);
+    if (isRightSidebarOpen) setIsRightSidebarOpen(false); // Close right if opening left
   };
 
   const toggleRightSidebar = () => {
     setIsRightSidebarOpen(!isRightSidebarOpen);
-    if (isLeftSidebarOpen) setIsLeftSidebarOpen(false);
+    if (isLeftSidebarOpen) setIsLeftSidebarOpen(false); // Close left if opening right
   };
 
   // Function to close both sidebars
@@ -115,16 +114,17 @@ function App() {
 
   return (
     <Router>
+      {/* AuthProvider wraps the entire application to provide auth context to all components */}
       <AuthProvider>
+        {/* Navbar and SideBars are always rendered, their content/visibility depends on state/settings */}
         <Navbar toggleLeftSidebar={toggleLeftSidebar} toggleRightSidebar={toggleRightSidebar} />
-        {/* Render Left Sidebar */}
         <SideBar isOpen={isLeftSidebarOpen} onClose={closeAllSidebars} side="left" />
-        {/* Render Right Sidebar */}
         <SideBar isOpen={isRightSidebarOpen} onClose={closeAllSidebars} side="right" />
-        <div className="app-content">
+
+        <div className="app-content"> {/* Main content area where routes are rendered */}
           <Routes>
 
-            {/* Public only routes */}
+            {/* Public only routes (e.g., login, signup). Redirects if already authenticated. */}
             <Route element={<PublicOnlyRoute />}>
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
@@ -132,16 +132,31 @@ function App() {
 
             {/* Protected Routes (accessible only if isAuthenticated) */}
             <Route element={<PrivateRoute />}>
-              <Route path="/" element={<ImageGrid />} />
+              <Route path="/" element={<ImageGrid />} /> {/* Main image gallery */}
+              {/* Other general protected routes can go here */}
             </Route>
-
-            {/* Catch-all for undefined routes */}
-            <Route path="*" element={<Navigate to="/" replace />} />
+            {/* Catch-all route for any undefined paths. */}
+            {/* If authenticated, navigates to home (/). If not, navigates to login (/login). */}
+            <Route path="*" element={<HomeOrLoginRedirect />} />
           </Routes>
         </div>
       </AuthProvider>
     </Router>
   );
 }
+
+// Helper component for the catch-all route
+const HomeOrLoginRedirect = () => {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="loading-full-page">
+        Loading authentication...
+      </div>
+    );
+  }
+  return isAuthenticated ? <Navigate to="/" replace /> : <Navigate to="/login" replace />;
+};
 
 export default App;

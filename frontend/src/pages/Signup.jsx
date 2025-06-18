@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom'; // Import useNavigate
 
 /**
  * Signup component for user registration.
- * Handles username and password input, and calls the signup function from AuthContext.
+ * Handles username and password input, and calls the signup function.
  */
 function Signup() {
   const [username, setUsername] = useState('');
@@ -12,8 +11,7 @@ function Signup() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const { signup } = useAuth();
-  const navigate = useNavigate();
+  const navigate = useNavigate(); // Initialize navigate
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -25,59 +23,73 @@ function Signup() {
       return;
     }
 
-    // For initial setup, we will leave admin/login_allowed as false
-    // An admin user can later enable login for new users and promote them to admin if needed.
-    const result = await signup(username, password, false, false);
-    if (result.success) {
-      setMessage(result.message);
-      // Optionally redirect to login after successful signup
-      navigate('/login');
-    } else {
-      setError(result.message);
+    try {
+      // API call to the backend for signup
+      const response = await fetch('/api/signup/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username,
+          password,
+          admin: false, // Default to non-admin
+          login_allowed: true // Default to login disabled, admin must enable (as per backend logic)
+        }),
+      });
+
+      if (response.ok) {
+        setMessage('Sign up successful! Please contact an administrator to enable your login.');
+        navigate('/login'); // Redirect to login page after successful signup
+      } else {
+        const errorData = await response.json();
+        setError(errorData.detail || 'Sign up failed.');
+      }
+    } catch (err) {
+      console.error('Signup network error:', err);
+      setError('Network error during signup.');
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-900 text-gray-100 p-4">
-      <div className="bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-md border border-gray-700">
-        <h2 className="text-3xl font-extrabold text-white mb-6 text-center">Sign Up</h2>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-1">
+    <div className="login-container">
+      <div className="login-form-container">
+        <h2 className="login-header">Sign Up</h2>
+        <form onSubmit={handleSubmit} className="login-form">
+          <div className="login-username-group">
+            <label htmlFor="username" className="login-username-label">
               Username
             </label>
             <input
               type="text"
               id="username"
-              className="mt-1 block w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+              className="login-username-input"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
               aria-label="Username"
             />
           </div>
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1">
+          <div className="login-password-group">
+            <label htmlFor="password" className="login-password-label">
               Password
             </label>
             <input
               type="password"
               id="password"
-              className="mt-1 block w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+              className="login-password-input"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               aria-label="Password"
             />
           </div>
-          <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-1">
+          <div className="login-password-group">
+            <label htmlFor="confirmPassword" className="login-password-label">
               Confirm Password
             </label>
             <input
               type="password"
               id="confirmPassword"
-              className="mt-1 block w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+              className="login-password-input"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
@@ -85,20 +97,20 @@ function Signup() {
             />
           </div>
           {error && (
-            <div className="bg-red-900 bg-opacity-70 text-red-300 text-sm p-3 rounded-lg flex items-center space-x-2 animate-fade-in">
+            <div className="message-error">
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586l-1.293-1.293z" clipRule="evenodd"></path></svg>
               <span>{error}</span>
             </div>
           )}
           {message && (
-            <div className="bg-green-900 bg-opacity-70 text-green-300 text-sm p-3 rounded-lg flex items-center space-x-2 animate-fade-in">
+            <div className="message">
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path></svg>
               <span>{message}</span>
             </div>
           )}
           <button
             type="submit"
-            className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75 transition duration-200 transform hover:scale-105 shadow-lg"
+            className="login-submit-button"
           >
             Sign Up
           </button>
@@ -106,7 +118,7 @@ function Signup() {
         <p className="mt-6 text-center text-gray-400 text-sm">
           Already have an account?{' '}
           <Link to="/login" className="text-blue-400 hover:text-blue-300 font-medium transition duration-200">
-            Log in here
+            &nbsp;&nbsp;Log in here
           </Link>
         </p>
       </div>

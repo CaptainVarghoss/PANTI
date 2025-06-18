@@ -1,3 +1,40 @@
+:root {
+
+/** Base colors */
+--clr-dark-a0: #000000;
+--clr-light-a0: #ffffff;
+
+/** Theme primary colors */
+--clr-primary-a0: #a0078f;
+--clr-primary-a10: #ad379b;
+--clr-primary-a20: #b954a8;
+--clr-primary-a30: #c46db4;
+--clr-primary-a40: #cf86c0;
+--clr-primary-a50: #da9ecd;
+
+/** Theme surface colors */
+--clr-surface-a0: #121212;
+--clr-surface-a10: #282828;
+--clr-surface-a20: #3f3f3f;
+--clr-surface-a30: #575757;
+--clr-surface-a40: #717171;
+--clr-surface-a50: #8b8b8b;
+
+/** Theme tonal surface colors */
+--clr-surface-tonal-a0: #20161d;
+--clr-surface-tonal-a10: #352b32;
+--clr-surface-tonal-a20: #4b4248;
+--clr-surface-tonal-a30: #625a5f;
+--clr-surface-tonal-a40: #7a7378;
+--clr-surface-tonal-a50: #938e91;
+
+--size-offset: 0px;
+
+--vh: 100vh;
+--vw: 100vw;
+
+}
+
 #root {
   width: 100dvw;
   min-height: 100dvh;
@@ -730,9 +767,58 @@ input:checked + .slider:before {
 /* Image Grid */
 .image-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(max(calc(100vw / 20),15em), max(8em,calc(100vw / 8))), 1fr));
-  margin: 0.5em;
+  grid-template-columns: repeat(auto-fill,
+    minmax(
+      min(
+        max(calc(100dvw / 20),14em),
+        max(8em, calc(100dvw / 8))
+      ), 1fr
+    )
+  );
+  min-height: 100dvh;
+  align-content: baseline;
+  margin-top: 0.2rem;
 }
+
+div.image-card {
+  display: block;
+  margin: 0.2rem;
+  margin-inline: 0.45rem;
+}
+
+.image-card div {
+  overflow: hidden;
+  align-items: top;
+}
+
+.image-card-inner:hover {
+  transform: translateY(-5px);
+  border-radius: 0.3rem;
+  border-color: darkmagenta;
+  border-width: 0.25rem;
+  border-style: solid;
+}
+
+.image-card-inner img:hover {
+  transform: scale(1.1);
+}
+
+.image-card-inner {
+  border-radius: 0.3rem;
+  border-color: #333;
+  border-width: 0.25rem;
+  border-style: solid;
+  width:100%;
+  transition: all 0.5s ease;
+}
+
+.image-card-inner img {
+  display: block;
+  transition: all 0.5s ease;
+  width: 100%;
+}
+
+
 
 /* --- ImagePathsManagement Component Specific Styles --- */
 
@@ -940,6 +1026,41 @@ input:checked + .slider:before {
   width:2em;
 }
 
+/* -- Login Page -- */
+.login-container {
+  width:100%;
+  height:100%;
+  flex-grow: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.login-form-container {
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  background-color: #555;
+}
+
+.login-username-label, .login-password-label {
+  padding: 0.3rem;
+}
+
+.login-username-group, .login-password-group {
+  display: flex;
+  padding: 0.5em;
+  margin-bottom:1em;
+  justify-content: space-between;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.login-submit-button {
+  margin-top: 0.5em;
+}
 /* Custom Scrollbar Styles (for Webkit browsers) */
 /* These are now placed at the component level as they are specific to paths-list-container */
 .custom-scrollbar::-webkit-scrollbar {
