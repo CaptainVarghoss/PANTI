@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session, joinedload
-from typing import List
+from typing import List, Optional
 from pathlib import Path
 import os, json, threading
 
@@ -38,14 +38,24 @@ def create_image(image: schemas.ImageCreate, db: Session = Depends(database.get_
     return db_image
 
 @router.get("/images/", response_model=List[schemas.Image])
-def read_images(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db)):
+def read_images(
+    limit: int = Query(100, ge=1, le=200), # Limit results, with bounds
+    last_id: Optional[int] = Query(None, description="The ID of the last image received for cursor-based pagination."),
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user) # Added: Requires authentication
+):
     # Retrieves a list of images. Accessible by all.
     # Eager loads associated tags and includes paths to generated media.
     # Triggers thumbnail generation if not found.
 
-    images = db.query(models.Image).options(joinedload(models.Image.tags)).offset(skip).limit(limit).all()
+    query = db.query(models.Image).options(joinedload(models.Image.tags))
 
+    if last_id is not None:
+        query = query.filter(models.Image.id > last_id)
     # Get static path information from config
+
+    query = query.order_by(models.Image.id)
+    images = query.limit(limit).all()
 
     # FIX THIS
     # shouldn't need these paths, thumbnail and preview generators can have them instead

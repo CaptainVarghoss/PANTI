@@ -41,7 +41,6 @@ function useSettingsFormLogic(formType, deviceId = null) {
 
   // Main fetch function, dynamic based on formType
   const fetchCurrentSettings = useCallback(async () => {
-    console.log(`useSettingsFormLogic (${formType}): fetchCurrentSettings called.`);
     setLoadingLocal(true);
     setError('');
 
@@ -114,25 +113,21 @@ function useSettingsFormLogic(formType, deviceId = null) {
         setTextInputStates(initialTextInputStates);
         setNumberInputStates(initialNumberInputStates);
 
-        console.log(`useSettingsFormLogic (${formType}): Initial Switch States after fetch:`, initialSwitchStates);
         setError('');
       } else {
         const errorData = await response.json();
         setError(`Failed to fetch settings: ${errorData.detail || response.statusText}`);
-        console.error(`useSettingsFormLogic (${formType}): Failed to fetch settings:`, errorData);
       }
     } catch (err) {
       console.error(`useSettingsFormLogic (${formType}): Network error while fetching settings:`, err);
       setError('Network error while fetching settings.');
     } finally {
       setLoadingLocal(false);
-      console.log(`useSettingsFormLogic (${formType}): fetchCurrentSettings finished. Loading state:`, loadingLocal);
     }
   }, [formType, user, token, isAdmin, isAuthenticated, deviceId, authLoading, parseBooleanSetting, parseNumberSetting]);
 
 
   useEffect(() => {
-    console.log(`useSettingsFormLogic (${formType}): useEffect triggered. Auth Loading:`, authLoading, "Is Authenticated:", isAuthenticated, "Is Admin:", isAdmin, "Device ID:", deviceId);
     // Determine when to fetch based on formType and auth status
     const shouldFetch = !authLoading && isAuthenticated && (formType !== 'device' || deviceId);
 
@@ -153,14 +148,12 @@ function useSettingsFormLogic(formType, deviceId = null) {
       } else if (formType === 'global' && !isAdmin) {
         setError("Access Denied: Only administrators can view global settings.");
       }
-      console.log(`useSettingsFormLogic (${formType}): Resetting states due to auth/device status.`);
     }
   }, [isAuthenticated, isAdmin, authLoading, deviceId, formType, fetchCurrentSettings]);
 
 
   // Main update function, dynamic based on formType
   const handleUpdateSetting = useCallback(async (settingName, valueToSave) => {
-    console.log(`useSettingsFormLogic (${formType}): handleUpdateSetting called for ${settingName} with incoming valueToSave:`, valueToSave);
     setMessage('');
     setError('');
 
@@ -207,7 +200,6 @@ function useSettingsFormLogic(formType, deviceId = null) {
         }
         if (settingMetadata.admin_only) {
             setError(`"${settingMetadata.display_name}" is an admin-only setting and cannot be overridden by device.`);
-            console.warn(`useSettingsFormLogic (${formType}): Attempted to override admin-only setting ${settingName} by device.`);
             return;
         }
         // For device settings, check if it exists, then PUT/POST
@@ -227,8 +219,6 @@ function useSettingsFormLogic(formType, deviceId = null) {
         }
     }
 
-    console.log(`useSettingsFormLogic (${formType}): Making API call - Method: ${apiMethod}, Endpoint: ${apiEndpoint}, Body:`, JSON.stringify(requestBody));
-
     try {
       const response = await fetch(apiEndpoint, {
         method: apiMethod,
@@ -244,7 +234,6 @@ function useSettingsFormLogic(formType, deviceId = null) {
         console.log(`useSettingsFormLogic (${formType}): Successfully updated ${settingName}.`);
         await fetchCurrentSettings(); // Re-fetch to update local state and reflect changes
         await fetchSettings(); // Also refresh the AuthContext settings
-        console.log(`useSettingsFormLogic (${formType}): Update and refresh cycle completed.`);
 
       } else {
         const errorData = await response.json();
@@ -268,7 +257,6 @@ function useSettingsFormLogic(formType, deviceId = null) {
     localStorage.setItem('use_device_settings_override', newValue ? 'true' : 'false');
     setUseDeviceSettingsOverrideEnabled(newValue);
     setMessage(`'Use Device Specific Settings' set to ${newValue ? 'Enabled' : 'Disabled'}.`);
-    console.log(`'Use Device Specific Settings' toggled to: ${newValue}`);
 
     await fetchSettings();
     await fetchCurrentSettings();
