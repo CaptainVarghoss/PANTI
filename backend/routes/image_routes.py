@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from pathlib import Path
-import os, json, threading
+import os, json, threading, mimetypes
 
 import auth
 import database
@@ -232,3 +233,35 @@ def delete_image(image_id: int, db: Session = Depends(database.get_db), current_
     db.delete(db_image)
     db.commit()
     return
+
+@router.get("/images/original/{checksum}", response_class=FileResponse)
+async def get_original_image(
+    checksum: str,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user) # Protect this endpoint
+):
+    # Retrieves the original image file using its checksum and filename.
+    # This endpoint uses FileResponse to serve files directly from their disk path.
+
+    db_image = db.query(models.Image).filter(models.Image.checksum == checksum).first()
+
+    full_path = os.path.join(db_image.path, db_image.filename)
+
+    if db_image is None:
+        raise HTTPException(status_code=404, detail="Image not found in database for the given checksum.")
+
+    try:
+        if not os.path.exists(db_image.path) or not os.path.exists(full_path):
+            raise HTTPException(status_code=404, detail="Original image file not found on disk or path is invalid.")
+
+        # Determine media type dynamically
+        mime_type, _ = mimetypes.guess_type(full_path)
+        if not mime_type:
+            mime_type = "application/octet-stream" # Fallback if MIME type cannot be guessed
+
+        return FileResponse(full_path, media_type=mime_type)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=500, detail="Image metadata is corrupted.")
+    except Exception as e:
+        print(f"Error serving original image {checksum}/{db_image.filename}: {e}")
+        raise HTTPException(status_code=500, detail="Error serving image.")

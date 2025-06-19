@@ -35,6 +35,16 @@
 
 }
 
+html, body {
+  overflow-y: scroll; /* Ensure scrollbar is always there for content, but we'll hide it */
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+html::-webkit-scrollbar, body::-webkit-scrollbar {
+  display: none; /* Webkit (Chrome, Safari, Opera) */
+}
+
 #root {
   width: 100dvw;
   min-height: 100dvh;
@@ -1061,23 +1071,269 @@ div.image-card {
 .login-submit-button {
   margin-top: 0.5em;
 }
-/* Custom Scrollbar Styles (for Webkit browsers) */
-/* These are now placed at the component level as they are specific to paths-list-container */
+
+/* -- Modal -- */
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 50;
+    padding: 0;
+    overflow-y: auto;
+}
+
+.modal-content {
+    position: relative;
+    background-color: transparent;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    display: flex;
+    /* remove this for side by side.. appearance setting? */
+    flex-direction: column;
+    width: fit-content;
+    margin: auto;
+    overflow: visible;
+    min-height: fit-content;
+    max-width: 100dvw;
+}
+
+.modal-close-button {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 10;
+    padding: 0.5rem;
+    background-color: #4a5568;
+    border-radius: 33px;
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+    width: 2.5rem;
+    height: 2.5rem;
+}
+
+.modal-close-button:hover {
+    background-color: #2d3748;
+}
+
+.modal-image-section {
+    position: relative;
+    flex-grow: 1;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    height: 100dvh;
+    width: 100%;
+}
+
+.modal-main-image {
+    max-width: 100dvw;
+    max-height: 100dvh;
+    object-fit: contain;
+    cursor: pointer;
+}
+
+.modal-nav-button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(0, 0, 0, 0.2);
+    color:rgba(255, 255, 255, 0.4);
+    padding: 0.75rem;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease-in-out;
+    transition: color 0.3s ease-in-out;
+    z-index: 10;
+    border-radius: 0.5rem; /* Added for rounded corners on buttons */
+}
+
+.modal-nav-button--prev {
+    left: 0; /* left-0 */
+    border-top-right-radius: 0.5rem;
+    border-bottom-right-radius: 0.5rem;
+}
+
+.modal-nav-button--next {
+    right: 0; /* right-0 */
+    border-top-left-radius: 0.5rem;
+    border-bottom-left-radius: 0.5rem;
+}
+
+.modal-nav-button:hover {
+    background-color: rgba(0, 0, 0, 0.75);
+    color: rgba(255, 255, 255, 0.70);
+}
+
+.modal-info-section {
+    word-wrap: break-word;
+    width: auto;
+    overflow-y: auto;
+    flex-shrink: 0;
+    background-color:#374151;
+    padding: 1rem;
+    margin-top:2em;
+    border-top-left-radius: 1rem;
+    border-top-right-radius: 1rem;
+    border-bottom-left-radius: 1rem;
+    border-bottom-right-radius: 1rem;
+}
+
+.modal-info-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: white;
+    border-bottom: 1px solid #4a5568;
+    padding-bottom: 0.5rem;
+}
+
+.modal-tags-section {
+    margin-bottom: 1.5rem;
+}
+
+.modal-section-subtitle {
+    font-size: 1.125rem; /* text-lg */
+    font-weight: 500; /* font-medium */
+    margin-bottom: 0.5rem; /* mb-2 */
+    color: #e2e8f0; /* text-gray-200 */
+}
+
+.modal-text-gray {
+    color: #d1d5db; /* text-gray-400 */
+}
+
+.modal-save-tags-button {
+    margin-top: 0.75rem; /* mt-3 */
+    width: 100%; /* w-full */
+    padding-top: 0.5rem; /* py-2 */
+    padding-bottom: 0.5rem;
+    padding-left: 1rem; /* px-4 */
+    padding-right: 1rem;
+    border-radius: 0.375rem; /* rounded-md */
+    font-weight: 600; /* font-semibold */
+    transition: background-color 0.2s ease-in-out; /* transition-colors */
+    background-color: #4f46e5; /* bg-indigo-600 */
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.modal-save-tags-button:hover:not(:disabled) {
+    background-color: #4338ca; /* hover:bg-indigo-700 */
+}
+
+.modal-save-tags-button--loading {
+    background-color: #6b7280; /* bg-gray-500 */
+    color: #9ca3af; /* text-gray-300 */
+    cursor: not-allowed;
+}
+
+.modal-save-tags-button:disabled {
+    background-color: #6b7280; /* bg-gray-500 */
+    color: #9ca3af; /* text-gray-300 */
+    cursor: not-allowed;
+}
+
+
+.modal-success-message {
+    color: #86efac; /* text-green-400 */
+    font-size: 0.875rem; /* text-sm */
+    margin-top: 0.5rem; /* mt-2 */
+}
+
+.modal-error-message {
+    color: #f87171; /* text-red-400 */
+    font-size: 0.875rem; /* text-sm */
+    margin-top: 0.5rem; /* mt-2 */
+}
+
+.modal-current-tags {
+    margin-top: 0.5rem; /* mt-2 */
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem; /* gap-2 */
+}
+
+.modal-tag-pill {
+    padding: 0.25rem 0.5rem; /* px-2 py-1 */
+    border-radius: 9999px; /* rounded-full */
+    font-size: 0.75rem; /* text-xs */
+    font-weight: 600; /* font-semibold */
+}
+
+.modal-metadata-box {
+    background-color: #2d3748; /* bg-gray-800 */
+    padding: 0.75rem; /* p-3 */
+    border-radius: 0.375rem; /* rounded-md */
+    max-height: 16rem; /* max-h-64 */
+    overflow-y: auto;
+}
+
+.modal-metadata-list {
+    list-style: disc;
+    padding-left: 1.25rem; /* list-inside */
+    color: #d1d5db; /* text-gray-300 */
+    line-height: 1.5; /* space-y-1 equivalent is roughly this */
+}
+
+.modal-metadata-list li {
+    margin-bottom: 0.25rem;
+}
+
+.modal-metadata-list li:last-child {
+    margin-bottom: 0;
+}
+
+
+.modal-metadata-key {
+    color: #e2e8f0; /* text-gray-200 */
+    text-transform: capitalize;
+}
+
+.modal-general-info-title {
+    margin-top: 1rem; /* mt-4 */
+}
+
+.modal-general-info-list {
+    list-style: disc;
+    padding-left: 1.25rem; /* list-inside */
+    color: #d1d5db; /* text-gray-300 */
+    line-height: 1.5; /* space-y-1 equivalent */
+}
+
+.modal-general-info-list li {
+    margin-bottom: 0.25rem;
+}
+
+.modal-general-info-list li:last-child {
+    margin-bottom: 0;
+}
+
+.modal-info-label {
+    color: #e2e8f0; /* text-gray-200 */
+}
+
+/* Custom Scrollbar for better UX */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+    width: 8px; /* For vertical scrollbars */
+    height: 8px; /* For horizontal scrollbars */
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: #333;
-  border-radius: 10px;
+    background: #374151; /* bg-gray-700 */
+    border-radius: 10px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #555;
-  border-radius: 10px;
+    background-color: #6b7280; /* bg-gray-500 */
+    border-radius: 10px;
+    border: 2px solid #374151; /* Match track background */
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #777;
+    background-color: #9ca3af; /* bg-gray-400 */
 }

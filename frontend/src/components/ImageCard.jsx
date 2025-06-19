@@ -6,12 +6,12 @@ import React, { forwardRef } from 'react';
  * @param {object} props - The component props.
  * @param {object} props.image - The image object containing details like id, filename, and meta.
  */
-const ImageCard = forwardRef(({ image }, ref) => {
+const ImageCard = forwardRef(({ image, onClick }, ref) => {
 
   const thumbnailUrl = `${image.thumbnails_path}/${image.checksum}_thumb.webp`;
 
   return (
-    <div ref={ref} key={image.id} className="image-card">
+    <div ref={ref} key={image.id} className="image-card" onClick={() => onClick(image)}>
       <div className="image-card-inner">
         {thumbnailUrl ? (
           <img
