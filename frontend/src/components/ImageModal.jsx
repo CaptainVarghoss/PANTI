@@ -1,9 +1,9 @@
 // frontend/src/components/ImageModal.jsx
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { IoChevronBack, IoChevronForward, IoClose } from 'react-icons/io5'; // Using Ionicons for arrows and close
-import { useAuth } from '../context/AuthContext'; // For authentication and current user/tags
-import Select from 'react-select'; // For a user-friendly tag multi-select dropdown
+import { IoChevronBack, IoChevronForward, IoClose } from 'react-icons/io5';
+import { useAuth } from '../context/AuthContext';
+import Select from 'react-select';
 
 /**
  * Fullscreen modal to display a large image, its metadata, and allow tag management.
@@ -429,23 +429,31 @@ function ImageModal({ isOpen, onClose, currentImage, images, onNavigate }) {
                     onTouchStart={handleTouchStart}
                     onTouchMove={handleTouchMove}
                     onTouchEnd={handleTouchEnd}
-                    onClick={handleClick}
                 >
-                    <img
+                    {currentImage.is_video ? (
+                        <video controls
                         src={imageUrlToDisplay}
                         alt={currentImage.filename}
                         className="modal-main-image"
                         style={{ transform: `translateX(${imageTranslateX}px)`, transition: 'transform 0.1s ease-out' }}
-                        onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = "https://placehold.co/1200x800/333333/FFFFFF?text=Image+Not+Found";
-                        }}
-                    />
+                        />
+                    ) : (
+                        <img
+                            src={imageUrlToDisplay}
+                            alt={currentImage.filename}
+                            className="modal-main-image"
+                            onClick={handleClick}
+                            style={{ transform: `translateX(${imageTranslateX}px)`, transition: 'transform 0.1s ease-out' }}
+                            onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = "https://placehold.co/1200x800/333333/FFFFFF?text=Image+Not+Found";
+                            }}
+                        />
+                    )}
                 </div>
 
                 {/* Info Section (Metadata & Tags) */}
                 <div className="modal-info-section custom-scrollbar">
-                    <h3 className="modal-info-title">Image Info</h3>
 
                     {/* Tags Section */}
                     <div className="modal-tags-section">
@@ -501,12 +509,8 @@ function ImageModal({ isOpen, onClose, currentImage, images, onNavigate }) {
                     </div>
 
                     {/* Metadata Section */}
-                    <div>
+                    <div className="modal-meta-section">
                         <h4 className="modal-section-subtitle">Metadata</h4>
-                        <div className="modal-metadata-box custom-scrollbar">
-                            {renderMetadata(currentImage.meta)}
-                        </div>
-                        <h4 className="modal-section-subtitle modal-general-info-title">General Info</h4>
                         <ul className="modal-general-info-list">
                             <li><strong className="modal-info-label">Filename:</strong> {currentImage.filename}</li>
                             <li><strong className="modal-info-label">Path:</strong> {currentImage.path}</li>
@@ -515,6 +519,9 @@ function ImageModal({ isOpen, onClose, currentImage, images, onNavigate }) {
                             <li><strong className="modal-info-label">Date Created:</strong> {new Date(currentImage.date_created).toLocaleString()}</li>
                             <li><strong className="modal-info-label">Date Modified:</strong> {new Date(currentImage.date_modified).toLocaleString()}</li>
                         </ul>
+                        <div className="modal-metadata-box">
+                            {renderMetadata(currentImage.meta)}
+                        </div>
                     </div>
                 </div>
             </div>
