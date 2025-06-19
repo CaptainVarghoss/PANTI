@@ -6,6 +6,7 @@ from typing import List, Optional
 from pathlib import Path
 from datetime import datetime
 import os, json, threading, mimetypes
+from search_constructor import generate_image_search_filter
 
 import auth
 import database
@@ -48,7 +49,8 @@ def read_images(
     sort_order: str = Query("desc", description="Sort order: 'asc' or 'desc'"),
     last_id: Optional[int] = Query(None, description="ID of the last item from the previous page for cursor-based pagination"),
     last_sort_value: Optional[str] = Query(None, description="Value of the sort_by column for the last_id item (for stable pagination)"),
-    db: Session = Depends(database.get_db)
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user)
 ):
     """
     Retrieves a list of images with support for searching, sorting, and cursor-based pagination.
@@ -56,19 +58,21 @@ def read_images(
     Triggers thumbnail generation if not found.
     """
     query = db.query(models.Image).options(joinedload(models.Image.tags))
+    query = query.outerjoin(models.ImagePath, models.ImagePath.path == models.Image.path)
 
     # Apply search filter if provided
     if search_query:
         # Using ilike for case-insensitive search (might require specific DB setup for performance)
         # For SQLite, it's typically case-insensitive by default for ASCII.
         # For more complex needs, consider using SQLAlchemy's `match` or `regexp` (with custom SQLite function).
-        query = query.filter(
-            or_(
-                models.Image.filename.ilike(f"%{search_query}%"),
-                models.Image.path.ilike(f"%{search_query}%"),
-                models.Image.meta.ilike(f'%{search_query}%')
-            )
-        )
+        query = query.filter(generate_image_search_filter(search_query))
+        #query = query.filter(
+        #    or_(
+        #        models.Image.filename.ilike(f"%{search_query}%"),
+        #        models.Image.path.ilike(f"%{search_query}%"),
+        #        models.Image.meta.ilike(f'%{search_query}%')
+        #    )
+        #)
 
     # Apply cursor-based pagination (Keyset Pagination)
     if last_id is not None and last_sort_value is not None:
@@ -184,7 +188,11 @@ def read_images(
     return response_images
 
 @router.get("/images/{image_id}", response_model=schemas.Image)
-def read_image(image_id: int, db: Session = Depends(database.get_db)):
+def read_image(
+        image_id: int,
+        db: Session = Depends(database.get_db),
+        current_user: models.User = Depends(auth.get_current_user)
+    ):
     # Retrieves a single image by ID. Accessible by all.
     # Eager loads associated tags and includes paths to generated media.
     # Triggers thumbnail generation if not found.
