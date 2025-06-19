@@ -122,6 +122,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
 .navbar-search {
   display: flex;
   flex-grow: 1;
+
 }
 
 .navbar-search .search-bar {

@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func, and_, or_, not_
 from typing import List, Optional
 from pathlib import Path
+from datetime import datetime
 import os, json, threading, mimetypes
 
 import auth
@@ -40,22 +42,78 @@ def create_image(image: schemas.ImageCreate, db: Session = Depends(database.get_
 
 @router.get("/images/", response_model=List[schemas.Image])
 def read_images(
-    limit: int = Query(100, ge=1, le=200), # Limit results, with bounds
-    last_id: Optional[int] = Query(None, description="The ID of the last image received for cursor-based pagination."),
-    db: Session = Depends(database.get_db),
-    current_user: models.User = Depends(auth.get_current_user) # Added: Requires authentication
+    limit: int = 100,
+    search_query: Optional[str] = Query(None, description="Search term for filename or path"),
+    sort_by: str = Query("date_created", description="Column to sort by (e.g., filename, date_created, checksum)"),
+    sort_order: str = Query("desc", description="Sort order: 'asc' or 'desc'"),
+    last_id: Optional[int] = Query(None, description="ID of the last item from the previous page for cursor-based pagination"),
+    last_sort_value: Optional[str] = Query(None, description="Value of the sort_by column for the last_id item (for stable pagination)"),
+    db: Session = Depends(database.get_db)
 ):
-    # Retrieves a list of images. Accessible by all.
-    # Eager loads associated tags and includes paths to generated media.
-    # Triggers thumbnail generation if not found.
-
+    """
+    Retrieves a list of images with support for searching, sorting, and cursor-based pagination.
+    Accessible by all. Eager loads associated tags and includes paths to generated media.
+    Triggers thumbnail generation if not found.
+    """
     query = db.query(models.Image).options(joinedload(models.Image.tags))
 
-    if last_id is not None:
-        query = query.filter(models.Image.id > last_id)
-    # Get static path information from config
+    # Apply search filter if provided
+    if search_query:
+        # Using ilike for case-insensitive search (might require specific DB setup for performance)
+        # For SQLite, it's typically case-insensitive by default for ASCII.
+        # For more complex needs, consider using SQLAlchemy's `match` or `regexp` (with custom SQLite function).
+        query = query.filter(
+            or_(
+                models.Image.filename.ilike(f"%{search_query}%"),
+                models.Image.path.ilike(f"%{search_query}%"),
+                models.Image.meta.ilike(f'%{search_query}%')
+            )
+        )
 
-    query = query.order_by(models.Image.id)
+    # Apply cursor-based pagination (Keyset Pagination)
+    if last_id is not None and last_sort_value is not None:
+        # Determine the column to sort by
+        sort_column = getattr(models.Image, sort_by)
+
+        # Handle type conversion for last_sort_value based on sort_by column's type
+        # Especially crucial for `date_created` which is a datetime object
+        converted_last_sort_value = last_sort_value
+        if sort_by == 'date_created':
+            try:
+                # Convert ISO string back to datetime for comparison
+                converted_last_sort_value = datetime.fromisoformat(last_sort_value.replace('Z', '+00:00'))
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid date format for last_sort_value.")
+        elif sort_by in ['checksum', 'filename']:
+            # These are strings, no special conversion needed
+            pass # Keep as string
+
+        if sort_order == 'desc':
+            # For descending, we want items where sort_column < last_sort_value
+            # OR (sort_column = last_sort_value AND id < last_id)
+            query = query.filter(
+                or_(
+                    sort_column < converted_last_sort_value,
+                    and_(sort_column == converted_last_sort_value, models.Image.id < last_id)
+                )
+            )
+        else: # sort_order == 'asc'
+            # For ascending, we want items where sort_column > last_sort_value
+            # OR (sort_column = last_sort_value AND id > last_id)
+            query = query.filter(
+                or_(
+                    sort_column > converted_last_sort_value,
+                    and_(sort_column == converted_last_sort_value, models.Image.id > last_id)
+                )
+            )
+
+    # Apply sorting
+    if sort_order == 'desc':
+        query = query.order_by(getattr(models.Image, sort_by).desc(), models.Image.id.desc())
+    else: # 'asc'
+        query = query.order_by(getattr(models.Image, sort_by).asc(), models.Image.id.asc())
+
+    # Apply limit
     images = query.limit(limit).all()
 
     # FIX THIS

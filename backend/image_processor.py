@@ -25,6 +25,19 @@ SUPPORTED_MEDIA_TYPES = {
     'image/heif', # Common for iPhones
 }
 
+def get_meta(filepath: str):
+    if os.path.exists(filepath):
+        try:
+            image = PILImage.open(filepath)
+            exif = dict(image.info)
+            #exif['width'] = image.width
+            #exif['height'] = image.height
+            image.close() # Good practice to close the image
+            return exif
+        except Exception as e:
+            print(f"Error getting metadata for {filepath}: {e}")
+            return {}
+
 def process_and_update_image(
     image_id: int,
     image_checksum: str,
@@ -38,7 +51,7 @@ def process_and_update_image(
     generated_urls = image_processor.generate_thumbnail(
         source_filepath=original_filepath,
         output_filename_base=output_filename_base,
-        thumbnail_size=thumb_size,
+        thumb_size=thumb_size,
     )
 
     if not generated_urls:
@@ -108,6 +121,7 @@ def scan_paths(db: Session):
                     new_subdirectories_found += 1
 
             # Add new images/videos to Image table
+            files.sort(key=lambda fn: os.path.getctime(os.path.join(root, fn)))
             for f in files:
                 file_full_path = os.path.join(root, f)
                 if is_supported_media(file_full_path):
@@ -125,13 +139,23 @@ def scan_paths(db: Session):
                             "original_path": root
                         }
 
+                        new_meta = get_meta(file_full_path)
+                        if new_meta:
+                            initial_meta = new_meta
+
+                        creation_timestamp = os.path.getctime(file_full_path)
+                        modification_timestamp = os.path.getmtime(file_full_path)
+                        date_created_dt = datetime.fromtimestamp(creation_timestamp)
+                        date_modified_dt = datetime.fromtimestamp(modification_timestamp)
+
+
                         new_image = models.Image(
                             checksum=checksum,
                             filename=f,
                             path=root,
                             meta=json.dumps(initial_meta),
-                            date_created=func.now(),
-                            date_modified=func.now(),
+                            date_created=date_created_dt,
+                            date_modified=date_modified_dt,
                             is_video=is_video
                         )
                         db.add(new_image)

@@ -13,7 +13,14 @@ import NavSearchBar from './NavSearchBar'; // Assuming NavSearchBar is in compon
  * @param {function} props.toggleLeftSidebar - Callback to toggle the left sidebar.
  * @param {function} props.toggleRightSidebar - Callback to toggle the right sidebar.
  */
-function Navbar({ toggleLeftSidebar, toggleRightSidebar }) {
+function Navbar({
+  toggleLeftSidebar,
+  toggleRightSidebar,
+  initialSearchTerm,
+  initialSortBy,
+  initialSortOrder,
+  onSearchAndSortChange
+}) {
   const { isAuthenticated, user, logout, isAdmin, settings } = useAuth();
   const navigate = useNavigate();
 
@@ -35,11 +42,15 @@ function Navbar({ toggleLeftSidebar, toggleRightSidebar }) {
         )}
 
         {/* Search Bar (visible when authenticated) */}
-        <div className="navbar-search">
-          {isAuthenticated && (
-            <NavSearchBar />
-          )}
-        </div>
+
+        {isAuthenticated && (
+          <NavSearchBar
+            initialSearchTerm={initialSearchTerm}
+            initialSortBy={initialSortBy}
+            initialSortOrder={initialSortOrder}
+            onSearchAndSortChange={onSearchAndSortChange}
+          />
+        )}
 
         {/* Right Sidebar Toggle Button */}
         {showRightToggle && (
