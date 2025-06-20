@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { useAuth } from './context/AuthContext';
 import ImageGrid from "./components/ImageGrid"; // Assuming ImageGrid is now a page component
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -92,6 +92,7 @@ const LogoutPage = () => {
 };
 
 function App() {
+  const { isAuthenticated, loading } = useAuth();
   // States for search and sort
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('date_created');
@@ -107,6 +108,7 @@ function App() {
   // States for Sidebars
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(false);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
+  const [currentSubPanel, setCurrentSubPanel] = useState('menu');
 
   // Toggle functions for sidebars, ensuring only one is open at a time
   const toggleLeftSidebar = () => {
@@ -125,47 +127,54 @@ function App() {
     setIsRightSidebarOpen(false);
   };
 
+  if (loading) {
+    return (
+      <div className="loading-full-page">
+        Loading application...
+      </div>
+    );
+  }
+
   return (
     <Router>
-      {/* AuthProvider wraps the entire application to provide auth context to all components */}
-      <AuthProvider>
-        {/* Navbar and SideBars are always rendered, their content/visibility depends on state/settings */}
-        <Navbar
-          toggleLeftSidebar={toggleLeftSidebar}
-          toggleRightSidebar={toggleRightSidebar}
-          initialSearchTerm={searchTerm}
-          initialSortBy={sortBy}
-          initialSortOrder={sortOrder}
-          onSearchAndSortChange={handleSearchAndSortChange}
-        />
-        <SideBar isOpen={isLeftSidebarOpen} onClose={closeAllSidebars} side="left" />
-        <SideBar isOpen={isRightSidebarOpen} onClose={closeAllSidebars} side="right" />
+      {isAuthenticated &&
+        <>
+          <Navbar
+            toggleLeftSidebar={toggleLeftSidebar}
+            toggleRightSidebar={toggleRightSidebar}
+            initialSearchTerm={searchTerm}
+            initialSortBy={sortBy}
+            initialSortOrder={sortOrder}
+            onSearchAndSortChange={handleSearchAndSortChange}
+          />
+          <SideBar isOpen={isLeftSidebarOpen} onClose={closeAllSidebars} side="left" subPanel={currentSubPanel} setSubPanel={setCurrentSubPanel} />
+          <SideBar isOpen={isRightSidebarOpen} onClose={closeAllSidebars} side="right" subPanel={currentSubPanel} setSubPanel={setCurrentSubPanel} />
+        </>
+      }
+      <div className="app-content"> {/* Main content area where routes are rendered */}
+        <Routes>
 
-        <div className="app-content"> {/* Main content area where routes are rendered */}
-          <Routes>
+          {/* Public only routes (e.g., login, signup). Redirects if already authenticated. */}
+          <Route element={<PublicOnlyRoute />}>
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+          </Route>
 
-            {/* Public only routes (e.g., login, signup). Redirects if already authenticated. */}
-            <Route element={<PublicOnlyRoute />}>
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-            </Route>
-
-            {/* Protected Routes (accessible only if isAuthenticated) */}
-            <Route element={<PrivateRoute />}>
-              <Route path="/" element={
-                <ImageGrid
-                  searchTerm={searchTerm}
-                  sortBy={sortBy}
-                  sortOrder={sortOrder}
-                />
-              } />
-            </Route>
-            {/* Catch-all route for any undefined paths. */}
-            {/* If authenticated, navigates to home (/). If not, navigates to login (/login). */}
-            <Route path="*" element={<HomeOrLoginRedirect />} />
-          </Routes>
-        </div>
-      </AuthProvider>
+          {/* Protected Routes (accessible only if isAuthenticated) */}
+          <Route element={<PrivateRoute />}>
+            <Route path="/" element={
+              <ImageGrid
+                searchTerm={searchTerm}
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+              />
+            } />
+          </Route>
+          {/* Catch-all route for any undefined paths. */}
+          {/* If authenticated, navigates to home (/). If not, navigates to login (/login). */}
+          <Route path="*" element={<HomeOrLoginRedirect />} />
+        </Routes>
+      </div>
     </Router>
   );
 }

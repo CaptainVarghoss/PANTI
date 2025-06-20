@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext'; // To check user roles for admin links
-import SettingsForm from './SettingsForm';
 import ImagePathsManagement from './ImagePathsManagement';
+import DeviceSpecificSettingsForm from './DeviceSpecificSettingsForm';
+import GlobalSettingsForm from './GlobalSettingsForm';
 
 /**
  * A reusable Sidebar component that slides in and out using standard CSS.
@@ -11,25 +12,23 @@ import ImagePathsManagement from './ImagePathsManagement';
  * @param {boolean} props.isOpen - Controls the visibility of the sidebar.
  * @param {function} props.onClose - Callback function to close the sidebar.
  */
-function Sidebar({ isOpen, onClose, side }) {
+function Sidebar({ isOpen, onClose, side, subPanel, setSubPanel }) {
   const { isAdmin, isAuthenticated, logout } = useAuth(); // Get admin status from AuthContext
-  const [currentPanel, setCurrentPanel] = useState('menu');
-  /*const [showSettingsForm, setShowSettingsForm] = useState(false);*/
   const sidebarClasses = `sidebar sidebar--${side} ${isOpen ? `sidebar--${side}--open` : ''}`;
   const overlayClasses = `sidebar-overlay ${isOpen ? 'sidebar-overlay--visible' : ''}`;
 
   const handleShowSettings = (e) => {
     e.preventDefault(); // Prevent default link behavior
-    setCurrentPanel('settings');
+    setSubPanel('settings');
   };
 
   const handleBackToMenu = () => {
-    setCurrentPanel('menu');
+    setSubPanel('menu');
   };
 
   const handleShowFolders = (e) => { // New handler for folders
     e.preventDefault();
-    setCurrentPanel('folders');
+    setSubPanel('folders');
   };
 
   const handleLogout = () => {
@@ -40,7 +39,7 @@ function Sidebar({ isOpen, onClose, side }) {
 
   React.useEffect(() => {
     if (!isOpen) {
-      const timer = setTimeout(() => setCurrentPanel('menu'), 300);
+      const timer = setTimeout(() => setSubPanel('menu'), 300);
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
@@ -62,8 +61,8 @@ function Sidebar({ isOpen, onClose, side }) {
 
         <div className="sidebar-panel-wrapper">
           <div className={`sidebar-panel
-            ${currentPanel === 'menu' ? (side === 'left' ? 'panel-slide-in-from-left' : 'panel-slide-in-from-right') : (side === 'left' ? 'panel-slide-out-to-left' : 'panel-slide-out-to-right')}
-            ${currentPanel === 'menu' ? 'panel-active' : 'panel-inactive'}`}
+            ${subPanel === 'menu' ? (side === 'left' ? 'panel-slide-in-from-left' : 'panel-slide-in-from-right') : (side === 'left' ? 'panel-slide-out-to-left' : 'panel-slide-out-to-right')}
+            ${subPanel === 'menu' ? 'panel-active' : 'panel-inactive'}`}
           >
             <nav className="sidebar-nav">
               <a href="#" onClick={handleShowFolders} className="sidebar-link">Manage Folders</a>
@@ -75,16 +74,43 @@ function Sidebar({ isOpen, onClose, side }) {
           </div>
 
           <div className={`sidebar-panel
-            ${currentPanel === 'settings' ? (side === 'left' ? 'panel-slide-in-from-left' : 'panel-slide-in-from-right') : (side === 'left' ? 'panel-slide-out-to-left' : 'panel-slide-out-to-right')}
-            ${currentPanel === 'settings' ? 'panel-active' : 'panel-inactive'}`}
+            ${subPanel === 'settings' ? (side === 'left' ? 'panel-slide-in-from-left' : 'panel-slide-in-from-right') : (side === 'left' ? 'panel-slide-out-to-left' : 'panel-slide-out-to-right')}
+            ${subPanel === 'settings' ? 'panel-active' : 'panel-inactive'}`}
           >
-            <SettingsForm onClose={onClose} onBack={handleBackToMenu} side={side} />
+            <button onClick={handleBackToMenu} className="settings-back-button">
+              ← Back to Main Menu
+            </button>
+            <nav className="settings-sub-nav">
+              <a href="#" onClick={(e) => { e.preventDefault(); setSubPanel('device'); }} className="settings-link">
+                Device Specific Settings
+              </a>
+              {isAdmin && (
+                <a href="#" onClick={(e) => { e.preventDefault(); setSubPanel('global'); }} className="settings-link">
+                  Global Server Settings (Admin)
+                </a>
+              )}
+            </nav>
           </div>
+
           <div className={`sidebar-panel
-                       ${currentPanel === 'folders' ? (side === 'left' ? 'panel-slide-in-from-left' : 'panel-slide-in-from-right') : (side === 'left' ? 'panel-slide-out-to-left' : 'panel-slide-out-to-right')}
-                       ${currentPanel === 'folders' ? 'panel-active' : 'panel-inactive'}`}
+                       ${subPanel === 'folders' ? (side === 'left' ? 'panel-slide-in-from-left' : 'panel-slide-in-from-right') : (side === 'left' ? 'panel-slide-out-to-left' : 'panel-slide-out-to-right')}
+                       ${subPanel === 'folders' ? 'panel-active' : 'panel-inactive'}`}
           >
-            <ImagePathsManagement onBack={handleBackToMenu} />
+            <ImagePathsManagement onBack={handleBackToMenu} onClose={onClose} side={side} />
+          </div>
+
+          <div className={`sidebar-panel
+            ${subPanel === 'device' ? (side === 'left' ? 'panel-slide-in-from-left' : 'panel-slide-in-from-right') : (side === 'left' ? 'panel-slide-out-to-left' : 'panel-slide-out-to-right')}
+            ${subPanel === 'device' ? 'panel-active' : 'panel-inactive'}`}
+          >
+            <DeviceSpecificSettingsForm onBack={handleShowSettings} onClose={onClose} side={side} />
+          </div>
+
+          <div className={`sidebar-panel
+            ${subPanel === 'global' ? (side === 'left' ? 'panel-slide-in-from-left' : 'panel-slide-in-from-right') : (side === 'left' ? 'panel-slide-out-to-left' : 'panel-slide-out-to-right')}
+            ${subPanel === 'global' ? 'panel-active' : 'panel-inactive'}`}
+          >
+            <GlobalSettingsForm onBack={handleShowSettings} onClose={onClose} side={side} />
           </div>
         </div>
       </div>

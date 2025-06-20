@@ -35,6 +35,18 @@ export const AuthProvider = ({ children }) => {
     return newDeviceId;
   });
 
+  // State to manage the 'use_device_settings' toggle, specific to the device form
+  // This will control if device overrides are active or if global settings are read-only.
+  const [useDeviceSettings, setUseDeviceSettings] = useState(() => {
+    // Initialize from localStorage
+    const storedDeviceEnabled = localStorage.getItem('use_device_settings_override');
+    if (storedDeviceEnabled) {
+      return storedDeviceEnabled;
+    }
+    localStorage.setItem('use_device_settings_override', false);
+    return false;
+  });
+
   // State to hold all tiered settings with metadata
   const [settings, setSettings] = useState({}); // Tiered settings (name: value)
   const [rawSettingsList, setRawSettingsList] = useState([]); // List of full setting objects with metadata
@@ -55,13 +67,20 @@ export const AuthProvider = ({ children }) => {
   const fetchSettings = useCallback(async (authToken) => {
     // Only fetch settings if there's an authentication token
     if (!authToken) {
+      console.log('not authorized for some reason')
       setSettings({});
       setRawSettingsList([]);
       return;
     }
+    let endpoint = `/api/settings/`;
     try {
       // Pass device_id as a query parameter for tiered settings
-      const response = await fetch(`/api/settings/?device_id=${deviceId}`, {
+      if (useDeviceSettings === true) {
+        endpoint = `/api/settings/?device_id=${deviceId}`;
+      } else {
+        endpoint = `/api/settings/`;
+      }
+      const response = await fetch(endpoint, {
         headers: {
           'Authorization': `Bearer ${authToken}` // Use provided token for this fetch
         }
@@ -72,13 +91,9 @@ export const AuthProvider = ({ children }) => {
 
         // Transform the list into a simple name-value map for easy access in components
         const newSettingsMap = {};
-        // Ensure that `sidebar_left_enabled` and `sidebar_right_enabled` are parsed correctly
+
         data.forEach(setting => {
-          if (setting.name === 'sidebar_left_enabled' || setting.name === 'sidebar_right_enabled' || setting.input_type === 'switch') {
-            newSettingsMap[setting.name] = setting.value.toLowerCase() === 'true';
-          } else {
-            newSettingsMap[setting.name] = parseSettingValue(setting.value, setting.input_type);
-          }
+          newSettingsMap[setting.name] = parseSettingValue(setting.value, setting.input_type);
         });
         setSettings(newSettingsMap); // Store the processed values
       } else {
@@ -229,7 +244,8 @@ export const AuthProvider = ({ children }) => {
     login, // The centralized login function
     logout,
     fetchSettings, // Expose fetchSettings for manual refresh if needed
-  }), [token, user, isAuthenticated, isAdmin, loading, error, deviceId, settings, rawSettingsList, login, logout, fetchSettings]);
+    useDeviceSettings,
+  }), [token, user, isAuthenticated, isAdmin, loading, error, deviceId, settings, rawSettingsList, login, logout, fetchSettings, useDeviceSettings]);
 
   return (
     <AuthContext.Provider value={contextValue}>

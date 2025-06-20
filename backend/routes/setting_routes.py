@@ -20,18 +20,6 @@ def read_all_global_settings(
     settings = db.query(models.Setting).offset(skip).limit(limit).all()
     return settings
 
-@router.post("/settings/", response_model=schemas.Setting, status_code=status.HTTP_201_CREATED)
-def create_setting(setting: schemas.SettingCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_admin_user)):
-    # Creates a new global setting. Only accessible by admin users.
-    # FIX THIS
-    # Not likely to need setting creation (see delete function lower down)
-
-    db_setting = models.Setting(**setting.dict())
-    db.add(db_setting)
-    db.commit()
-    db.refresh(db_setting)
-    return db_setting
-
 @router.get("/settings/", response_model=List[schemas.Setting])
 def read_settings_tiered(
     db: Session = Depends(database.get_db),
@@ -41,7 +29,16 @@ def read_settings_tiered(
     # Retrieves a consolidated list of settings with full metadata,
     # applying a tiered fallback: Device-specific value -> Global value.
 
-    # Fetch all global settings first, as these contain the metadata (display_name, input_type, etc.)
+    # If device ID given, validate existance of device settings. Create if needed.
+    if device_id:
+        user_settings = db.query(models.Setting).filter_by(admin_only=False).all()
+        for d in user_settings:
+            device_setting = db.query(models.DeviceSetting).filter_by(device_id=device_id, name=d.name).first()
+            if not device_setting:
+                add_device_setting = models.DeviceSetting(name=d.name, user_id=current_user.id, value=d.value, device_id=device_id)
+                db.add(add_device_setting)
+        db.commit()
+
     global_settings_map = {s.name: s for s in db.query(models.Setting).all()}
 
     # Create a list to hold the final tiered settings (schema objects)
@@ -74,17 +71,6 @@ def read_settings_tiered(
 
     return list(tiered_settings_map_by_name.values())
 
-@router.get("/settings/{setting_id}", response_model=schemas.Setting)
-def read_setting(setting_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_admin_user)):
-    # Retrieves a single global setting by ID. Only accessible by admin users.
-    # FIX THIS
-    # Probably not needed, most code should have access to all settings
-
-    db_setting = db.query(models.Setting).filter(models.Setting.id == setting_id).first()
-    if db_setting is None:
-        raise HTTPException(status_code=404, detail="Setting not found")
-    return db_setting
-
 @router.put("/settings/{setting_id}", response_model=schemas.Setting)
 def update_setting(setting_id: int, setting: schemas.SettingUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_admin_user)):
     # Updates an existing global setting. Only accessible by admin users.
@@ -98,19 +84,6 @@ def update_setting(setting_id: int, setting: schemas.SettingUpdate, db: Session 
     db.commit()
     db.refresh(db_setting)
     return db_setting
-
-@router.delete("/settings/{setting_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_setting(setting_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_admin_user)):
-    # Deletes a global setting. Only accessible by admin users.
-    # FIX THIS
-    # Not needed? why would I delete a setting
-
-    db_setting = db.query(models.Setting).filter(models.Setting.id == setting_id).first()
-    if db_setting is None:
-        raise HTTPException(status_code=404, detail="Setting not found")
-    db.delete(db_setting)
-    db.commit()
-    return
 
 # --- DeviceSetting Endpoints ---
 

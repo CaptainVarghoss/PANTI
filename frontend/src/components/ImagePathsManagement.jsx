@@ -216,18 +216,11 @@ function ImagePathsManagement({ onBack }) {
   };
 
   return (
-    <div className="image-paths-container">
-      <div className="image-paths-header">
-        <button
-          onClick={onBack}
-          className="settings-back-button"
-        >
-          <svg className="image-paths-back-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
-          Back
-        </button>
-        <h3 className="image-paths-title">Manage Folders (Image Paths)</h3>
-      </div>
-
+    <div className="settings-panel-content">
+      <button onClick={onBack} className="settings-back-button">
+        ← Back to Main Menu
+      </button>
+      <h3 className="settings-section-title">Manage Folders (Image Paths)</h3>
       {message && (
         <div className="message-box message-success animate-fade-in">
           <svg className="message-icon" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path></svg>

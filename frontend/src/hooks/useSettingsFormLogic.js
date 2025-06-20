@@ -10,21 +10,13 @@ import { useAuth } from '../context/AuthContext';
  * @param {string} [deviceId] - Required if formType is 'device'. The unique ID of the device.
  * @returns {object} An object containing states and handlers needed by the settings forms.
  */
-function useSettingsFormLogic(formType, deviceId = null) {
-  const { user, token, isAdmin, isAuthenticated, loading: authLoading, fetchSettings } = useAuth();
+function useSettingsFormLogic(formType, deviceId = null, useDeviceSettings) {
+  const { user, token, isAdmin, isAuthenticated, loading: authLoading, fetchSettings, settings } = useAuth();
 
   const [settingsList, setSettingsList] = useState([]); // List of full setting objects (Global or Device-accessible)
   const [loadingLocal, setLoadingLocal] = useState(true);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-
-  // State to manage the global 'use_device_settings' toggle, specific to the device form
-  // This will control if device overrides are active or if global settings are read-only.
-  const [useDeviceSettingsOverrideEnabled, setUseDeviceSettingsOverrideEnabled] = useState(() => {
-    // Initialize from localStorage
-    const storedValue = localStorage.getItem('use_device_settings_override');
-    return storedValue === 'true'; // Default to false if not found or invalid
-  });
 
   // States for individual boolean/custom switches, dynamically updated
   const [switchStates, setSwitchStates] = useState({});
@@ -59,7 +51,7 @@ function useSettingsFormLogic(formType, deviceId = null) {
         setLoadingLocal(false);
         return;
       }
-      endpoint = '/api/global-settings/';
+      endpoint = '/api/settings/';
     } else if (formType === 'device') {
       if (!deviceId) {
         setError("Device ID is missing for device settings.");
@@ -68,8 +60,9 @@ function useSettingsFormLogic(formType, deviceId = null) {
       }
       // For device settings, we fetch the tiered settings which include global,
       // and device overrides if 'use_device_settings' is true.
-      if (useDeviceSettingsOverrideEnabled) {
+      if (useDeviceSettings) {
         endpoint = `/api/settings/?device_id=${deviceId}`;
+        // NO console.log('Is it here?')
       } else {
         endpoint = `/api/settings/`; // Request only global settings
       }
@@ -124,7 +117,7 @@ function useSettingsFormLogic(formType, deviceId = null) {
     } finally {
       setLoadingLocal(false);
     }
-  }, [formType, user, token, isAdmin, isAuthenticated, deviceId, authLoading, parseBooleanSetting, parseNumberSetting]);
+  }, [formType, user, token, settings, isAdmin, isAuthenticated, deviceId, authLoading, parseBooleanSetting, parseNumberSetting]);
 
 
   useEffect(() => {
@@ -193,7 +186,7 @@ function useSettingsFormLogic(formType, deviceId = null) {
         requestBody = { name: settingName, value: actualValueToSave };
     } else if (formType === 'device') {
         // Only allow updates if device settings are enabled
-        if (!useDeviceSettingsOverrideEnabled) {
+        if (!useDeviceSettings) {
             setError("Device-specific settings are disabled. Please enable the toggle to make changes.");
             console.warn("Attempted to update device settings when the override toggle is off.");
             return;
@@ -203,7 +196,7 @@ function useSettingsFormLogic(formType, deviceId = null) {
             return;
         }
         // For device settings, check if it exists, then PUT/POST
-        const existingDeviceSettingResponse = await fetch(`/api/devicesettings/?user_id=${user.id}&device_id=${deviceId}&name=${settingName}`, {
+        const existingDeviceSettingResponse = await fetch(`/api/devicesettings/?device_id=${deviceId}&name=${settingName}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const existingDeviceSettingData = await existingDeviceSettingResponse.json();
@@ -233,7 +226,7 @@ function useSettingsFormLogic(formType, deviceId = null) {
         setMessage(`Setting '${settingMetadata.display_name}' updated successfully!`);
         console.log(`useSettingsFormLogic (${formType}): Successfully updated ${settingName}.`);
         await fetchCurrentSettings(); // Re-fetch to update local state and reflect changes
-        await fetchSettings(); // Also refresh the AuthContext settings
+        await fetchSettings(token); // Also refresh the AuthContext settings
 
       } else {
         const errorData = await response.json();
@@ -245,22 +238,22 @@ function useSettingsFormLogic(formType, deviceId = null) {
       console.error(`useSettingsFormLogic (${formType}): Network error or failed to update setting:`, err);
       setError('Network error or failed to update setting.');
     }
-  }, [formType, user, token, isAdmin, isAuthenticated, deviceId, settingsList, fetchCurrentSettings, fetchSettings, useDeviceSettingsOverrideEnabled]);
+  }, [formType, user, token, isAdmin, isAuthenticated, deviceId, settingsList, fetchCurrentSettings, fetchSettings, useDeviceSettings]);
 
 
-  // New toggle handler for the 'use_device_settings' global setting
+  // Toggle handler for the 'use_device_settings' global setting
   const handleUseDeviceSettingsOverrideToggle = useCallback(async () => {
     setMessage('');
     setError('');
 
-    const newValue = !useDeviceSettingsOverrideEnabled;
+    const newValue = !useDeviceSettings;
     localStorage.setItem('use_device_settings_override', newValue ? 'true' : 'false');
     setUseDeviceSettingsOverrideEnabled(newValue);
     setMessage(`'Use Device Specific Settings' set to ${newValue ? 'Enabled' : 'Disabled'}.`);
 
-    await fetchSettings();
+    await fetchSettings(token);
     await fetchCurrentSettings();
-  }, [useDeviceSettingsOverrideEnabled, fetchCurrentSettings, fetchSettings]);
+  }, [useDeviceSettings, fetchCurrentSettings, fetchSettings]);
 
   // Generic toggle handler for single boolean switches
   const handleBooleanToggle = useCallback((settingName) => () => {
@@ -324,13 +317,13 @@ function useSettingsFormLogic(formType, deviceId = null) {
     switchStates,
     textInputStates,
     numberInputStates,
-    useDeviceSettingsOverrideEnabled, // Export the new state
+    useDeviceSettings, // Export the new state
     handleBooleanToggle,
     handleTextInputChange,
     handleTextInputBlur,
     handleNumberInputChange,
     handleNumberInputBlur,
-    handleUseDeviceSettingsOverrideToggle, // Export the new handler
+    handleUseDeviceSettingsOverrideToggle, // Export the handler
     isAuthenticated, // Export for conditional rendering in components
     isAdmin // Export for conditional rendering in components
   };

@@ -36,7 +36,6 @@
 }
 
 html, body {
-  overflow-y: scroll; /* Ensure scrollbar is always there for content, but we'll hide it */
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
 }

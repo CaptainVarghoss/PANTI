@@ -27,7 +27,7 @@ function DeviceSpecificSettingsForm({ onBack, onClose }) {
     switchStates,
     textInputStates,
     numberInputStates,
-    useDeviceSettingsOverrideEnabled,
+    useDeviceSettings,
     handleBooleanToggle,
     handleTextInputChange,
     handleTextInputBlur,
@@ -77,14 +77,14 @@ function DeviceSpecificSettingsForm({ onBack, onClose }) {
           <Tooltip content="When enabled, these settings will override global defaults for this specific device. When disabled, this device will use global settings." />
         </label>
         <Switch
-          isOn={useDeviceSettingsOverrideEnabled}
+          isOn={useDeviceSettings}
           handleToggle={handleUseDeviceSettingsOverrideToggle}
           label=""
         />
       </div>
 
       <p className="device-settings-info-text">
-        {useDeviceSettingsOverrideEnabled
+        {useDeviceSettings
           ? "Device-specific settings are active. Changes made here will override global settings."
           : "Device-specific settings are currently disabled. This device is using global settings (read-only mode). Toggle the switch above to enable editing."}
       </p>
@@ -96,7 +96,7 @@ function DeviceSpecificSettingsForm({ onBack, onClose }) {
             {settingsInGroup.map((setting) => (
               <div key={setting.id} className="settings-item">
                 {(() => {
-                  const isDisabled = !useDeviceSettingsOverrideEnabled || setting.admin_only;
+                  const isDisabled = !useDeviceSettings || setting.admin_only;
                   const commonProps = {
                     label: setting.display_name || setting.name.replace(/_/g, ' '),
                     disabled: isDisabled,
