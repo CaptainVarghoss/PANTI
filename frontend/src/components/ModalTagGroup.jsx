@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { MdEdit } from "react-icons/md";
+import { IoMdCloseCircle } from "react-icons/io";
+import tinycolor from 'tinycolor2';
 
 function ModalTagGroup({ searchTerm, setSearchTerm, currentImage, onClose }) {
     const { token, isAuthenticated, settings, isAdmin } = useAuth();
@@ -12,6 +14,8 @@ function ModalTagGroup({ searchTerm, setSearchTerm, currentImage, onClose }) {
     const [tagUpdateError, setTagUpdateError] = useState('');
     const [imageTags, setImageTags] = useState([]);
     const [showEdit, setShowEdit] = useState(false);
+
+    const canModifyTags = isAdmin || (settings?.allow_tag_add === true);
 
     let relevantTags = allAvailableTags
     if (currentImage) {
@@ -129,13 +133,15 @@ function ModalTagGroup({ searchTerm, setSearchTerm, currentImage, onClose }) {
             // remove tag
 
         } else {
-            e.preventDefault();
             setSearchTerm(`TAG: ${tag.name}`);
+            if (onClose) {
+                onClose();
+            }
         }
     }
 
     const handleAddTag = useCallback(async (tagId) => {
-        if (isAdmin && tagId && currentImage) { // Ensure currentImage exists
+        if (canModifyTags && tagId && currentImage) { // Ensure currentImage exists
             const tagToAdd = allAvailableTags.find(tag => tag.id === tagId);
 
             if (tagToAdd && !imageTags.some(tag => tag.id === tagId)) {
@@ -152,7 +158,7 @@ function ModalTagGroup({ searchTerm, setSearchTerm, currentImage, onClose }) {
     }, [isAdmin, allAvailableTags, imageTags, currentImage]);
 
     const handleRemoveTag = useCallback(async (tagId) => {
-        if (isAdmin && tagId && currentImage) {
+        if (canModifyTags && tagId && currentImage) {
             const tagToRemove = imageTags.find(tag => tag.id === tagId);
 
             if (tagToRemove) {
@@ -173,62 +179,104 @@ function ModalTagGroup({ searchTerm, setSearchTerm, currentImage, onClose }) {
         }
     }, [isAdmin, imageTags, allAvailableTags, currentImage, handleSaveTags]);
 
+    const getTagStyles = useCallback((baseColor) => {
+        const color = tinycolor(baseColor); // tinycolor can parse named colors, hex, rgb, etc.
+
+        // Default styles if color is invalid or cannot be parsed
+        if (!color.isValid()) {
+            console.warn(`Invalid color provided: ${baseColor}. Using default styles.`);
+            return {
+                backgroundColor: 'rgba(128, 128, 128, 0.4)',
+                color: 'rgba(0, 0, 0, 0.9)',
+                borderColor: 'rgba(128, 128, 128, 0.9)',
+                borderWidth: '1px',
+                borderStyle: 'solid',
+            };
+        }
+
+        return {
+            backgroundColor: color.setAlpha(1).toRgbString(),   // 20% opacity for background
+            color: color.darken(30).setAlpha(1).toRgbString(),             // 80% opacity for text (more vibrant)
+            borderColor: color.darken(60).setAlpha(1).toRgbString(),      // 50% opacity for border
+            borderWidth: '1px',
+            borderStyle: 'solid',
+        };
+    }, []);
+
     return (
         <div className="modal-tags-section">
-            <div className="">
+            <div className="modal-tag-container">
                 <div className="modal-tag-header">
                     <h4 className="modal-section-subtitle">Tags</h4>
-                    {isAdmin &&
-                        <button onClick={handleShowEdit}>
+                </div>
+                <div className="modal-tag-box">
+                    <div className="modal-current-tags">
+                        {relevantTags && relevantTags.length > 0 ? (
+                            relevantTags.map(tag => {
+                                const styles = getTagStyles(tag.color); // Get dynamic styles
+                                return (
+                                    <span
+                                        key={tag.id}
+                                        onClick={() => handleTagClick(tag)}
+                                        className="modal-tag-pill"
+                                        style={styles} // Apply the dynamic styles
+                                    >
+                                        {tag.name}
+                                        {showEdit && canModifyTags &&
+                                            <button
+                                                className="modal-tag-pill-edit"
+                                                onClick={(e) => {
+                                                    e.stopPropagation(); // Prevent parent span's onClick
+                                                    handleRemoveTag(tag.id);
+                                                }}
+                                            >
+                                                <IoMdCloseCircle size={20} /> {/* Example icon */}
+                                            </button>
+                                        }
+                                    </span>
+                                );
+                            })
+                        ) : (
+                            <p className="modal-text-gray">No tags assigned.</p>
+                        )}
+                    </div>
+                    {showEdit && canModifyTags &&
+                        <div className="modal-add-tags">
+                            <div className="modal-add-tag-header">
+                                <h4>Available Tags</h4>
+                            </div>
+                            <div className="modal-add-tag-tags">
+                                {allAvailableTags && allAvailableTags.length > 0 ? (
+                                    allAvailableTags.map(tag => {
+                                        const styles = getTagStyles(tag.color); // Get dynamic styles
+                                        return (
+                                            <span
+                                                key={tag.id}
+                                                onClick={() => handleAddTag(tag.id)}
+                                                className="modal-tag-pill add-tag-pill"
+                                                style={styles} // Apply the dynamic styles
+                                            >
+                                                {tag.name}
+                                            </span>
+                                        );
+                                    })
+                                ) : (
+                                    <p className="modal-text-gray">No more tags to add.</p>
+                                )}
+                            </div>
+                        </div>
+                    }
+                </div>
+                <div className="modal-tag-edit">
+                    {canModifyTags &&
+                        <button className="icon-button" onClick={handleShowEdit}>
                             <MdEdit size={20} />
                         </button>
                     }
                 </div>
-                <div className="modal-current-tags">
-                    {relevantTags && relevantTags.length > 0 ? (
-                        relevantTags.map(tag => (
-                            <span
-                                key={tag.id}
-                                onClick={(e) => { e.preventDefault(); setSearchTerm(`TAG: ${tag.name}`); onClose();}}
-                                className="modal-tag-pill"
-                                style={{ backgroundColor: tag.color, color: tag.text_color }}
-                            >
-                                {tag.name}
-                                {showEdit &&
-                                    <button
-                                        className="modal-tag-pill-edit"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleRemoveTag(tag.id);
-                                        }}
-                                    >X
-                                    </button>
-                                }
-                            </span>
-                        ))
-                    ) : (
-                        <p className="modal-text-gray">No tags assigned.</p>
-                    )}
-                </div>
-                {showEdit &&
-                    <div className="modal-current-tags modal-add-tags">
-                        {allAvailableTags && allAvailableTags.length > 0 &&
-                            allAvailableTags.map(tag => (
-                                <span
-                                    key={tag.id}
-                                    onClick={() => handleAddTag(tag.id)}
-                                    className="modal-tag-pill"
-                                    style={{ backgroundColor: tag.color, color: tag.text_color }}
-                                >
-                                    {tag.name}
-                                </span>
-                            ))
-                        }
-                    </div>
-                }
             </div>
         </div>
-    )
-}<p className="modal-text-gray">No tags assigned.</p>
+    );
+}
 
 export default ModalTagGroup;
