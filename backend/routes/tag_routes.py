@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 
 import auth
 import database
@@ -32,10 +32,23 @@ def create_tag(tag: schemas.TagCreate, db: Session = Depends(database.get_db), c
     return db_tag
 
 @router.get("/tags/", response_model=List[schemas.Tag])
-def read_tags(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db)):
-    # Retrieves a list of tags. Accessible by all.
+def read_tags(
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+    imageId: Optional[int] = Query(None, description="ID of specific image to get related tags.")
+):
+    # retrieves a list of tags.
+    # If ID is None, returns all tags filtered by admin_only if non-admin
+    if not imageId:
+        tags = db.query(models.Tag)
 
-    tags = db.query(models.Tag).offset(skip).limit(limit).all()
+        if not current_user.admin:
+            tags = tags.filter_by(admin_only=False)
+
+    else:
+        image = db.query(models.Image).filter_by(id=imageId).first()
+        tags = image.tags
+
     return tags
 
 @router.get("/tags/{tag_id}", response_model=schemas.Tag)

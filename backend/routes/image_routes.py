@@ -153,11 +153,11 @@ def read_images(
         # Check if thumbnail exists, if not, trigger generation in background
         # FIX THIS
         # Thumbnail/preview generators should be called and check for themselves
-        expected_thumbnail_path = os.path.join(actual_path, thumbnails_path, f"{img.checksum}_thumb.webp")
+        expected_thumbnail_path = os.path.join(config.THUMBNAILS_DIR, f"{img.checksum}_thumb.webp")
         if not os.path.exists(expected_thumbnail_path):
             print(f"Thumbnail for {img.filename} (ID: {img.id}) not found. Triggering background generation.")
-            # Ensure original_filepath is extracted from meta
-            original_filepath = json.loads(img.meta).get("original_filepath") if img.meta else None
+
+            original_filepath = os.path.join(img.path, img.filename)
             if original_filepath and Path(original_filepath).is_file():
                 thread = threading.Thread(
                     target=image_processor.generate_thumbnail_in_background,
@@ -204,6 +204,7 @@ def read_image(
     # FIX THIS
     # shouldn't need these paths, thumbnail and preview generators can have them instead
     static_path = os.path.join(config.STATIC_FILES_URL_PREFIX, config.GENERATED_MEDIA_DIR_NAME)
+    actual_path = os.path.join(config.STATIC_DIR, config.GENERATED_MEDIA_DIR_NAME)
     thumbnails_path = os.path.join(static_path, config.THUMBNAILS_DIR_NAME)
     previews_path = os.path.join(static_path, config.PREVIEWS_DIR_NAME)
 
@@ -232,10 +233,11 @@ def read_image(
     # Check if thumbnail exists, if not, trigger generation in background
     # FIX THIS
     # Thumbnail/preview generators should be called and check for themselves
-    expected_thumbnail_path = os.path.join(thumbnails_path, f"{db_image.checksum}_thumb.webp")
+    expected_thumbnail_path = os.path.join(config.THUMBNAILS_DIR, f"{db_image.checksum}_thumb.webp")
+    print(expected_thumbnail_path)
     if not os.path.exists(expected_thumbnail_path):
         print(f"Thumbnail for {db_image.filename} (ID: {db_image.id}) not found. Triggering background generation.")
-        original_filepath = json.loads(db_image.meta).get("original_filepath") if db_image.meta else None
+        original_filepath = os.path.join(db_image.path, db_image.filename)
         if original_filepath and Path(original_filepath).is_file():
             thread = threading.Thread(
                 target=image_processor.generate_thumbnail_in_background,

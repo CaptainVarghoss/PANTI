@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'; // To check user roles for adm
 import ImagePathsManagement from './ImagePathsManagement';
 import DeviceSpecificSettingsForm from './DeviceSpecificSettingsForm';
 import GlobalSettingsForm from './GlobalSettingsForm';
+import TagGroup from './TagGroup';
 
 /**
  * A reusable Sidebar component that slides in and out using standard CSS.
@@ -12,7 +13,7 @@ import GlobalSettingsForm from './GlobalSettingsForm';
  * @param {boolean} props.isOpen - Controls the visibility of the sidebar.
  * @param {function} props.onClose - Callback function to close the sidebar.
  */
-function Sidebar({ isOpen, onClose, side, subPanel, setSubPanel }) {
+function Sidebar({ isOpen, onClose, side, subPanel, setSubPanel, sortBy, setSortBy, sortOrder, setSortOrder, searchTerm, setSearchTerm }) {
   const { isAdmin, isAuthenticated, logout } = useAuth(); // Get admin status from AuthContext
   const sidebarClasses = `sidebar sidebar--${side} ${isOpen ? `sidebar--${side}--open` : ''}`;
   const overlayClasses = `sidebar-overlay ${isOpen ? 'sidebar-overlay--visible' : ''}`;
@@ -59,12 +60,39 @@ function Sidebar({ isOpen, onClose, side, subPanel, setSubPanel }) {
           </button>
         </div>
 
+        <div className="sidebar-subheader">
+          <div className="navbar-search-select">
+                <select
+                    className="sort-by"
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                >
+                    <option value="date_created">Sort by Date</option>
+                    <option value="filename">Sort by Filename</option>
+                    <option value="checksum">Sort by Checksum</option>
+                </select>
+            </div>
+            <div className="navbar-search-select">
+                <select
+                    className="sort-order"
+                    value={sortOrder}
+                    onChange={(e) => setSortOrder(e.target.value)}
+                >
+                    <option value="desc">Descending</option>
+                    <option value="asc">Ascending</option>
+                </select>
+            </div>
+        </div>
+
         <div className="sidebar-panel-wrapper">
           <div className={`sidebar-panel
             ${subPanel === 'menu' ? (side === 'left' ? 'panel-slide-in-from-left' : 'panel-slide-in-from-right') : (side === 'left' ? 'panel-slide-out-to-left' : 'panel-slide-out-to-right')}
             ${subPanel === 'menu' ? 'panel-active' : 'panel-inactive'}`}
           >
             <nav className="sidebar-nav">
+              <div className="sidebar-tags">
+                <TagGroup searchTerm={searchTerm} setSearchTerm={setSearchTerm} onClose={onClose} />
+              </div>
               <a href="#" onClick={handleShowFolders} className="sidebar-link">Manage Folders</a>
 
               <a href="#" onClick={handleShowSettings} className="sidebar-link">Settings</a>

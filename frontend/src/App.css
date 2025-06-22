@@ -119,14 +119,34 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
 }
 
 .navbar-search {
+  position: relative;
   display: flex;
   flex-grow: 1;
 
 }
 
 .navbar-search .search-bar {
+  padding-right: 3rem;
   width: 100%;
   height: 1.5rem;
+}
+
+.clear-search-button {
+    position: absolute;
+    right: 5px; /* Adjust as needed */
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #888; /* Example color */
+    display: flex; /* To center icon if it's the only content */
+    align-items: center;
+    justify-content: center;
+    height: 100%; /* Or fixed height to align with input */
+    padding: 0;
+}
+
+.clear-search-button:hover {
+    color: #333;
 }
 
 /* --- SideBar Styles --- */
@@ -181,12 +201,13 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
 
 
 .sidebar-header {
-  padding: 1rem;
+  padding: 0.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid #4a5568;
   flex-shrink: 0;
+  height: 2rem;
 }
 
 /* Specific header styles based on side */
@@ -194,8 +215,17 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
   display: flex;
 }
 
+.sidebar-header--left .navbar-toggle-button {
+  margin-left: 1rem;
+}
+
 .sidebar-header--right {
   display: flex;
+  justify-content: right;
+}
+
+.sidebar-header--right .navbar-toggle-button {
+  margin-right: 1rem;
 }
 
 .sidebar-title {
@@ -287,6 +317,12 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+}
+
+.sidebar-tags {
+  margin-top: 1rem;
+  margin-inline: auto;
+  padding: 0.5rem;
 }
 
 .sidebar-link {
@@ -1186,6 +1222,18 @@ div.image-card {
     border-bottom-right-radius: 1rem;
 }
 
+.modal-tag-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: -0.5rem;
+}
+
+.modal-tag-header button {
+  border-radius: 30rem;
+  background-color: transparent;
+}
+
 .modal-section-subtitle {
     margin-top: 0;
     font-size: 1.125rem;
@@ -1244,17 +1292,31 @@ div.image-card {
 }
 
 .modal-current-tags {
-    margin-top: 0.5rem; /* mt-2 */
+    justify-content: center;
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem; /* gap-2 */
+    gap: 0.5rem;
+}
+
+.modal-add-tags {
+  padding-top: 1rem;
 }
 
 .modal-tag-pill {
-    padding: 0.25rem 0.5rem; /* px-2 py-1 */
+    padding: 0.4rem 1rem; /* px-2 py-1 */
     border-radius: 9999px; /* rounded-full */
-    font-size: 0.75rem; /* text-xs */
+    font-size: 0.9rem; /* text-xs */
     font-weight: 600; /* font-semibold */
+}
+
+.modal-tag-pill-edit {
+  font-size: 0.75rem;
+  width:1.25rem;
+  padding:0.2rem;
+  margin-left:0.4rem;
+  margin-right:-0.4rem;
+  background-color: rgba(0, 0, 0, 0.5);
+  border-radius: 60rem;
 }
 
 .modal-metadata-box {

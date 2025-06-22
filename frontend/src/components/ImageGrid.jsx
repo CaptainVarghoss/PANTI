@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext'; // To get token and settings f
  * Component to display the image gallery with infinite scrolling using cursor-based pagination.
  * Fetches image data from the backend in pages and appends them.
  */
-function ImageGrid({ searchTerm, sortBy, sortOrder }) {
+function ImageGrid({ searchTerm, setSearchTerm, sortBy, sortOrder }) {
   const { token, isAuthenticated, settings } = useAuth();
   const [images, setImages] = useState([]);
   const [imagesLoading, setImagesLoading] = useState(true); // For initial load state
@@ -227,6 +227,8 @@ function ImageGrid({ searchTerm, sortBy, sortOrder }) {
           currentImage={selectedImage}
           images={images} // Pass the entire image list for navigation
           onNavigate={handleModalNavigate} // Callback for next/prev buttons in modal
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
         />
       )}
     </>

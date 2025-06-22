@@ -16,9 +16,8 @@ import NavSearchBar from './NavSearchBar'; // Assuming NavSearchBar is in compon
 function Navbar({
   toggleLeftSidebar,
   toggleRightSidebar,
-  initialSearchTerm,
-  initialSortBy,
-  initialSortOrder,
+  searchTerm,
+  setSearchTerm,
   onSearchAndSortChange,
 }) {
   const { isAuthenticated, user, logout, isAdmin, settings } = useAuth();
@@ -40,9 +39,8 @@ function Navbar({
 
         {isAuthenticated && (
           <NavSearchBar
-            initialSearchTerm={initialSearchTerm}
-            initialSortBy={initialSortBy}
-            initialSortOrder={initialSortOrder}
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
             onSearchAndSortChange={onSearchAndSortChange}
           />
         )}

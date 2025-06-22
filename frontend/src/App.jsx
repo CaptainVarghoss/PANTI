@@ -1,6 +1,6 @@
 // frontend/src/App.jsx
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import ImageGrid from "./components/ImageGrid"; // Assuming ImageGrid is now a page component
@@ -91,6 +91,22 @@ const LogoutPage = () => {
   );
 };
 
+function useDebounce(value, delay) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
 function App() {
   const { isAuthenticated, loading } = useAuth();
   // States for search and sort
@@ -127,6 +143,16 @@ function App() {
     setIsRightSidebarOpen(false);
   };
 
+  const debouncedSearchTerm = useDebounce(searchTerm, 500); // Debounce search input by 500ms
+
+  // Effect to call the parent's callback when debounced search term or sort options change
+  useEffect(() => {
+      // Only call if the callback exists and is a function
+      if (typeof handleSearchAndSortChange === 'function') {
+          handleSearchAndSortChange(debouncedSearchTerm, sortBy, sortOrder);
+      }
+  }, [debouncedSearchTerm, sortBy, sortOrder, handleSearchAndSortChange]);
+
   if (loading) {
     return (
       <div className="loading-full-page">
@@ -142,13 +168,38 @@ function App() {
           <Navbar
             toggleLeftSidebar={toggleLeftSidebar}
             toggleRightSidebar={toggleRightSidebar}
-            initialSearchTerm={searchTerm}
-            initialSortBy={sortBy}
-            initialSortOrder={sortOrder}
+            searchTerm={searchTerm}
             onSearchAndSortChange={handleSearchAndSortChange}
+            setSearchTerm={setSearchTerm}
           />
-          <SideBar isOpen={isLeftSidebarOpen} onClose={closeAllSidebars} side="left" subPanel={currentSubPanel} setSubPanel={setCurrentSubPanel} />
-          <SideBar isOpen={isRightSidebarOpen} onClose={closeAllSidebars} side="right" subPanel={currentSubPanel} setSubPanel={setCurrentSubPanel} />
+          <SideBar
+            isOpen={isLeftSidebarOpen}
+            onClose={closeAllSidebars}
+            side="left"
+            subPanel={currentSubPanel}
+            setSubPanel={setCurrentSubPanel}
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            onSearchAndSortChange={handleSearchAndSortChange}
+            setSortBy={setSortBy}
+            setSortOrder={setSortOrder}
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+          />
+          <SideBar
+            isOpen={isRightSidebarOpen}
+            onClose={closeAllSidebars}
+            side="right"
+            subPanel={currentSubPanel}
+            setSubPanel={setCurrentSubPanel}
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            onSearchAndSortChange={handleSearchAndSortChange}
+            setSortBy={setSortBy}
+            setSortOrder={setSortOrder}
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+          />
         </>
       }
       <div className="app-content"> {/* Main content area where routes are rendered */}
@@ -167,6 +218,7 @@ function App() {
                 searchTerm={searchTerm}
                 sortBy={sortBy}
                 sortOrder={sortOrder}
+                setSearchTerm={setSearchTerm}
               />
             } />
           </Route>
