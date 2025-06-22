@@ -59,46 +59,67 @@ function Sidebar({ isOpen, onClose, side, subPanel, setSubPanel, sortBy, setSort
             </svg>
           </button>
         </div>
-
-        <div className="sidebar-subheader">
-          <div className="navbar-search-select">
-                <select
-                    className="sort-by"
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                >
-                    <option value="date_created">Sort by Date</option>
-                    <option value="filename">Sort by Filename</option>
-                    <option value="checksum">Sort by Checksum</option>
-                </select>
-            </div>
-            <div className="navbar-search-select">
-                <select
-                    className="sort-order"
-                    value={sortOrder}
-                    onChange={(e) => setSortOrder(e.target.value)}
-                >
-                    <option value="desc">Descending</option>
-                    <option value="asc">Ascending</option>
-                </select>
-            </div>
-        </div>
-
         <div className="sidebar-panel-wrapper">
+
           <div className={`sidebar-panel
             ${subPanel === 'menu' ? (side === 'left' ? 'panel-slide-in-from-left' : 'panel-slide-in-from-right') : (side === 'left' ? 'panel-slide-out-to-left' : 'panel-slide-out-to-right')}
             ${subPanel === 'menu' ? 'panel-active' : 'panel-inactive'}`}
           >
             <nav className="sidebar-nav">
-              <div className="sidebar-tags">
-                <TagGroup searchTerm={searchTerm} setSearchTerm={setSearchTerm} onClose={onClose} />
+              <div className="filter-container">
+
+                <div className="sidebar-sort">
+                  <div className="sidebar-sort-section">
+                    <div className=""><h4 className="sidebar-sort-subtitle">Sort:</h4></div>
+                    <div className="navbar-search-select">
+                          <select
+                              className="sort-by"
+                              value={sortBy}
+                              onChange={(e) => setSortBy(e.target.value)}
+                          >
+                              <option value="date_created">Sort by Date</option>
+                              <option value="filename">Sort by Filename</option>
+                              <option value="checksum">Sort by Checksum</option>
+                          </select>
+                      </div>
+                      <div className="navbar-search-select">
+                          <select
+                              className="sort-order"
+                              value={sortOrder}
+                              onChange={(e) => setSortOrder(e.target.value)}
+                          >
+                              <option value="desc">Descending</option>
+                              <option value="asc">Ascending</option>
+                          </select>
+                      </div>
+                  </div>
+                </div>
+                <div className="sidebar-tags">
+                  <TagGroup searchTerm={searchTerm} setSearchTerm={setSearchTerm} onClose={onClose} setSubPanel={setSubPanel} />
+                </div>
+
               </div>
+
               <a href="#" onClick={handleShowFolders} className="sidebar-link">Manage Folders</a>
 
               <a href="#" onClick={handleShowSettings} className="sidebar-link">Settings</a>
 
               <button onClick={handleLogout} className="">Logout</button>
             </nav>
+          </div>
+
+          <div className={`sidebar-panel
+            ${subPanel === 'tagEdit' ? (side === 'left' ? 'panel-slide-in-from-left' : 'panel-slide-in-from-right') : (side === 'left' ? 'panel-slide-out-to-left' : 'panel-slide-out-to-right')}
+            ${subPanel === 'tagEdit' ? 'panel-active' : 'panel-inactive'}`}
+          >
+            <button onClick={handleBackToMenu} className="settings-back-button">
+              ← Back to Main Menu
+            </button>
+            <div className="sidebar-tag-edit">
+              <div className="sidebar-tag-edit-container">
+
+              </div>
+            </div>
           </div>
 
           <div className={`sidebar-panel

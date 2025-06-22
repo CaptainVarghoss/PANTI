@@ -319,10 +319,9 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
   gap: 0.5rem;
 }
 
-.sidebar-tags {
-  margin-top: 1rem;
-  margin-inline: auto;
-  padding: 0.5rem;
+.sidebar-tags, .sidebar-sort {
+  display: flex;
+  width: 100%;
 }
 
 .sidebar-link {
@@ -1212,8 +1211,7 @@ div.image-card {
     margin-bottom: 2rem;
 }
 
-.modal-tags-section, .modal-meta-section {
-  display: flex;
+.modal-tags-section, .modal-meta-section, .sidebar-tag-section, .sidebar-sort-section {
     margin-top: 2rem;
     padding: 1rem;
     background-color:#374151;
@@ -1223,6 +1221,21 @@ div.image-card {
     border-bottom-right-radius: 1rem;
 }
 
+.sidebar-tag-section, .sidebar-sort-section {
+  width:100%;
+  margin:0.5rem;
+  padding:0;
+  padding-inline: 0.5rem;
+}
+
+.sidebar-sort-section {
+  display: inline-flex;
+  justify-content: space-between;
+  padding: 0.5rem;
+  padding-inline: 1rem;
+  gap: 0.5rem;
+}
+
 .modal-tag-container {
   display: inline-flex;
   justify-content: space-between;
@@ -1230,34 +1243,42 @@ div.image-card {
   width: 100%;
 }
 
-.modal-tag-header {
+.modal-tag-header, .sidebar-tag-header {
   display: flex;
   justify-content: space-between;
   align-items: top;
 }
 
-.modal-tag-box {
+.modal-tag-box, .sidebar-tag-box {
   display: flex;
   flex-direction: column;
 }
 
-.modal-tag-edit {
+.modal-tag-edit, .sidebar-tag-edit {
   align-items: top;
   margin-top: -0.5rem;
   margin-right: -1rem;
   margin-left: 1rem;
 }
-.modal-tag-edit button {
+.modal-tag-edit button, .sidebar-tag-edit button {
   border-radius: 30rem;
   background-color: transparent;
 }
 
-.modal-section-subtitle {
+.modal-section-subtitle, .sidebar-sort-subtitle {
     margin-top: 0;
     font-size: 1.125rem;
     font-weight: 500;
     margin-bottom: 0.5rem;
     color: #e2e8f0;
+}
+
+.sidebar-section-subtitle {
+  margin-top:0.3rem;
+}
+
+.sidebar-sort-subtitle {
+  margin-bottom: 0;
 }
 
 .modal-text-gray {
@@ -1276,11 +1297,15 @@ div.image-card {
     margin-top: 0.5rem; /* mt-2 */
 }
 
-.modal-current-tags {
+.modal-current-tags, .sidebar-current-tags {
     justify-content: center;
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
+}
+
+.sidebar-current-tags {
+  padding-bottom: 1rem;
 }
 
 .modal-add-tags {
@@ -1312,7 +1337,7 @@ div.image-card {
   flex-wrap: wrap;
 }
 
-.modal-tag-pill {
+.modal-tag-pill, .sidebar-tag-pill {
     padding: 0.4rem 1rem;
     border-radius: 9999px;
     font-size: 0.9rem;
