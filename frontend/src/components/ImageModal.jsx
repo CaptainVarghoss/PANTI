@@ -175,6 +175,8 @@ function ImageModal({ isOpen, onClose, currentImage, images, onNavigate, searchT
         } else if (
             Math.abs(diffX) <= TAP_THRESHOLD && Math.abs(diffY) <= TAP_THRESHOLD) {
             // It's a tap, so close the modal
+            e.preventDefault();
+            e.stopPropagation();
             onClose();
         }
         setTouchStartX(0);
