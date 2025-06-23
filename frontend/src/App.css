@@ -319,7 +319,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
   gap: 0.5rem;
 }
 
-.sidebar-tags, .sidebar-sort {
+.sidebar-tags, .sidebar-sort, .tag-manager {
   display: flex;
   width: 100%;
 }
@@ -1211,7 +1211,7 @@ div.image-card {
     margin-bottom: 2rem;
 }
 
-.modal-tags-section, .modal-meta-section, .sidebar-tag-section, .sidebar-sort-section {
+.modal-tags-section, .modal-meta-section, .sidebar-tag-section, .sidebar-sort-section, .tag-manager-section {
     margin-top: 2rem;
     padding: 1rem;
     background-color:#374151;
@@ -1221,7 +1221,7 @@ div.image-card {
     border-bottom-right-radius: 1rem;
 }
 
-.sidebar-tag-section, .sidebar-sort-section {
+.sidebar-tag-section, .sidebar-sort-section, .tag-manager-section {
   width:100%;
   margin:0.5rem;
   padding:0;
@@ -1234,6 +1234,10 @@ div.image-card {
   padding: 0.5rem;
   padding-inline: 1rem;
   gap: 0.5rem;
+}
+
+.tag-manager-container {
+    width:100%;
 }
 
 .modal-tag-container {
@@ -1423,4 +1427,305 @@ div.image-card {
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background-color: #9ca3af; /* bg-gray-400 */
+}
+
+/* Tag Manager styles */
+.tag-manager-heading {
+    font-size: 1.875rem; /* Equivalent to text-3xl */
+    font-weight: 700; /* Equivalent to font-bold */
+    margin-bottom: 1.5rem; /* Equivalent to mb-6 */
+    text-align: center;
+}
+
+.tag-list-section {
+    display: flex;
+    flex-direction: column;
+    width:100%;
+    gap: 0.5rem; /* Equivalent to space-y-6 */
+    margin-bottom: 2rem; /* Equivalent to mb-8 */
+}
+
+.tag-item {
+    border: 1px solid #7c7b7b;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.tag-item-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.tag-display-group {
+    display: flex;
+    align-items: center;
+}
+
+.tag-color-circle {
+    display: inline-block;
+    width: 1rem; /* Equivalent to w-4 */
+    height: 1rem; /* Equivalent to h-4 */
+    border-radius: 9999px; /* Equivalent to rounded-full */
+    margin-right: 0.75rem; /* Equivalent to mr-3 */
+    border: 1px solid #e5e7eb; /* Added for better visibility of light colors */
+}
+
+.tag-icon {
+    width: 1.25rem; /* Equivalent to w-5 */
+    height: 1.25rem; /* Equivalent to h-5 */
+    margin-right: 0.5rem; /* Equivalent to mr-2 */
+    color: #4b5563; /* Equivalent to text-gray-600 */
+}
+
+.tag-name {
+    font-size: 1.125rem; /* Equivalent to text-lg */
+    font-weight: 500; /* Equivalent to font-medium */
+    color: #1f2937; /* Equivalent to text-gray-800 */
+}
+
+.tag-admin-badge {
+    margin-left: 0.75rem; /* Equivalent to ml-3 */
+    padding: 0.125rem 0.5rem; /* Equivalent to px-2 py-0.5 */
+    background-color: #f3e8ff; /* Equivalent to bg-purple-100 */
+    color: #6b21a8; /* Equivalent to text-purple-800 */
+    font-size: 0.75rem; /* Equivalent to text-xs */
+    font-weight: 600; /* Equivalent to font-semibold */
+    border-radius: 9999px; /* Equivalent to rounded-full */
+}
+
+.button {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0.75rem; /* px-3 py-1 */
+    border-radius: 0.375rem; /* rounded-md */
+    transition: all 150ms ease-in-out; /* transition duration-150 ease-in-out */
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
+    border: none;
+    cursor: pointer;
+    outline: none; /* remove default focus outline */
+}
+
+.button:focus {
+    box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px var(--focus-color); /* focus:ring-2 focus:ring-offset-2 */
+}
+
+.button-edit {
+    background-color: #f59e0b; /* bg-yellow-500 */
+}
+.button-edit:hover {
+    background-color: #d97706; /* hover:bg-yellow-600 */
+}
+.button-edit:focus {
+    --focus-color: #f59e0b; /* ring-yellow-500 */
+}
+
+.button-cancel {
+    background-color: #ef4444; /* bg-red-500 */
+}
+.button-cancel:hover {
+    background-color: #dc2626; /* hover:bg-red-600 */
+}
+.button-cancel:focus {
+    --focus-color: #ef4444; /* ring-red-500 */
+}
+
+.button-save {
+    background-color: #2563eb; /* bg-blue-600 */
+}
+.button-save:hover {
+    background-color: #1d4ed8; /* hover:bg-blue-700 */
+}
+.button-save:focus {
+    --focus-color: #2563eb; /* ring-blue-500 */
+}
+
+.button-add-new {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 0.75rem 1.5rem; /* px-6 py-3 */
+    background-color: #16a34a; /* bg-green-600 */
+    color: #ffffff;
+    font-size: 1.125rem; /* text-lg */
+    font-weight: 600; /* font-semibold */
+    border-radius: 0.375rem; /* rounded-md */
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+    border: none;
+    cursor: pointer;
+    transition: all 150ms ease-in-out;
+    outline: none;
+}
+.button-add-new:hover {
+    background-color: #15803d; /* hover:bg-green-700 */
+}
+.button-add-new:focus {
+    box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #16a34a; /* focus:ring-green-500 focus:ring-offset-2 */
+}
+
+.form-container {
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+}
+
+.form-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem; /* space-y-4 */
+}
+
+.form-heading {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.75rem;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+
+.form-input {
+    display: block;
+    width: 100%;
+    border: 1px solid #d1d5db; /* border border-gray-300 */
+    border-radius: 0.375rem; /* rounded-md */
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
+    padding: 0.5rem; /* p-2 */
+    box-sizing: border-box; /* Include padding in width */
+    outline: none; /* remove default focus outline */
+}
+.form-input:focus {
+    border-color: #3b82f6; /* focus:border-blue-500 */
+    box-shadow: 0 0 0 1px #3b82f6, 0 0 0 3px rgba(59, 130, 246, 0.2); /* focus:ring-blue-500 */
+}
+
+.form-input.new-tag:focus {
+    border-color: #16a34a; /* focus:border-green-500 */
+    box-shadow: 0 0 0 1px #16a34a, 0 0 0 3px rgba(22, 163, 74, 0.2); /* focus:ring-green-500 */
+}
+
+.color-input {
+    height: 2.5rem; /* h-10 */
+}
+
+.icon-input-group {
+    display: flex;
+    align-items: center;
+    margin-top: 0.25rem; /* mt-1 */
+}
+
+.icon-input-field {
+    flex-grow: 1;
+    border: 1px solid #d1d5db;
+    border-top-left-radius: 0.375rem;
+    border-bottom-left-radius: 0.375rem;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    padding: 0.5rem;
+    outline: none;
+}
+.icon-input-field:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 1px #3b82f6, 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+.icon-input-field.new-tag:focus {
+    border-color: #16a34a;
+    box-shadow: 0 0 0 1px #16a34a, 0 0 0 3px rgba(22, 163, 74, 0.2);
+}
+
+.icon-preview-box {
+    background-color: #e5e7eb; /* bg-gray-200 */
+    padding: 0.5rem; /* p-2 */
+    border-top-right-radius: 0.375rem;
+    border-bottom-right-radius: 0.375rem;
+    border: 1px solid #d1d5db;
+    border-left: none; /* border-l-0 */
+}
+.icon-preview-box .tag-icon {
+    margin: 0; /* Override default margin */
+}
+
+.checkbox-container {
+    display: flex;
+    align-items: center;
+}
+
+.checkbox-input {
+    height: 1rem;
+    width: 1rem;
+    color: #2563eb;
+    border-color: #d1d5db;
+    border-radius: 0.25rem;
+    outline: none;
+    cursor: pointer;
+}
+.checkbox-input:focus {
+    box-shadow: 0 0 0 1px #2563eb, 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+.checkbox-input.new-tag {
+    color: #16a34a;
+}
+.checkbox-input.new-tag:focus {
+    box-shadow: 0 0 0 1px #16a34a, 0 0 0 3px rgba(22, 163, 74, 0.2);
+}
+
+.checkbox-label {
+    margin-left: 0.5rem;
+    display: block;
+    font-size: 0.875rem;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+.loading-message, .error-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 1rem;
+    box-sizing: border-box;
+}
+
+.loading-message p {
+    color: #4b5563; /* text-gray-700 */
+    font-size: 1.125rem; /* text-lg */
+}
+
+.error-message {
+    background-color: #fee2e2; /* bg-red-100 */
+}
+.error-message p {
+    color: #b91c1c; /* text-red-700 */
+    font-size: 1.125rem;
+}
+
+/* Icon size for buttons */
+.button .tag-icon {
+    width: 1.25rem; /* h-5 */
+    height: 1.25rem; /* w-5 */
+    margin-right: 0.5rem; /* mr-2 */
+    color: currentColor; /* Inherit color from button text */
+}
+.button-edit .tag-icon {
+    width: 1rem; /* h-4 */
+    height: 1rem; /* w-4 */
+    margin-right: 0.25rem; /* mr-1 */
+}
+.button-add-new .tag-icon {
+    width: 1.5rem; /* h-6 */
+    height: 1.5rem; /* w-6 */
+    margin-right: 0.75rem; /* mr-3 */
 }

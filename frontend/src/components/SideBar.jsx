@@ -5,6 +5,7 @@ import ImagePathsManagement from './ImagePathsManagement';
 import DeviceSpecificSettingsForm from './DeviceSpecificSettingsForm';
 import GlobalSettingsForm from './GlobalSettingsForm';
 import TagGroup from './TagGroup';
+import TagManager from './TagManager';
 
 /**
  * A reusable Sidebar component that slides in and out using standard CSS.
@@ -115,9 +116,9 @@ function Sidebar({ isOpen, onClose, side, subPanel, setSubPanel, sortBy, setSort
             <button onClick={handleBackToMenu} className="settings-back-button">
               ← Back to Main Menu
             </button>
-            <div className="sidebar-tag-edit">
-              <div className="sidebar-tag-edit-container">
-
+            <div className="tag-manager">
+              <div className="tag-manager-section">
+                <TagManager />
               </div>
             </div>
           </div>

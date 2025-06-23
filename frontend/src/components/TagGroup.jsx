@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
-import Select from 'react-select';
 import { MdEdit } from "react-icons/md";
 import tinycolor from 'tinycolor2';
 
