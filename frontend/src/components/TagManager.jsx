@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ConfirmationDialog from './ConfirmDialog';
 import { getTagStyles } from '../helpers/color_helper';
 import { useAuth } from '../context/AuthContext';
 import { MdEdit } from "react-icons/md";
@@ -17,6 +18,8 @@ function TagManager() {
     const [newTag, setNewTag] = useState({ name: '', color: '#000000', icon: '', admin_only: false });
     const [isUpdatingTags, setIsUpdatingTags] = useState(false);
     const [error, setError] = useState(null);
+    const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+    const [tagToDelete, setTagToDelete] = useState('');
 
 
     const fetchAllTags = async () => {
@@ -78,6 +81,26 @@ function TagManager() {
         return response.json();
     };
 
+    const delTag = async () => {
+        if (!tagToDelete || tagToDelete == '') { return }
+
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        };
+
+        const response = await fetch(`/api/tags/${tagToDelete}`, {
+            method: 'DELETE',
+            headers: headers,
+            body: JSON.stringify(tagToDelete),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Failed to add tag');
+        }
+    };
+
     useEffect(() => {
         const getTags = async () => {
         try {
@@ -120,6 +143,17 @@ function TagManager() {
         setCurrentEditTag({});
     };
 
+    const handleDeleteTag = async (tagId) => {
+        try {
+            const response = await delTag(tagId);
+        } catch (err) {
+            setError(err.message || 'An error occured while deleting the tag.');
+            console.error(err);
+        } finally {
+            fetchAllTags();
+        }
+    };
+
     const handleUpdateSubmit = async (e) => {
         e.preventDefault();
         setIsUpdatingTags(true);
@@ -152,6 +186,11 @@ function TagManager() {
         } finally {
             setIsLoadingTags(false);
         }
+    };
+
+    const handleDeleteClick = (tagId) => {
+        setTagToDelete(tagId);
+        setShowConfirmDialog(true);
     };
 
     if (isLoadingTags) {
@@ -235,6 +274,13 @@ function TagManager() {
                             <label htmlFor={`edit-admin_only-${tag.id}`} className="checkbox-label">Admin Only</label>
                         </div>
                         <div className="form-actions">
+                            <button
+                            type='button'
+                            onClick={() => handleDeleteClick(tag.id)}
+                            className='button button-delete'
+                            >
+                            Delete
+                            </button>
                             <button
                             type="button"
                             onClick={handleCancelEdit}
@@ -361,6 +407,22 @@ function TagManager() {
                 </form>
             )}
             </div>
+            <ConfirmationDialog
+                isOpen={showConfirmDialog}
+                onClose={() => {
+                    setShowConfirmDialog(false);
+                    setTagToDelete('');
+                }}
+                onConfirm={() => {
+                    handleDeleteTag();
+                    setShowConfirmDialog(false); // Close dialog after confirmation
+                }}
+                title="Delete Tag"
+                message="Are you sure you want to delete this tag? This action cannot be undone."
+                confirmText="Delete"
+                cancelText="Keep"
+                confirmButtonColor="#dc2626"
+            />
         </div>
     );
 };
