@@ -1573,13 +1573,12 @@ div.image-card {
 .form-section {
     display: flex;
     flex-direction: column;
-    gap: 1rem; /* space-y-4 */
+    gap: 0.5rem;
 }
 
 .form-heading {
     font-size: 1.25rem;
     font-weight: 600;
-    color: #374151;
     margin-bottom: 0.75rem;
 }
 

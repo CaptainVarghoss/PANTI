@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getTagStyles } from '../helpers/color_helper';
 import { useAuth } from '../context/AuthContext';
 import { MdEdit } from "react-icons/md";
 import { FaCirclePlus } from "react-icons/fa6";
@@ -175,102 +176,105 @@ function TagManager() {
 
             {/* List of existing tags */}
             <div className="tag-list-section">
-            {allAvailableTags.map(tag => (
-                <div key={tag.id} className="tag-item">
-                {editingTagId === tag.id ? (
-                    <form onSubmit={handleUpdateSubmit} className="form-section">
-                    <h3 className="form-heading">Edit Tag: {tag.name}</h3>
-                    <div className="form-group">
-                        <label htmlFor={`edit-name-${tag.id}`} className="form-label">Name</label>
-                        <input
-                        type="text"
-                        id={`edit-name-${tag.id}`}
-                        name="name"
-                        value={currentEditTag.name || ''}
-                        onChange={handleEditChange}
-                        className="form-input"
-                        required
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor={`edit-color-${tag.id}`} className="form-label">Color</label>
-                        <input
-                        type="color"
-                        id={`edit-color-${tag.id}`}
-                        name="color"
-                        value={currentEditTag.color || '#000000'}
-                        onChange={handleEditChange}
-                        className="form-input color-input"
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor={`edit-icon-${tag.id}`} className="form-label">Icon Name (e.g., PlusCircle, Bolt)</label>
-                        <div className="icon-input-group">
-                        <input
+            {allAvailableTags.map(tag => {
+                const styles = getTagStyles(tag.color);
+                return (
+                    <div key={tag.id} className="tag-item">
+                    {editingTagId === tag.id ? (
+                        <form onSubmit={handleUpdateSubmit} className="form-section">
+                        <h3 className="form-heading">Editing Tag: <span className="modal-tag-pill" style={styles}>{tag.name}</span></h3>
+                        <div className="form-group">
+                            <label htmlFor={`edit-name-${tag.id}`} className="form-label">Name</label>
+                            <input
                             type="text"
-                            id={`edit-icon-${tag.id}`}
-                            name="icon"
-                            value={currentEditTag.icon || ''}
+                            id={`edit-name-${tag.id}`}
+                            name="name"
+                            value={currentEditTag.name || ''}
                             onChange={handleEditChange}
-                            placeholder="e.g., ExclamationCircle, Briefcase"
-                            className="icon-input-field"
-                        />
-                        <span className="icon-preview-box">
-
-                        </span>
+                            className="form-input"
+                            required
+                            />
                         </div>
-                    </div>
-                    <div className="checkbox-container">
-                        <input
-                        type="checkbox"
-                        id={`edit-admin_only-${tag.id}`}
-                        name="admin_only"
-                        checked={currentEditTag.admin_only || false}
-                        onChange={handleEditChange}
-                        className="checkbox-input"
-                        />
-                        <label htmlFor={`edit-admin_only-${tag.id}`} className="checkbox-label">Admin Only</label>
-                    </div>
-                    <div className="form-actions">
+                        <div className="form-group">
+                            <label htmlFor={`edit-color-${tag.id}`} className="form-label">Color</label>
+                            <input
+                            type="color"
+                            id={`edit-color-${tag.id}`}
+                            name="color"
+                            value={currentEditTag.color || '#000000'}
+                            onChange={handleEditChange}
+                            className="form-input color-input"
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor={`edit-icon-${tag.id}`} className="form-label">Icon Name (e.g., PlusCircle, Bolt)</label>
+                            <div className="icon-input-group">
+                            <input
+                                type="text"
+                                id={`edit-icon-${tag.id}`}
+                                name="icon"
+                                value={currentEditTag.icon || ''}
+                                onChange={handleEditChange}
+                                placeholder="e.g., ExclamationCircle, Briefcase"
+                                className="icon-input-field"
+                            />
+                            <span className="icon-preview-box">
+
+                            </span>
+                            </div>
+                        </div>
+                        <div className="checkbox-container">
+                            <input
+                            type="checkbox"
+                            id={`edit-admin_only-${tag.id}`}
+                            name="admin_only"
+                            checked={currentEditTag.admin_only || false}
+                            onChange={handleEditChange}
+                            className="checkbox-input"
+                            />
+                            <label htmlFor={`edit-admin_only-${tag.id}`} className="checkbox-label">Admin Only</label>
+                        </div>
+                        <div className="form-actions">
+                            <button
+                            type="button"
+                            onClick={handleCancelEdit}
+                            className="button button-cancel"
+                            >
+                            Cancel
+                            </button>
+                            <button
+                            type="submit"
+                            className="button button-save"
+                            >
+                            Save
+                            </button>
+                        </div>
+                        </form>
+                    ) : (
+                        <div className="tag-item-content">
+                        <div className="tag-display-group">
+                            <span
+                            className="modal-tag-pill"
+                            style={styles}
+                            title={tag.color}
+                            >
+                            {tag.name}
+                            </span>
+                            {tag.admin_only && (
+                            <span className="tag-admin-badge">Admin</span>
+                            )}
+                        </div>
                         <button
-                        type="button"
-                        onClick={handleCancelEdit}
-                        className="button button-cancel"
+                            onClick={() => handleEditClick(tag)}
+                            className="button button-edit"
                         >
-                        Cancel
+                            <MdEdit /> Edit
                         </button>
-                        <button
-                        type="submit"
-                        className="button button-save"
-                        >
-                        Save
-                        </button>
+                        </div>
+                    )}
                     </div>
-                    </form>
-                ) : (
-                    <div className="tag-item-content">
-                    <div className="tag-display-group">
-                        <span
-                        className="modal-tag-pill"
-                        style={{ backgroundColor: tag.color }}
-                        title={tag.color}
-                        >
-                        {tag.name}
-                        </span>
-                        {tag.admin_only && (
-                        <span className="tag-admin-badge">Admin</span>
-                        )}
-                    </div>
-                    <button
-                        onClick={() => handleEditClick(tag)}
-                        className="button button-edit"
-                    >
-                        <MdEdit /> Edit
-                    </button>
-                    </div>
-                )}
-                </div>
-            ))}
+                )
+            })}
             </div>
 
             {/* Add New Tag Section */}
