@@ -6,7 +6,7 @@ import React, { forwardRef } from 'react';
  * @param {object} props - The component props.
  * @param {object} props.image - The image object containing details like id, filename, and meta.
  */
-const ImageCard = forwardRef(({ image, onClick }, ref) => {
+const ImageCard = forwardRef(({ image, onClick, onContextMenu }, ref) => {
 
   const thumbnailUrl = `${image.thumbnails_path}/${image.checksum}_thumb.webp`;
 
@@ -24,6 +24,9 @@ const ImageCard = forwardRef(({ image, onClick }, ref) => {
               e.target.onerror = null; // Prevent infinite loop if placeholder also fails
               e.target.src = "https://placehold.co/400x400/333333/FFFFFF?text=No+Thumb"; // A simple grey placeholder with text
               console.error(`Failed to load thumbnail for image ID: ${image.id}, filename: ${image.filename}`);
+            }}
+            onContextMenu={(e) => {
+              onContextMenu(e, image);
             }}
           />
         ) : (

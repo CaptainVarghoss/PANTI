@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ImageCard from '../components/ImageCard';
 import ImageModal from '../components/ImageModal';
+import ContextMenu from './ContextMenu';
 import { useAuth } from '../context/AuthContext'; // To get token and settings for authenticated calls
+//import { handleCloseContextMenu, handleContextMenu, handleMenuItemClick } from './ContextMenu';
 
 /**
  * Component to display the image gallery with infinite scrolling using cursor-based pagination.
@@ -19,6 +21,13 @@ function ImageGrid({ searchTerm, setSearchTerm, sortBy, sortOrder }) {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+
+  const [contextMenu, setContextMenu] = useState({
+      isVisible: false,
+      x: 0,
+      y: 0,
+      thumbnailData: null, // Data of the thumbnail that was right-clicked
+    });
 
   const lastIdRef = useRef(lastId);
   const lastSortValueRef = useRef(lastSortValue);
@@ -46,6 +55,44 @@ function ImageGrid({ searchTerm, setSearchTerm, sortBy, sortOrder }) {
     setSelectedImage(null);
   }, []);
 
+  // Handle right-click event on a thumbnail
+  const handleContextMenu = (event, thumbnail) => {
+      event.preventDefault(); // Prevent default browser context menu
+      setContextMenu({
+          isVisible: true,
+          x: event.clientX,
+          y: event.clientY,
+          thumbnailData: thumbnail,
+      });
+  };
+
+  // Close the context menu
+  const handleCloseContextMenu = () => {
+      setContextMenu({ ...contextMenu, isVisible: false });
+  };
+
+  // Handle click on a context menu item
+  const handleMenuItemClick = (action, data) => {
+      console.log(`Action: ${action} on Thumbnail ID: ${data.id}`);
+      // Implement specific logic based on the action
+      switch (action) {
+          case 'download':
+          alert(`Downloading ${data.title}... (In a real app, you'd trigger a download)`);
+          break;
+          case 'viewInfo':
+          alert(`Viewing info for ${data.title}: ${data.description}`);
+          break;
+          case 'delete':
+          if (window.confirm(`Are you sure you want to delete "${data.title}"?`)) {
+              alert(`Deleting ${data.title}...`);
+              // In a real app, trigger actual delete API call and update state
+          }
+          break;
+          default:
+          break;
+      }
+  };
+
   // Fetch images function, now accepting an optional cursor (last_id)
   const fetchImages = useCallback(async (
     currentLastId,
@@ -54,7 +101,7 @@ function ImageGrid({ searchTerm, setSearchTerm, sortBy, sortOrder }) {
     currentSortBy,
     currentSortOrder
   ) => {
-    if (isFetchingMore && currentLastId !== null) { // Prevent multiple fetches for more images
+    if (isFetchingMore && currentLastId !== null) {
       return;
     }
 
@@ -202,9 +249,19 @@ function ImageGrid({ searchTerm, setSearchTerm, sortBy, sortOrder }) {
 
         {images.map((image, index) => {
           if (images.length === index + 1 && hasMore) {
-              return <ImageCard ref={lastImageElementRef} key={image.id} image={image} onClick={handleImageClick} />;
+              return <ImageCard
+                        ref={lastImageElementRef}
+                        key={image.id} image={image}
+                        onClick={handleImageClick}
+                        onContextMenu={(e) => handleContextMenu(e, image)}
+                      />;
           }
-          return <ImageCard key={image.id} image={image} onClick={handleImageClick} />;
+          return <ImageCard
+                    key={image.id}
+                    image={image}
+                    onClick={handleImageClick}
+                    onContextMenu={(e) => handleContextMenu(e, image)}
+                  />;
         })}
 
         {isFetchingMore && (
@@ -231,6 +288,15 @@ function ImageGrid({ searchTerm, setSearchTerm, sortBy, sortOrder }) {
           setSearchTerm={setSearchTerm}
         />
       )}
+      <ContextMenu
+        isOpen={contextMenu.isVisible}
+        x={contextMenu.x}
+        y={contextMenu.y}
+        onClose={handleCloseContextMenu}
+        thumbnailData={contextMenu.thumbnailData}
+        onMenuItemClick={handleMenuItemClick}
+        setContextMenu={setContextMenu}
+      />
     </>
   );
 }
