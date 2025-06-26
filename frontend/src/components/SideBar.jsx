@@ -6,6 +6,7 @@ import DeviceSpecificSettingsForm from './DeviceSpecificSettingsForm';
 import GlobalSettingsForm from './GlobalSettingsForm';
 import TagGroup from './TagGroup';
 import TagManager from './TagManager';
+import FilterGroup from './FilterGroup';
 
 /**
  * A reusable Sidebar component that slides in and out using standard CSS.
@@ -67,7 +68,11 @@ function Sidebar({ isOpen, onClose, side, subPanel, setSubPanel, sortBy, setSort
             ${subPanel === 'menu' ? 'panel-active' : 'panel-inactive'}`}
           >
             <nav className="sidebar-nav">
-              <div className="filter-container">
+              <div className="sidebar-filters">
+                <FilterGroup />
+              </div>
+
+              <div className="refiner-container">
 
                 <div className="sidebar-sort">
                   <div className="sidebar-sort-section">

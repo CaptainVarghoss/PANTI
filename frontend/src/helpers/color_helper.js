@@ -1,6 +1,6 @@
 import tinycolor from 'tinycolor2';
 
-export const getTagStyles = (baseColor) => {
+export const getStyles = (baseColor) => {
         const color = tinycolor(baseColor); // tinycolor can parse named colors, hex, rgb, etc.
 
         // Default styles if color is invalid or cannot be parsed

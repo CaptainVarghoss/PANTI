@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { MdEdit } from "react-icons/md";
-import {getTagStyles} from '../helpers/color_helper';
+import {getStyles} from '../helpers/color_helper';
 
 function TagGroup({ imageId = 0, searchTerm, setSearchTerm, currentImage, onClose, setSubPanel }) {
     const { token, isAuthenticated, settings, isAdmin } = useAuth();
@@ -94,7 +94,7 @@ function TagGroup({ imageId = 0, searchTerm, setSearchTerm, currentImage, onClos
                 <div className="sidebar-current-tags">
                     {allAvailableTags && allAvailableTags.length > 0 ? (
                         allAvailableTags.map(tag => {
-                            const styles = getTagStyles(tag.color);
+                            const styles = getStyles(tag.color);
                             return (
                                 <span
                                     key={tag.id}

@@ -319,7 +319,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
   gap: 0.5rem;
 }
 
-.sidebar-tags, .sidebar-sort, .tag-manager {
+.sidebar-tags, .sidebar-sort, .tag-manager, .sidebar-filters {
   display: flex;
   width: 100%;
 }
@@ -1211,7 +1211,7 @@ div.image-card {
     margin-bottom: 2rem;
 }
 
-.modal-tags-section, .modal-meta-section, .sidebar-tag-section, .sidebar-sort-section, .tag-manager-section {
+.modal-tags-section, .modal-meta-section, .sidebar-tag-section, .sidebar-sort-section, .tag-manager-section, .sidebar-filter-section {
     margin-top: 2rem;
     padding: 1rem;
     background-color:#374151;
@@ -1221,7 +1221,7 @@ div.image-card {
     border-bottom-right-radius: 1rem;
 }
 
-.sidebar-tag-section, .sidebar-sort-section, .tag-manager-section {
+.sidebar-tag-section, .sidebar-sort-section, .tag-manager-section, .sidebar-filter-section {
   width:100%;
   margin:0.5rem;
   padding:0;
@@ -1247,7 +1247,7 @@ div.image-card {
   width: 100%;
 }
 
-.modal-tag-header, .sidebar-tag-header {
+.modal-tag-header, .sidebar-tag-header, .sidebar-filter-header {
   display: flex;
   justify-content: space-between;
   align-items: top;
@@ -1258,13 +1258,13 @@ div.image-card {
   flex-direction: column;
 }
 
-.modal-tag-edit, .sidebar-tag-edit {
+.modal-tag-edit, .sidebar-tag-edit, .sidebar-filter-edit {
   align-items: top;
   margin-top: -0.5rem;
   margin-right: -1rem;
   margin-left: 1rem;
 }
-.modal-tag-edit button, .sidebar-tag-edit button {
+.modal-tag-edit button, .sidebar-tag-edit button, .sidebar-filter-edit button {
   border-radius: 30rem;
   background-color: transparent;
 }
@@ -1301,14 +1301,14 @@ div.image-card {
     margin-top: 0.5rem; /* mt-2 */
 }
 
-.modal-current-tags, .sidebar-current-tags {
+.modal-current-tags, .sidebar-current-tags, .sidebar-current-filters {
     justify-content: center;
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
 }
 
-.sidebar-current-tags {
+.sidebar-current-tags, .sidebar-current-filters {
   padding-bottom: 1rem;
 }
 

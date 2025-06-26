@@ -45,11 +45,17 @@ def create_filter(filter_in: schemas.FilterCreate, db: Session = Depends(databas
     return db_filter
 
 @router.get("/filters/", response_model=List[schemas.Filter])
-def read_filters(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db)):
-    # Retrieves a list of filters. Accessible by all.
+def read_filters(
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+    ):
+    # Retrieves a list of filters.
     # Eager loads associated positive and negative tags.
 
-    filters = db.query(models.Filter).options(joinedload(models.Filter.tags), joinedload(models.Filter.neg_tags)).offset(skip).limit(limit).all()
+    query = db.query(models.Filter).options(joinedload(models.Filter.tags), joinedload(models.Filter.neg_tags))
+    if not current_user.admin:
+        query = query.filter_by(admin_only=False)
+    filters = query.all()
     return filters
 
 @router.get("/filters/{filter_id}", response_model=schemas.Filter)
