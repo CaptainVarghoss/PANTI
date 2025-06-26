@@ -6,10 +6,10 @@ import { MdEdit } from "react-icons/md";
 import { FaCirclePlus } from "react-icons/fa6";
 
 
-function TagManager() {
+function TagManager({allAvailableTags, setAllAvailableTags}) {
     const { token, isAuthenticated, settings, isAdmin } = useAuth();
 
-    const [allAvailableTags, setAllAvailableTags] = useState([]);
+    //const [allAvailableTags, setAllAvailableTags] = useState([]);
     const [isLoadingTags, setIsLoadingTags] = useState(false);
     const [tags, setTags] = useState([]);
     const [editingTagId, setEditingTagId] = useState(null);
@@ -114,6 +114,10 @@ function TagManager() {
         }
         };
         getTags();
+    }, []);
+
+    useEffect(() => {
+        fetchAllTags();
     }, []);
 
     const handleEditChange = (e) => {

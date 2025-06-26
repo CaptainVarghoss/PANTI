@@ -26,6 +26,8 @@ function GroupDisplay({
     editPanelName,
     setSubPanel,
     onItemClick,
+    allAvailableTags,
+    setAllAvailableTags,
     itemType = "items" // Default for messages like "No items assigned."
 }) {
     const { token, isAuthenticated, isAdmin } = useAuth();
@@ -66,7 +68,7 @@ function GroupDisplay({
         };
 
         fetchItems();
-    }, [isAuthenticated, apiEndpoint, token, itemType]);
+    }, [isAuthenticated, apiEndpoint, token, itemType, allAvailableTags]);
 
     const handleItemClick = useCallback((item, e) => {
         e.preventDefault();

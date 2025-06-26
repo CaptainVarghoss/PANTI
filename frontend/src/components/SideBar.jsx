@@ -21,6 +21,8 @@ function Sidebar({ isOpen, onClose, side, subPanel, setSubPanel, sortBy, setSort
   const sidebarClasses = `sidebar sidebar--${side} ${isOpen ? `sidebar--${side}--open` : ''}`;
   const overlayClasses = `sidebar-overlay ${isOpen ? 'sidebar-overlay--visible' : ''}`;
 
+  const [allAvailableTags, setAllAvailableTags] = useState([]);
+
   const handleShowSettings = (e) => {
     e.preventDefault(); // Prevent default link behavior
     setSubPanel('settings');
@@ -111,6 +113,8 @@ function Sidebar({ isOpen, onClose, side, subPanel, setSubPanel, sortBy, setSort
                       editPanelName="tagEdit"
                       setSubPanel={setSubPanel}
                       itemType="tag" // For specific class names like sidebar-tag-section
+                      allAvailableTags={allAvailableTags}
+                      setAllAvailableTags={setAllAvailableTags}
                   />
                 </div>
 
@@ -133,7 +137,7 @@ function Sidebar({ isOpen, onClose, side, subPanel, setSubPanel, sortBy, setSort
             </button>
             <div className="tag-manager">
               <div className="tag-manager-section">
-                <TagManager />
+                <TagManager allAvailableTags={allAvailableTags} setAllAvailableTags={setAllAvailableTags} />
               </div>
             </div>
           </div>
