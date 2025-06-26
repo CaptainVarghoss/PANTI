@@ -10,6 +10,7 @@ from sqlalchemy import func
 import json
 from typing import Tuple
 import threading
+import subprocess
 
 import models
 import database
@@ -237,27 +238,66 @@ def generate_thumbnail(
 
     generated_urls = {}
     source_path_obj = Path(source_filepath)
+    image_to_process = None
+    temp_image_path = None
 
     if not source_path_obj.is_file():
         print(f"Error: Source file not found: {source_filepath}")
         return generated_urls
 
+    # Determine if the file is a video based on its MIME type
+    mime_type, _ = mimetypes.guess_type(source_filepath)
+    is_video = mime_type and mime_type.startswith('video')
+
+    # FIX THIS
+    # Needs proper pathing
+    thumbnail_output_dir = Path(str(config.THUMBNAILS_DIR))
+    os.makedirs(thumbnail_output_dir, exist_ok=True)
+    thumb_filepath = thumbnail_output_dir / f"{output_filename_base}_thumb.webp"
+
+    if is_video:
+        try:
+            temp_image_path = os.path.join(thumbnail_output_dir, f'{output_filename_base}_thumb.png')
+            # Use ffmpeg to generate thumbnail from video
+            # -ss 00:00:01: Take a screenshot at 1 second into the video
+            # -vframes 1: Take only one frame
+            # -vf scale='min(iw,{thumb_size}):min(ih,{thumb_size})': Scale to fit within thumb_size while maintaining aspect ratio
+            # -q:v 2: Output quality (2 is good, 1-31, lower is better)
+            # -y: Overwrite output file without asking
+            ffmpeg_command = [
+                'ffmpeg',
+                '-i', source_filepath,
+                '-ss', '00:00:00.001',
+                '-vframes', '1',
+                '-vf', f'scale=min(iw\\,{thumb_size}):min(ih\\,{thumb_size}):force_original_aspect_ratio=decrease',
+                '-q:v', '2',
+                '-y',
+                str(temp_image_path)
+            ]
+            print(f"Running FFmpeg command: {' '.join(ffmpeg_command)}")
+            subprocess.run(ffmpeg_command, check=True, capture_output=True)
+            generated_urls['thumbnail_url'] = f"{config.STATIC_FILES_URL_PREFIX}/{config.GENERATED_MEDIA_DIR_NAME}/{config.THUMBNAILS_DIR_NAME}/{output_filename_base}_thumb.webp"
+            print(f"Generated video thumbnail: {thumb_filepath}")
+
+            image_to_process = PILImage.open(temp_image_path)
+        except subprocess.CalledProcessError as e:
+            print(f"Error generating video thumbnail with ffmpeg for {source_filepath}: {e}")
+            print(f"FFmpeg stdout: {e.stdout.decode()}")
+            print(f"FFmpeg stderr: {e.stderr.decode()}")
+        except Exception as e:
+            print(f"Error executing ffmpeg for {source_filepath}: {e}")
+    else:
+        image_to_process = PILImage.open(source_filepath)
+
     try:
-        img = PILImage.open(source_filepath)
-
-        import config
-
-        # FIX THIS
-        # Needs proper pathing
-        thumbnail_output_dir = Path(str(config.THUMBNAILS_DIR))
-
-        os.makedirs(thumbnail_output_dir, exist_ok=True)
 
         # Generate Thumbnail
-        thumb_img = img.copy()
+        thumb_img = image_to_process.copy()
         thumb_img.thumbnail((thumb_size,thumb_size))
         thumb_filepath = thumbnail_output_dir / f"{output_filename_base}_thumb.webp"
         thumb_img.save(thumb_filepath, "webp")
+        thumb_img.close()
+        image_to_process.close()
         # FIX THIS
         generated_urls['thumbnail_url'] = f"{config.STATIC_FILES_URL_PREFIX}/{config.GENERATED_MEDIA_DIR_NAME}/{config.THUMBNAILS_DIR_NAME}/{output_filename_base}_thumb.webp"
         print(f"Generated thumbnail: {thumb_filepath}")
@@ -266,6 +306,14 @@ def generate_thumbnail(
         print(f"Warning: Could not identify image format for {source_filepath}. Skipping image thumbnail generation.")
     except Exception as e:
         print(f"Error generating image thumbnail for {source_filepath}: {e}")
+
+    if (temp_image_path):
+        if (os.path.exists(temp_image_path)):
+            try:
+                os.remove(temp_image_path)
+                print(f"Deleted temporary thumbnail file: {temp_image_path}")
+            except Exception as e:
+                print(f"Error deleting temporary file {temp_image_path}: {e}")
 
     return generated_urls
 
