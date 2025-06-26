@@ -1301,14 +1301,14 @@ div.image-card {
     margin-top: 0.5rem; /* mt-2 */
 }
 
-.modal-current-tags, .sidebar-current-tags, .sidebar-current-filters {
+.modal-current-tags, .sidebar-current-tag, .sidebar-current-filters {
     justify-content: center;
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
 }
 
-.sidebar-current-tags, .sidebar-current-filters {
+.sidebar-current-tag, .sidebar-current-filters {
   padding-bottom: 1rem;
 }
 

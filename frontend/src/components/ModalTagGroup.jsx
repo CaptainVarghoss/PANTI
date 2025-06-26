@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { MdEdit } from "react-icons/md";
 import { IoMdCloseCircle } from "react-icons/io";
-import { getTagStyles } from '../helpers/color_helper';
+import { getStyles } from '../helpers/color_helper';
 
 function ModalTagGroup({ searchTerm, setSearchTerm, currentImage, onClose }) {
     const { token, isAuthenticated, settings, isAdmin } = useAuth();
@@ -49,7 +49,7 @@ function ModalTagGroup({ searchTerm, setSearchTerm, currentImage, onClose }) {
         } finally {
             setIsLoadingTags(false);
         }
-    }, [token]);
+    }, [token, currentImage]);
 
     const fetchImageTags = useCallback(async () => {
         if (!currentImage || !currentImage.id) {
@@ -189,7 +189,7 @@ function ModalTagGroup({ searchTerm, setSearchTerm, currentImage, onClose }) {
                     <div className="modal-current-tags">
                         {relevantTags && relevantTags.length > 0 ? (
                             relevantTags.map(tag => {
-                                const styles = getTagStyles(tag.color); // Get dynamic styles
+                                const styles = getStyles(tag.color); // Get dynamic styles
                                 return (
                                     <span
                                         key={tag.id}
@@ -224,7 +224,7 @@ function ModalTagGroup({ searchTerm, setSearchTerm, currentImage, onClose }) {
                             <div className="modal-add-tag-tags">
                                 {allAvailableTags && allAvailableTags.length > 0 ? (
                                     allAvailableTags.map(tag => {
-                                        const styles = getTagStyles(tag.color); // Get dynamic styles
+                                        const styles = getStyles(tag.color); // Get dynamic styles
                                         return (
                                             <span
                                                 key={tag.id}

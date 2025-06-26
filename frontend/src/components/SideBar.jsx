@@ -4,7 +4,8 @@ import { useAuth } from '../context/AuthContext'; // To check user roles for adm
 import ImagePathsManagement from './ImagePathsManagement';
 import DeviceSpecificSettingsForm from './DeviceSpecificSettingsForm';
 import GlobalSettingsForm from './GlobalSettingsForm';
-import TagGroup from './TagGroup';
+import GroupDisplay from './GroupDisplay';
+//import TagGroup from './TagGroup';
 import TagManager from './TagManager';
 import FilterGroup from './FilterGroup';
 
@@ -101,7 +102,16 @@ function Sidebar({ isOpen, onClose, side, subPanel, setSubPanel, sortBy, setSort
                   </div>
                 </div>
                 <div className="sidebar-tags">
-                  <TagGroup searchTerm={searchTerm} setSearchTerm={setSearchTerm} onClose={onClose} setSubPanel={setSubPanel} />
+                  <GroupDisplay
+                      searchTerm={searchTerm}
+                      setSearchTerm={setSearchTerm}
+                      onClose={onClose}
+                      title="Tags"
+                      apiEndpoint="/api/tags/"
+                      editPanelName="tagEdit"
+                      setSubPanel={setSubPanel}
+                      itemType="tag" // For specific class names like sidebar-tag-section
+                  />
                 </div>
 
               </div>

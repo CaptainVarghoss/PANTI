@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ConfirmationDialog from './ConfirmDialog';
-import { getTagStyles } from '../helpers/color_helper';
+import { getStyles } from '../helpers/color_helper';
 import { useAuth } from '../context/AuthContext';
 import { MdEdit } from "react-icons/md";
 import { FaCirclePlus } from "react-icons/fa6";
@@ -216,7 +216,7 @@ function TagManager() {
             {/* List of existing tags */}
             <div className="tag-list-section">
             {allAvailableTags.map(tag => {
-                const styles = getTagStyles(tag.color);
+                const styles = getStyles(tag.color);
                 return (
                     <div key={tag.id} className="tag-item">
                     {editingTagId === tag.id ? (
