@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { MdEdit } from "react-icons/md";
 import {getStyles} from '../helpers/color_helper';
 
-function FilterGroup({ searchTerm, setSearchTerm, setSubPanel }) {
+function FilterGroup({ searchTerm, setSearchTerm, setSubPanel, activeFilters, setActiveFilters }) {
     const { token, isAuthenticated, settings, isAdmin } = useAuth();
 
     const [isLoadingFilters, setIsLoadingFilters] = useState(false);
@@ -41,6 +41,14 @@ function FilterGroup({ searchTerm, setSearchTerm, setSubPanel }) {
         fetchAllFilters();
     }, []);
 
+    const handleToggleFilter = (id) => {
+        setActiveFilters(prevRows =>
+        prevRows.map(row =>
+            row.id === id ? { ...row, isSelected: !row.isSelected } : row
+        )
+        );
+    };
+
     return (
         <div className="sidebar-filter-section">
             <div className="sidebar-filter-container">
@@ -58,11 +66,16 @@ function FilterGroup({ searchTerm, setSearchTerm, setSubPanel }) {
                     {allAvailableFilters && allAvailableFilters.length > 0 ? (
                         allAvailableFilters.map(filter => {
                             const styles = getStyles(filter.color);
+                            const selectedFilter = activeFilters.find(row => row.id === filter.id);
+                            if (selectedFilter) {
+                                const isSelected = selectedFilter.isSelected;
+                             }
                             return (
                                 <button
                                     key={filter.id}
                                     className=""
                                     style={styles}
+                                    onClick={() => {handleToggleFilter(filter.id)}}
                                 >
                                     {filter.name}
                                 </button>

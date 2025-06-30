@@ -108,7 +108,7 @@ function useDebounce(value, delay) {
 }
 
 function App() {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, token } = useAuth();
   // States for search and sort
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('date_created');
@@ -120,6 +120,9 @@ function App() {
       setSortBy(newSortBy);
       setSortOrder(newSortOrder);
   }, []);
+
+  // Filter states
+  const [activeFilters, setActiveFilters] = useState([]);
 
   // States for Sidebars
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(false);
@@ -153,6 +156,32 @@ function App() {
       }
   }, [debouncedSearchTerm, sortBy, sortOrder, handleSearchAndSortChange]);
 
+  useEffect(() => {
+    if (!isAuthenticated) { return }
+    const fetchFilters = async () => {
+        const fetchedFilters = [];
+        try {
+            const response = await fetch('/api/filters/', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const fetchedFilters = await response.json();
+            const filterRows = fetchedFilters.map(row => ({
+              ...row,
+              isSelected: false
+            }));
+            setActiveFilters(filterRows);
+        } catch (error) {
+            console.error(`Error fetching filters:`, error);
+        }
+    };
+    fetchFilters();
+  }, [isAuthenticated]);
+
   if (loading) {
     return (
       <div className="loading-full-page">
@@ -171,6 +200,8 @@ function App() {
             searchTerm={searchTerm}
             onSearchAndSortChange={handleSearchAndSortChange}
             setSearchTerm={setSearchTerm}
+            activeFilters={activeFilters}
+            setActiveFilters={setActiveFilters}
           />
           <SideBar
             isOpen={isLeftSidebarOpen}
@@ -185,6 +216,8 @@ function App() {
             setSortOrder={setSortOrder}
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
+            activeFilters={activeFilters}
+            setActiveFilters={setActiveFilters}
           />
           <SideBar
             isOpen={isRightSidebarOpen}
@@ -199,6 +232,8 @@ function App() {
             setSortOrder={setSortOrder}
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
+            activeFilters={activeFilters}
+            setActiveFilters={setActiveFilters}
           />
         </>
       }
@@ -219,6 +254,7 @@ function App() {
                 sortBy={sortBy}
                 sortOrder={sortOrder}
                 setSearchTerm={setSearchTerm}
+                activeFilters={activeFilters}
               />
             } />
           </Route>

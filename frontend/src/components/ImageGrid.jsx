@@ -9,7 +9,7 @@ import { useAuth } from '../context/AuthContext'; // To get token and settings f
  * Component to display the image gallery with infinite scrolling using cursor-based pagination.
  * Fetches image data from the backend in pages and appends them.
  */
-function ImageGrid({ searchTerm, setSearchTerm, sortBy, sortOrder }) {
+function ImageGrid({ searchTerm, setSearchTerm, sortBy, sortOrder, activeFilters }) {
   const { token, isAuthenticated, settings } = useAuth();
   const [images, setImages] = useState([]);
   const [imagesLoading, setImagesLoading] = useState(true); // For initial load state
@@ -127,6 +127,15 @@ function ImageGrid({ searchTerm, setSearchTerm, sortBy, sortOrder }) {
         queryString.append('last_sort_value', currentLastSortValue);
       }
 
+      // Check for active filters and pass IDs
+      if (activeFilters) {
+        const usedFilters = activeFilters.map(filter => {
+          if (filter.isSelected === true) {
+            queryString.append('filter', filter.id);
+          }
+        })
+      }
+
       const response = await fetch(`/api/images/?${queryString.toString()}`, { headers });
 
       if (!response.ok) {
@@ -178,7 +187,7 @@ function ImageGrid({ searchTerm, setSearchTerm, sortBy, sortOrder }) {
       setImagesLoading(false);
       setIsFetchingMore(false);
     }
-  }, [token, imagesPerPage]);
+  }, [token, imagesPerPage, activeFilters]);
 
 
   // Effect for initial page load and when search/sort parameters change (now from props)
@@ -204,7 +213,7 @@ function ImageGrid({ searchTerm, setSearchTerm, sortBy, sortOrder }) {
       setLastSortValue(null);
       setImagesError("Please log in to view images.");
     }
-  }, [isAuthenticated, imagesPerPage, searchTerm, sortBy, sortOrder, fetchImages]);
+  }, [isAuthenticated, imagesPerPage, searchTerm, sortBy, sortOrder, fetchImages, activeFilters]);
 
   // Ref for the element to observe for infinite scrolling
   const observer = useRef();

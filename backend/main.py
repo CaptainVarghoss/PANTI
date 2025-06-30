@@ -119,11 +119,11 @@ async def lifespan(app: FastAPI):
 
         if not db.query(models.Filter).first():
             print("Adding initial Filter and linking Tag...")
-            db.add(models.Filter(name='NSFW', built_in=True, color='DarkRed', text_color='White', icon='explicit', header_display=True, enabled=False, search_terms="nude, penis, pussy, cock, handjob, fellatio, anal, vaginal, ass, blowjob, deepthroat"))
+            db.add(models.Filter(name='Explicit Content', built_in=True, color='DarkRed', text_color='White', icon='explicit', header_display=True, enabled=False, search_terms='NOT (nude|penis|pussy|cock|handjob|fellatio|"anal"|vaginal|"ass"|blowjob|deepthroat)', reverse=True))
             db.commit() # Commit filter first to get its ID
 
             first_filter_tag = db.query(models.Tag).filter_by(name='NSFW').first()
-            first_filter = db.query(models.Filter).filter_by(name='NSFW').first()
+            first_filter = db.query(models.Filter).filter_by(name='Explicit Content').first()
 
             if first_filter and first_filter_tag:
                 first_filter.tags.append(first_filter_tag)

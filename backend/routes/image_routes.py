@@ -50,6 +50,7 @@ def read_images(
     last_id: Optional[int] = Query(None, description="ID of the last item from the previous page for cursor-based pagination"),
     last_sort_value: Optional[str] = Query(None, description="Value of the sort_by column for the last_id item (for stable pagination)"),
     db: Session = Depends(database.get_db),
+    filter: List[int] = Query(None),
     current_user: models.User = Depends(auth.get_current_user)
 ):
     """
@@ -61,18 +62,10 @@ def read_images(
     query = query.outerjoin(models.ImagePath, models.ImagePath.path == models.Image.path)
 
     # Apply search filter if provided
-    if search_query:
-        # Using ilike for case-insensitive search (might require specific DB setup for performance)
-        # For SQLite, it's typically case-insensitive by default for ASCII.
-        # For more complex needs, consider using SQLAlchemy's `match` or `regexp` (with custom SQLite function).
-        query = query.filter(generate_image_search_filter(search_query))
-        #query = query.filter(
-        #    or_(
-        #        models.Image.filename.ilike(f"%{search_query}%"),
-        #        models.Image.path.ilike(f"%{search_query}%"),
-        #        models.Image.meta.ilike(f'%{search_query}%')
-        #    )
-        #)
+    #if search_query:
+    query = query.filter(generate_image_search_filter(search_terms=search_query, admin=current_user.admin, filters=filter, db=db))
+    #else:
+    #    query = query.filter(generate_image_search_filter('', current_user.admin, filter))
 
     # Apply cursor-based pagination (Keyset Pagination)
     if last_id is not None and last_sort_value is not None:

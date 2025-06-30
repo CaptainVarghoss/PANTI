@@ -19,6 +19,8 @@ function Navbar({
   searchTerm,
   setSearchTerm,
   onSearchAndSortChange,
+  activeFilters,
+  setActiveFilters
 }) {
   const { isAuthenticated, user, logout, isAdmin, settings } = useAuth();
   const navigate = useNavigate();
@@ -42,6 +44,8 @@ function Navbar({
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
             onSearchAndSortChange={onSearchAndSortChange}
+            activeFilters={activeFilters}
+            setActiveFilters={setActiveFilters}
           />
         )}
 

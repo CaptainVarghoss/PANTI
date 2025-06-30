@@ -41,7 +41,7 @@ function GroupDisplay({
     const [tagUpdateMessage, setTagUpdateMessage] = useState('');
     const [tagUpdateError, setTagUpdateError] = useState('');
 
-    const allowEdit = isAdmin || (settings?.allow_tag_add === true);
+    const allowEdit = isAdmin;
     // Effect to fetch all available items
     useEffect(() => {
         if (!isAuthenticated || !apiEndpoint) return;

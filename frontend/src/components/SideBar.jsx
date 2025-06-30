@@ -16,7 +16,21 @@ import FilterGroup from './FilterGroup';
  * @param {boolean} props.isOpen - Controls the visibility of the sidebar.
  * @param {function} props.onClose - Callback function to close the sidebar.
  */
-function Sidebar({ isOpen, onClose, side, subPanel, setSubPanel, sortBy, setSortBy, sortOrder, setSortOrder, searchTerm, setSearchTerm }) {
+function Sidebar({
+  isOpen,
+  onClose,
+  side,
+  subPanel,
+  setSubPanel,
+  sortBy,
+  setSortBy,
+  sortOrder,
+  setSortOrder,
+  searchTerm,
+  setSearchTerm,
+  activeFilters,
+  setActiveFilters
+}) {
   const { isAdmin, isAuthenticated, logout } = useAuth(); // Get admin status from AuthContext
   const sidebarClasses = `sidebar sidebar--${side} ${isOpen ? `sidebar--${side}--open` : ''}`;
   const overlayClasses = `sidebar-overlay ${isOpen ? 'sidebar-overlay--visible' : ''}`;
@@ -72,7 +86,10 @@ function Sidebar({ isOpen, onClose, side, subPanel, setSubPanel, sortBy, setSort
           >
             <nav className="sidebar-nav">
               <div className="sidebar-filters">
-                <FilterGroup />
+                <FilterGroup
+                  activeFilters={activeFilters}
+                  setActiveFilters={setActiveFilters}
+                />
               </div>
 
               <div className="refiner-container">

@@ -1,7 +1,10 @@
 import re
+from fastapi import Depends, Query
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, and_, not_
 from sqlalchemy.sql import expression
-from models import Image, Tag, ImagePath
+from models import Image, Tag, ImagePath, Filter
+import database
 
 # --- Token Definitions for Lexical Analysis ---
 # These constants define the types of tokens our tokenizer will recognize.
@@ -367,7 +370,12 @@ def build_sqlalchemy_filter(node: Node, Image, Tag):
     return expression.true()
 
 
-def generate_image_search_filter(search_terms: str, admin: bool = False):
+def generate_image_search_filter(
+    search_terms: str,
+    admin: bool = False,
+    filters: list[int] | None = None,
+    db: Session = Depends(database.get_db)
+):
     """
     Parses a complex search string and generates a SQLAlchemy query filter
     that can be applied to an Image query.
@@ -380,6 +388,7 @@ def generate_image_search_filter(search_terms: str, admin: bool = False):
     - Partial word matches for unquoted terms.
     - Searches across `ImageModel.meta`, `ImageModel.folder`, and `ImageModel.tags_relationship`
       (which queries `TagModel.name`).
+    - Applies filters defined in the `Filter` table, respecting `admin_only` and `reverse` flags.
 
     Args:
         search_terms (str): The search query string provided by the user.
@@ -394,9 +403,111 @@ def generate_image_search_filter(search_terms: str, admin: bool = False):
             Returns `expression.false()` if there is a syntax error in the `search_terms`,
             meaning no results will be returned.
     """
+
     # Start with a filter derived from the search terms
     ast_filter = expression.true() # Default if search_terms are empty or syntax error
-    if search_terms.strip(): # This block only runs if search_terms is NOT empty
+
+    # Initialize a clause for combined programmatic filters
+    combined_db_filters_clause = expression.true()
+
+    filter_search_terms = None
+
+    # Fetch filters from the database
+    db_filters = db.query(Filter).options(joinedload(Filter.tags), joinedload(Filter.neg_tags)).all()
+
+    for f in db_filters:
+        # Check admin_only restriction first
+        if f.admin_only and not admin:
+            continue # Skip this filter if it's admin-only and the user is not an admin
+
+        # Determine if this filter should be applied based on the 'filters' ID list and 'reverse' status
+        should_apply_filter = False
+        if filters:
+            # Specific filter IDs provided
+            if not f.reverse:
+                # Non-reversed filters: Apply ONLY if ID is in the list
+                if f.id in filters:
+                    should_apply_filter = True
+            else:
+                # Reversed filters: Apply UNLESS ID is in the list
+                if f.id not in filters:
+                    should_apply_filter = True
+        else:
+            if f.reverse:
+                should_apply_filter= True
+
+        if not should_apply_filter:
+            continue # Skip to the next filter if it's not meant to be applied
+
+        # --- Build the core filter clause for this Filter entry ---
+        current_filter_clause_positive = expression.true()
+
+        # Handle f.keywords (string field, still needs tokenization/parsing)
+        if f.search_terms:
+            if not filter_search_terms:
+                filter_search_terms = f.search_terms
+            else:
+                filter_search_terms += f' {f.search_terms}'
+
+        # Tags
+        if f.tags:
+            tag_conditions = []
+            for tag_obj in f.tags:
+                tag_conditions.append(Tag.id == tag_obj.id)
+
+            if tag_conditions:
+                # Image must have ANY of these tags
+                tags_positive_clause = Image.tags.any(or_(*tag_conditions))
+                current_filter_clause_positive = and_(current_filter_clause_positive, tags_positive_clause)
+
+        # Negative tags
+        negative_tags_clause = expression.true()
+        if f.neg_tags:
+            negative_tag_conditions = []
+            for neg_tag_obj in f.neg_tags:
+                # The image must NOT have this specific negative tag
+                negative_tag_conditions.append(Tag.id == neg_tag_obj.id)
+
+            if negative_tag_conditions:
+                # The image must NOT have ANY of these negative tags
+                negative_tags_clause = not_(Image.tags.any(or_(*negative_tag_conditions)))
+
+        # Combine positive filter conditions with negative tag conditions for this specific filter
+        # An image must match the positive criteria AND not match any negative tags
+        final_current_filter_clause = and_(current_filter_clause_positive, negative_tags_clause)
+
+        # --- Apply Reverse Logic for the entire filter to the combined_db_filters_clause ---
+        if f.reverse:
+            # If reverse is true, then this filter removes matches from the rest of the query
+            # So, we apply NOT to the combined positive and negative clause of this filter
+            combined_db_filters_clause = and_(combined_db_filters_clause, not_(final_current_filter_clause))
+        else:
+            # If reverse is false, then results must match this filter
+            combined_db_filters_clause = and_(combined_db_filters_clause, final_current_filter_clause)
+
+    # Apply global admin_only filters for ImagePath and Tags if `admin` is False
+    global_admin_filter = expression.true() # Starts as true
+    if not admin:
+        # Condition 1: Ensure the associated ImagePath is NOT admin_only.
+        # This condition relies on ImagePath being outer joined to the Image query.
+        # We use a direct filter on ImagePath.admin_only
+        global_admin_filter = and_(global_admin_filter, ImagePath.admin_only == False)
+
+        # Condition 2: Ensure NONE of the associated Tags are admin_only.
+        # This is achieved by checking that there isn't `any` tag linked to the image
+        # that has `admin_only` set to `True`.
+        global_admin_filter = and_(global_admin_filter,
+                                   not_(Image.tags.any(Tag.admin_only == True)))
+
+    if search_terms:
+        if filter_search_terms:
+            search_terms += f' {filter_search_terms}'
+    else:
+        if filter_search_terms:
+            search_terms = filter_search_terms
+            print(search_terms)
+    if search_terms:
+
         try:
             tokens = tokenize(search_terms)
             if tokens:
@@ -409,23 +520,9 @@ def generate_image_search_filter(search_terms: str, admin: bool = False):
             print(f"Search query parsing error: {e}")
             return expression.false()
 
-    # Apply global admin_only filters if `admin` is False
-    if not admin:
-        global_admin_filter = expression.true() # Starts as true
-        # Condition 1: Ensure the associated ImagePath is NOT admin_only.
-        # This condition relies on ImagePath being outer joined to the Image query.
-        global_admin_filter = and_(global_admin_filter, ImagePath.admin_only == False)
+    # Combine all parts: AST-derived filter (from user search_terms),
+    # global admin filter, and database-defined filters.
+    # The order of combination (ANDing) ensures all conditions are met.
+    final_filter_clause = and_(ast_filter, global_admin_filter, combined_db_filters_clause)
 
-        # Condition 2: Ensure NONE of the associated Tags are admin_only.
-        # This is achieved by checking that there isn't `any` tag linked to the image
-        # that has `admin_only` set to `True`.
-        global_admin_filter = and_(global_admin_filter,
-                                   not_(Image.tags.any(Tag.admin_only == True)))
-
-        # Combine the AST-derived filter with the global admin filter.
-        # If `search_terms` was empty, `ast_filter` is `expression.true()`,
-        # so this effectively returns just `global_admin_filter`.
-        return and_(ast_filter, global_admin_filter)
-    else:
-        # If `admin` is True, only apply the AST-derived filter
-        return ast_filter
+    return final_filter_clause
