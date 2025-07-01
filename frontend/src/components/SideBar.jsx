@@ -7,6 +7,7 @@ import GlobalSettingsForm from './GlobalSettingsForm';
 import GroupDisplay from './GroupDisplay';
 //import TagGroup from './TagGroup';
 import TagManager from './TagManager';
+import FilterManager from './FilterManager';
 import FilterGroup from './FilterGroup';
 
 /**
@@ -36,6 +37,7 @@ function Sidebar({
   const overlayClasses = `sidebar-overlay ${isOpen ? 'sidebar-overlay--visible' : ''}`;
 
   const [allAvailableTags, setAllAvailableTags] = useState([]);
+  const [allAvailableFilters, setAllAvailableFilters] = useState([]);
 
   const handleShowSettings = (e) => {
     e.preventDefault(); // Prevent default link behavior
@@ -89,6 +91,9 @@ function Sidebar({
                 <FilterGroup
                   activeFilters={activeFilters}
                   setActiveFilters={setActiveFilters}
+                  allAvailableFilters={allAvailableFilters}
+                  setAllAvailableFilters={setAllAvailableFilters}
+                  setSubPanel={setSubPanel}
                 />
               </div>
 
@@ -120,6 +125,20 @@ function Sidebar({
                       </div>
                   </div>
                 </div>
+                <div className="sidebar-filters">
+                  <GroupDisplay
+                      searchTerm={searchTerm}
+                      setSearchTerm={setSearchTerm}
+                      onClose={onClose}
+                      title="Filters"
+                      apiEndpoint="/api/filters/"
+                      editPanelName="filterEdit"
+                      setSubPanel={setSubPanel}
+                      itemType="filter" // For specific class names like sidebar-tag-section
+                      allAvailableTags={allAvailableTags}
+                      setAllAvailableTags={setAllAvailableTags}
+                  />
+                </div>
                 <div className="sidebar-tags">
                   <GroupDisplay
                       searchTerm={searchTerm}
@@ -144,6 +163,21 @@ function Sidebar({
               <button onClick={handleLogout} className="">Logout</button>
             </nav>
           </div>
+
+          <div className={`sidebar-panel
+            ${subPanel === 'filterEdit' ? (side === 'left' ? 'panel-slide-in-from-left' : 'panel-slide-in-from-right') : (side === 'left' ? 'panel-slide-out-to-left' : 'panel-slide-out-to-right')}
+            ${subPanel === 'filterEdit' ? 'panel-active' : 'panel-inactive'}`}
+          >
+            <button onClick={handleBackToMenu} className="settings-back-button">
+              ← Back to Main Menu
+            </button>
+            <div className="filter-manager">
+              <div className="filter-manager-section">
+                <FilterManager activeFilters={activeFilters} setActiveFilters={setActiveFilters} />
+              </div>
+            </div>
+          </div>
+
 
           <div className={`sidebar-panel
             ${subPanel === 'tagEdit' ? (side === 'left' ? 'panel-slide-in-from-left' : 'panel-slide-in-from-right') : (side === 'left' ? 'panel-slide-out-to-left' : 'panel-slide-out-to-right')}

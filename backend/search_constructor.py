@@ -505,7 +505,7 @@ def generate_image_search_filter(
     else:
         if filter_search_terms:
             search_terms = filter_search_terms
-            print(search_terms)
+
     if search_terms:
 
         try:
