@@ -3,7 +3,7 @@ import ConfirmationDialog from './ConfirmDialog';
 import { getStyles } from '../helpers/color_helper';
 import { useAuth } from '../context/AuthContext';
 import { MdEdit } from "react-icons/md";
-import { FaCirclePlus } from "react-icons/fa6";
+import Icon from './Icon';
 
 
 function TagManager({allAvailableTags, setAllAvailableTags}) {
@@ -318,7 +318,7 @@ function TagManager({allAvailableTags, setAllAvailableTags}) {
                             onClick={() => handleEditClick(tag)}
                             className="button button-edit"
                         >
-                            <MdEdit /> Edit
+                            <Icon iconName="MdEdit" /> Edit
                         </button>
                         </div>
                     )}
@@ -337,7 +337,7 @@ function TagManager({allAvailableTags, setAllAvailableTags}) {
                 }}
                 className="button-add-new"
                 >
-                <FaCirclePlus /> Add New Tag
+                <Icon iconName="FaCirclePlus" /> Add New Tag
                 </button>
             ) : (
                 <form onSubmit={handleAddNewTagSubmit} className="form-section">

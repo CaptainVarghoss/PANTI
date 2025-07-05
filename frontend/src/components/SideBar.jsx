@@ -125,20 +125,7 @@ function Sidebar({
                       </div>
                   </div>
                 </div>
-                <div className="sidebar-filters">
-                  <GroupDisplay
-                      searchTerm={searchTerm}
-                      setSearchTerm={setSearchTerm}
-                      onClose={onClose}
-                      title="Filters"
-                      apiEndpoint="/api/filters/"
-                      editPanelName="filterEdit"
-                      setSubPanel={setSubPanel}
-                      itemType="filter" // For specific class names like sidebar-tag-section
-                      allAvailableTags={allAvailableTags}
-                      setAllAvailableTags={setAllAvailableTags}
-                  />
-                </div>
+
                 <div className="sidebar-tags">
                   <GroupDisplay
                       searchTerm={searchTerm}
@@ -173,7 +160,12 @@ function Sidebar({
             </button>
             <div className="filter-manager">
               <div className="filter-manager-section">
-                <FilterManager activeFilters={activeFilters} setActiveFilters={setActiveFilters} />
+                <FilterManager
+                  activeFilters={activeFilters}
+                  setActiveFilters={setActiveFilters}
+                  allAvailableFilters={allAvailableFilters}
+                  setAllAvailableFilters={setAllAvailableFilters}
+                />
               </div>
             </div>
           </div>

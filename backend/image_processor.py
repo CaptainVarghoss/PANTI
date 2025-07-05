@@ -237,11 +237,11 @@ def generate_thumbnail(
 ) -> dict:
 
     generated_urls = {}
-    source_path_obj = Path(source_filepath)
+    source_path_obj = source_filepath
     image_to_process = None
     temp_image_path = None
 
-    if not source_path_obj.is_file():
+    if not os.path.exists(source_path_obj):
         print(f"Error: Source file not found: {source_filepath}")
         return generated_urls
 
