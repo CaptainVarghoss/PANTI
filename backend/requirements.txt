@@ -5,3 +5,4 @@ sqlalchemy
 Pillow
 passlib
 python-jose
+bcrypt

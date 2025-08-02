@@ -172,13 +172,13 @@ def scan_paths(db: Session):
 
         if new_images_to_process:
             print(f"Triggering background image processing for {len(new_images_to_process)} new images...")
-            for new_img_model, original_filepath in new_images_to_process:
+            for new_img_model, file_full_path in new_images_to_process:
                 db.refresh(new_img_model)
                 thread_db_for_processing = database.SessionLocal()
                 try:
                     process_thread = threading.Thread(
                         target=process_and_update_image,
-                        args=(new_img_model.id, original_filepath, thread_db_for_processing,
+                        args=(new_img_model.id, file_full_path, thread_db_for_processing,
                               thumb_size)
                     )
                     process_thread.daemon = True
