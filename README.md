@@ -8,6 +8,30 @@ This is a simple image viewing app written in Python to facilitate easy naviagat
 
 ## Install Instructions
 
+## Arch
+
+### 1. Install git, python, npm
+
+    sudo pacman -S git python npm
+
+### 2. Clone Repository
+
+    git clone https://github.com/CaptainVarghoss/PANTI
+
+    cd PANTI/backend
+
+### 3. Create and activate python venv
+
+    python -m venv .venv
+    source .venv/bin/activate
+
+### 4. Install requirements
+
+    pip install --upgrade pip
+    pip install -r requirements.txt
+    
+
+
 ## Debian/Ubuntu
 
 ### 1. Install git, python, python-venv, and python-pip
