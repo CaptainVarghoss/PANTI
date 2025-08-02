@@ -241,7 +241,7 @@ def generate_thumbnail(
     image_to_process = None
     temp_image_path = None
 
-    if not os.path.exists(source_path_obj):
+    if not os.path.exists(source_filepath):
         print(f"Error: Source file not found: {source_filepath}")
         return generated_urls
 

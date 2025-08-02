@@ -209,7 +209,7 @@ if config.STATIC_DIR.is_dir():
     app.mount(
         config.STATIC_FILES_URL_PREFIX,
         StaticFiles(directory=config.STATIC_DIR),
-        name="static_assets"
+        name="static"
     )
     print(f"Serving static assets from: {config.STATIC_DIR} at URL prefix: {config.STATIC_FILES_URL_PREFIX}")
 else:
