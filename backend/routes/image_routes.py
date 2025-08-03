@@ -19,6 +19,50 @@ router = APIRouter()
 
 # --- Image Endpoints ---
 
+@router.get("/thumbnails/{image_id}", response_class=FileResponse)
+async def get_thumbnail(image_id: int, db: Session = Depends(database.get_db)):
+    
+    # Serves thumbnails. If a thumbnail doesn't exist, it triggers generation and returns a placeholder.
+
+    db_image = db.query(models.Image).filter(models.Image.id == image_id).first()
+    if not db_image:
+        print(f"Image with ID {image_id} not found")
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    expected_thumbnail_path = os.path.join(config.THUMBNAILS_DIR, f"{db_image.checksum}_thumb.webp")
+    print(expected_thumbnail_path);
+
+    if os.path.exists(expected_thumbnail_path):
+        return FileResponse(expected_thumbnail_path, media_type="image/webp")
+    else:
+        # Trigger background generation
+        original_filepath = os.path.join(db_image.path, db_image.filename)
+
+        thumb_size_setting = db.query(models.Setting).filter_by(name='thumb_size').first()
+        config_thumbnail_size = config.THUMBNAIL_SIZE
+
+        thumb_size = 400
+
+        if thumb_size_setting and thumb_size_setting.value:
+            thumb_size = int(thumb_size_setting.value)
+        else:
+            thumb_size = config_thumbnail_size
+
+        if original_filepath and Path(original_filepath).is_file():
+            thread = threading.Thread(
+                target=image_processor.generate_thumbnail_in_background,
+                args=(image_id, db_image.checksum, original_filepath, thumb_size)
+            )
+            thread.daemon = True
+            thread.start()
+        else:
+            print(f"Could not trigger thumbnail generation for {db_image.filename}: original_filepath not found or invalid.")
+
+        # Return a placeholder image or a loading indicator
+        placeholder_path = os.path.join(config.STATIC_DIR, "placeholder.png")  # Or a loading animation
+        return FileResponse(placeholder_path, media_type="image/png")
+
+
 @router.post("/images/", response_model=schemas.Image, status_code=status.HTTP_201_CREATED)
 def create_image(image: schemas.ImageCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
     # Creates a new image entry in the database.
