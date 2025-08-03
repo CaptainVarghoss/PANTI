@@ -5,3 +5,4 @@ venv
 instance
 config.json
 sql_app.db
+user_config.ini
