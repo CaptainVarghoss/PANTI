@@ -8,19 +8,17 @@ import React, { forwardRef, useState } from 'react';
  */
 const ImageCard = forwardRef(({ image, onClick, onContextMenu }, ref) => {
 
-  //const thumbnailUrl = `${image.thumbnails_path}/${image.checksum}_thumb.webp`;
   const [isLoading, setIsLoading] = useState(true); // Add a loading state
   const thumbnailUrl = `/api/thumbnails/${image.id}`; // Backend endpoint
 
   return (
     <div ref={ref} key={image.id} className="image-card" onClick={() => onClick(image)}>
       <div className="image-card-inner">
-        {thumbnailUrl ? (
+        {thumbnailUrl && (
           <img
            src={thumbnailUrl}
             alt={image.filename}
             onLoad={() => {
-              console.log("Thumbnail loaded successfully");
               setIsLoading(false);
             }}
             style={{ display: isLoading ? 'none' : 'block' }} // Hide image while loading
@@ -35,16 +33,11 @@ const ImageCard = forwardRef(({ image, onClick, onContextMenu }, ref) => {
               onContextMenu(e, image);
             }}
           />
-        ) : (
-          <div className="">
-            No thumbnail available
-          </div>
         )}
-         {isLoading && (
+        {isLoading && (
           <div className="loading-indicator">
-            {/* Replace with your actual loading animation */}
+            {/* Replace with loading animation */}
             <p>Loading...</p>
-            {/* You can use a CSS spinner or a GIF animation here */}
           </div>
         )}
 
