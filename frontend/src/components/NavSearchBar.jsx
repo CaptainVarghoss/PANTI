@@ -2,25 +2,44 @@ import React, { useState, useEffect } from 'react';
 import { IoMdCloseCircle } from "react-icons/io";
 
 /**
- * Custom hook for debouncing a value.
- * @param {*} value - The value to debounce.
- * @param {number} delay - The delay in milliseconds.
- * @returns {*} The debounced value.
- */
-
-/**
- * Navigation search bar component with search input and sorting dropdowns.
- * It manages its own state for search term, sort by, and sort order,
- * and notifies its parent via a callback when these values change (debounced for search).
+ * A search bar component for the navigation bar.
+ * It provides a responsive input field and debounces the search term changes
+ * before notifying the parent component.
  *
  * @param {object} props - Component props.
- * @param {string} props.initialSearchTerm - Initial value for the search input.
- * @param {string} props.initialSortBy - Initial value for the sort by dropdown.
- * @param {string} props.initialSortOrder - Initial value for the sort order dropdown.
- * @param {function} props.onSearchAndSortChange - Callback function (searchTerm, sortBy, sortOrder)
- * to be called when search/sort parameters change.
+ * @param {string} props.searchTerm - The current search term from the parent component.
+ * @param {function} props.setSearchTerm - Callback to update the search term in the parent.
  */
 function NavSearchBar({ searchTerm, setSearchTerm }) {
+    const [inputValue, setInputValue] = useState(searchTerm);
+    const debounceDelay = 300; // delay in ms
+
+    // Debounce the update to the parent component's state
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            if (inputValue !== searchTerm) {
+                setSearchTerm(inputValue);
+            }
+        }, debounceDelay);
+
+        // Cleanup function to cancel the timeout if the value changes again
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [inputValue, searchTerm, setSearchTerm, debounceDelay]);
+
+    // Sync local state if the parent's searchTerm changes from outside
+    useEffect(() => {
+        setInputValue(searchTerm);
+    }, [searchTerm]);
+
+    const handleClear = () => {
+        setInputValue('');
+        // Update parent immediately for a responsive clear action
+        if (searchTerm !== '') {
+            setSearchTerm('');
+        }
+    };
 
     return (
         <div className="navbar-search">
@@ -28,13 +47,13 @@ function NavSearchBar({ searchTerm, setSearchTerm }) {
                 type="text"
                 placeholder="Search images..."
                 className="search-bar"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
             />
-            {searchTerm && (
+            {inputValue && (
                 <button
                     className="clear-search-button"
-                    onClick={() => setSearchTerm('')}
+                    onClick={handleClear}
                     aria-label="Clear search"
                 >
                     <IoMdCloseCircle size={20} />

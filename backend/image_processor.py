@@ -39,55 +39,15 @@ def get_meta(filepath: str):
             print(f"Error getting metadata for {filepath}: {e}")
             return {}
 
-def process_and_update_image(
-    image_id: int,
-    image_checksum: str,
-    original_filepath: str,
-    thumb_size: int
-):
-    print(f"Processing image {image_id}: {original_filepath}")
-
-    output_filename_base = image_checksum
-
-    generated_urls = image_processor.generate_thumbnail(
-        source_filepath=original_filepath,
-        output_filename_base=output_filename_base,
-        thumb_size=thumb_size,
-    )
-
-    if not generated_urls:
-        print(f"No generated URLs for image {image_id}. Skipping metadata update.")
-
-
 def scan_paths(db: Session):
     # Scans all paths in the ImagePath table for new images/videos and subdirectories.
     # Adds new media to Image table and new subdirectories to ImagePath table.
     print(f"[{datetime.now().isoformat()}] Starting file scan...")
 
-    # --- Fetch dynamic sizes from settings ---
-    thumb_size_setting = db.query(models.Setting).filter_by(name='thumb_size').first()
-    preview_size_setting = db.query(models.Setting).filter_by(name='preview_size').first()
-
-    config_thumbnail_size = config.THUMBNAIL_SIZE # Fallback to config default
-    config_preview_size = config.PREVIEW_SIZE     # Fallback to config default
-
-    thumb_size = 400
-    preview_size = 1024
-
-    if thumb_size_setting and thumb_size_setting.value:
-        thumb_size = int(thumb_size_setting.value)
-    else:
-        thumb_size = config_thumbnail_size
-
-    if preview_size_setting and preview_size_setting.value:
-        preview_size = int(preview_size_setting.value)
-    else:
-        preview_size = config_preview_size
-
     # Get the list of paths to scan from the database
     paths_to_scan = db.query(models.ImagePath).all()
     # Fetch all existing image paths from the database
-    existing_image_paths = {p.path for p in db.query(models.ImagePath).all()}
+    existing_image_paths = {p.path for p in paths_to_scan}
     # Fetch all existing image checksums to avoid duplicates
     existing_image_checksums = {img.checksum for img in db.query(models.Image).all()}
 
@@ -128,7 +88,7 @@ def scan_paths(db: Session):
                 if is_supported_media(file_full_path):
                     checksum = get_file_checksum(file_full_path)
                     if checksum and checksum not in existing_image_checksums:
-                        print(f"Found new media file: {file_full_path}")
+                        # print(f"Found new media file: {file_full_path}")
                         mime_type, _ = mimetypes.guess_type(file_full_path)
                         is_video = mime_type and mime_type.startswith('video/')
 
@@ -168,24 +128,7 @@ def scan_paths(db: Session):
 
     try:
         db.commit()
-        print(f"[{datetime.now().isoformat()}] File scan database commit completed. Added {len(new_images_to_process)} new media files and {new_subdirectories_found} new subdirectories.")
-
-        if new_images_to_process:
-            print(f"Triggering background image processing for {len(new_images_to_process)} new images...")
-            for new_img_model, file_full_path in new_images_to_process:
-                db.refresh(new_img_model)
-                thread_db_for_processing = database.SessionLocal()
-                try:
-                    process_thread = threading.Thread(
-                        target=process_and_update_image,
-                        args=(new_img_model.id, file_full_path, thread_db_for_processing,
-                              thumb_size)
-                    )
-                    process_thread.daemon = True
-                    process_thread.start()
-                except Exception as e:
-                    print(f"Failed to start processing thread for image {new_img_model.id}: {e}")
-                    thread_db_for_processing.close()
+        print(f"[{datetime.now().isoformat()}] File scan completed. Added {len(new_images_to_process)} new media files and {new_subdirectories_found} new subdirectories.")
 
     except Exception as e:
         db.rollback()
@@ -243,7 +186,7 @@ def generate_thumbnail(
 
     if not os.path.exists(source_filepath):
         print(f"Error: Source file not found: {source_filepath}")
-        return generated_urls
+        return
 
     # Determine if the file is a video based on its MIME type
     mime_type, _ = mimetypes.guess_type(source_filepath)
@@ -253,7 +196,7 @@ def generate_thumbnail(
     # Needs proper pathing
     thumbnail_output_dir = Path(str(config.THUMBNAILS_DIR))
     os.makedirs(thumbnail_output_dir, exist_ok=True)
-    thumb_filepath = thumbnail_output_dir / f"{output_filename_base}_thumb.webp"
+    thumb_filepath = os.path.join(thumbnail_output_dir, f"{output_filename_base}_thumb.webp")
 
     if is_video:
         try:
@@ -276,7 +219,6 @@ def generate_thumbnail(
             ]
             print(f"Running FFmpeg command: {' '.join(ffmpeg_command)}")
             subprocess.run(ffmpeg_command, check=True, capture_output=True)
-            generated_urls['thumbnail_url'] = f"{config.STATIC_FILES_URL_PREFIX}/{config.GENERATED_MEDIA_DIR_NAME}/{config.THUMBNAILS_DIR_NAME}/{output_filename_base}_thumb.webp"
             print(f"Generated video thumbnail: {thumb_filepath}")
 
             image_to_process = PILImage.open(temp_image_path)
@@ -298,14 +240,13 @@ def generate_thumbnail(
         thumb_img.save(thumb_filepath, "webp")
         thumb_img.close()
         image_to_process.close()
-        # FIX THIS
-        generated_urls['thumbnail_url'] = f"{config.STATIC_FILES_URL_PREFIX}/{config.GENERATED_MEDIA_DIR_NAME}/{config.THUMBNAILS_DIR_NAME}/{output_filename_base}_thumb.webp"
         print(f"Generated thumbnail: {thumb_filepath}")
 
     except PILImage.UnidentifiedImageError:
         print(f"Warning: Could not identify image format for {source_filepath}. Skipping image thumbnail generation.")
     except Exception as e:
         print(f"Error generating image thumbnail for {source_filepath}: {e}")
+        return
 
     if (temp_image_path):
         if (os.path.exists(temp_image_path)):
@@ -314,8 +255,9 @@ def generate_thumbnail(
                 print(f"Deleted temporary thumbnail file: {temp_image_path}")
             except Exception as e:
                 print(f"Error deleting temporary file {temp_image_path}: {e}")
+                return
 
-    return generated_urls
+    return thumb_filepath
 
 def generate_preview_in_background(
     image_id: int,
@@ -325,15 +267,15 @@ def generate_preview_in_background(
 ):
     thread_db = database.SessionLocal() # This session is for this background thread
     try:
-        print(f"Background: Starting thumbnail generation for image ID {image_id}, checksum {image_checksum}")
+        print(f"Background: Starting preview generation for image ID {image_id}, checksum {image_checksum}")
         image_processor.generate_preview(
             source_filepath=original_filepath,
             output_filename_base=image_checksum,
             preview_size=preview_size
         )
-        print(f"Background: Finished thumbnail generation for image ID {image_id}")
+        print(f"Background: Finished preview generation for image ID {image_id}")
     except Exception as e:
-        print(f"Background: Error generating thumbnail for image ID {image_id}: {e}")
+        print(f"Background: Error generating preview for image ID {image_id}: {e}")
     finally:
         thread_db.close()
 
@@ -346,12 +288,11 @@ def generate_preview(
     preview_size: int
 ) -> dict:
 
-    generated_urls = {}
     source_path_obj = Path(source_filepath)
 
     if not source_path_obj.is_file():
         print(f"Error: Source file not found: {source_filepath}")
-        return generated_urls
+        return
 
     try:
         img = PILImage.open(source_filepath)
@@ -369,8 +310,6 @@ def generate_preview(
         preview_img.thumbnail((preview_size,preview_size))
         preview_filepath = preview_output_dir / f"{output_filename_base}_preview.webp"
         preview_img.save(preview_filepath, "webp")
-        # FIX THIS
-        generated_urls['preview_url'] = f"{config.STATIC_FILES_URL_PREFIX}/{config.GENERATED_MEDIA_DIR_NAME}/{config.PREVIEWS_DIR_NAME}/{output_filename_base}_preview.webp"
         print(f"Generated preview: {preview_filepath}")
 
     except PILImage.UnidentifiedImageError:
@@ -378,4 +317,4 @@ def generate_preview(
     except Exception as e:
         print(f"Error generating image preview for {source_filepath}: {e}")
 
-    return generated_urls
+    return preview_filepath
