@@ -44,23 +44,12 @@ class ImageChangeEventHandler(FileSystemEventHandler):
             print(f"File Watcher: Created {event.src_path}")
             db = self._get_db()
             try:
-                # Use the new abstracted function to add the file to the DB
+                # add the file to the DB
                 new_image = image_processor.add_file_to_db(db, event.src_path)
                 if new_image:
                     db.commit()
                     db.refresh(new_image)
                     print(f"File Watcher: Added new image to DB with ID {new_image.id}")
-
-                    # Get thumb_size from config for background processing
-                    thumb_size = config.THUMBNAIL_SIZE
-
-                    # Start thumbnail generation in a background thread
-                    thread = threading.Thread(
-                        target=image_processor.generate_thumbnail_in_background,
-                        args=(new_image.id, new_image.checksum, event.src_path, thumb_size),
-                        daemon=True
-                    )
-                    thread.start()
 
                     self._schedule_broadcast({"event": "created", "path": event.src_path})
             except Exception as e:
@@ -128,9 +117,8 @@ class ImageChangeEventHandler(FileSystemEventHandler):
 
 
 def start_file_watcher(loop: asyncio.AbstractEventLoop):
-    """
-    This function runs in a separate thread and monitors file system changes.
-    """
+    # This function runs in a separate thread and monitors file system changes.
+    
     print("File watcher thread started.")
     db = database.SessionLocal()
     try:
