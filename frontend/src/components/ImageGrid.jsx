@@ -9,7 +9,7 @@ import { useAuth } from '../context/AuthContext'; // To get token and settings f
  * Component to display the image gallery with infinite scrolling using cursor-based pagination.
  * Fetches image data from the backend in pages and appends them.
  */
-function ImageGrid({ searchTerm, setSearchTerm, sortBy, sortOrder, activeFilters }) {
+function ImageGrid({ searchTerm, setSearchTerm, sortBy, sortOrder, activeFilters, refreshKey }) {
   const { token, isAuthenticated, settings } = useAuth();
   const [images, setImages] = useState([]);
   const [imagesLoading, setImagesLoading] = useState(true); // For initial load state
@@ -213,7 +213,7 @@ function ImageGrid({ searchTerm, setSearchTerm, sortBy, sortOrder, activeFilters
       setLastSortValue(null);
       setImagesError("Please log in to view images.");
     }
-  }, [isAuthenticated, imagesPerPage, searchTerm, sortBy, sortOrder, fetchImages, activeFilters]);
+  }, [isAuthenticated, imagesPerPage, searchTerm, sortBy, sortOrder, fetchImages, activeFilters, refreshKey]);
 
   // Ref for the element to observe for infinite scrolling
   const observer = useRef();

@@ -8,7 +8,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 import json
-from typing import Tuple
+from typing import Tuple, Optional
 import threading
 import subprocess
 
@@ -38,6 +38,75 @@ def get_meta(filepath: str):
         except Exception as e:
             print(f"Error getting metadata for {filepath}: {e}")
             return {}
+
+def add_file_to_db(db: Session, file_full_path: str, existing_checksums: Optional[set] = None) -> Optional[models.Image]:
+    """
+    Adds a single media file to the database if it's supported and not a duplicate.
+    The caller is responsible for committing the transaction.
+
+    Args:
+        db (Session): The SQLAlchemy database session.
+        file_full_path (str): The absolute path to the media file.
+        existing_checksums (set, optional): A set of existing checksums to check against
+                                             before querying the database. If not provided,
+                                             the database will be queried.
+
+    Returns:
+        Optional[models.Image]: The newly created Image object, or None if the file
+                                was a duplicate, unsupported, or an error occurred.
+    """
+    if not is_supported_media(file_full_path):
+        print(f"Ignoring unsupported file: {file_full_path}")
+        return None
+
+    checksum = get_file_checksum(file_full_path)
+    if not checksum:
+        return None  # Error calculating checksum
+
+    # Check against the provided set first for performance
+    if existing_checksums is not None and checksum in existing_checksums:
+        return None
+
+    # If not in the set or no set provided, check the database
+    if existing_checksums is None:
+        existing_image = db.query(models.Image).filter(models.Image.checksum == checksum).first()
+        if existing_image:
+            # print(f"Skipping duplicate file: {file_full_path}")
+            return None
+
+    print(f"Found new media file: {file_full_path}")
+    root, f = os.path.split(file_full_path)
+    mime_type, _ = mimetypes.guess_type(file_full_path)
+    is_video = mime_type and mime_type.startswith('video/')
+
+    initial_meta = {
+        "original_filepath": file_full_path,
+        "mime_type": mime_type,
+        "is_video": is_video,
+        "original_filename": f,
+        "original_path": root
+    }
+
+    new_meta = get_meta(file_full_path)
+    if new_meta:
+        initial_meta.update(new_meta)
+
+    creation_timestamp = os.path.getctime(file_full_path)
+    modification_timestamp = os.path.getmtime(file_full_path)
+    date_created_dt = datetime.fromtimestamp(creation_timestamp)
+    date_modified_dt = datetime.fromtimestamp(modification_timestamp)
+
+    new_image = models.Image(
+        checksum=checksum,
+        filename=f,
+        path=root,
+        meta=json.dumps(initial_meta),
+        date_created=date_created_dt,
+        date_modified=date_modified_dt,
+        is_video=is_video
+    )
+    db.add(new_image)
+    return new_image
 
 def scan_paths(db: Session):
     # Scans all paths in the ImagePath table for new images/videos and subdirectories.
@@ -85,50 +154,16 @@ def scan_paths(db: Session):
             files.sort(key=lambda fn: os.path.getctime(os.path.join(root, fn)))
             for f in files:
                 file_full_path = os.path.join(root, f)
-                if is_supported_media(file_full_path):
-                    checksum = get_file_checksum(file_full_path)
-                    if checksum and checksum not in existing_image_checksums:
-                        # print(f"Found new media file: {file_full_path}")
-                        mime_type, _ = mimetypes.guess_type(file_full_path)
-                        is_video = mime_type and mime_type.startswith('video/')
-
-                        initial_meta = {
-                            "original_filepath": file_full_path,
-                            "mime_type": mime_type,
-                            "is_video": is_video,
-                            "original_filename": f,
-                            "original_path": root
-                        }
-
-                        new_meta = get_meta(file_full_path)
-                        if new_meta:
-                            initial_meta = new_meta
-
-                        creation_timestamp = os.path.getctime(file_full_path)
-                        modification_timestamp = os.path.getmtime(file_full_path)
-                        date_created_dt = datetime.fromtimestamp(creation_timestamp)
-                        date_modified_dt = datetime.fromtimestamp(modification_timestamp)
-
-
-                        new_image = models.Image(
-                            checksum=checksum,
-                            filename=f,
-                            path=root,
-                            meta=json.dumps(initial_meta),
-                            date_created=date_created_dt,
-                            date_modified=date_modified_dt,
-                            is_video=is_video
-                        )
-                        db.add(new_image)
-                        existing_image_checksums.add(checksum) # Add to set to prevent duplicates in current scan
-                        new_images_to_process.append((new_image, file_full_path))
-                else:
-                    # Optional: Print ignored files for debugging
-                    print(f"Ignoring unsupported file: {file_full_path}")
+                new_image = add_file_to_db(db, file_full_path, existing_image_checksums)
+                if new_image:
+                    # Add the new checksum to the set to avoid re-adding it in the same scan session
+                    existing_image_checksums.add(new_image.checksum)
+                    new_images_to_process.append((new_image, file_full_path))
 
     try:
         db.commit()
         print(f"[{datetime.now().isoformat()}] File scan completed. Added {len(new_images_to_process)} new media files and {new_subdirectories_found} new subdirectories.")
+
 
     except Exception as e:
         db.rollback()

@@ -1,11 +1,12 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import ImageGrid from "./components/ImageGrid"; // Assuming ImageGrid is now a page component
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Navbar from './components/Navbar'; // Import Navbar from its own file
 import SideBar from './components/SideBar'; // Import SideBar
+import { useWebSocket } from './hooks/useWebSocket'; // Import the custom hook
 
 import './App.css';
 
@@ -111,6 +112,27 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('date_created');
   const [sortOrder, setSortOrder] = useState('desc');
+  const [refreshKey, setRefreshKey] = useState(0); // New state for triggering refreshes
+
+  // Callback to handle incoming WebSocket messages
+  const handleWebSocketMessage = useCallback((message) => {
+    console.log("File change detected, triggering refresh:", message);
+    // A simple way to trigger a refresh is to update a key/nonce.
+    // A more sophisticated implementation could inspect `message.event`
+    // and update the image list state directly without a full refetch.
+    setRefreshKey(prev => prev + 1);
+  }, []);
+
+  // WebSocket connection
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const websocketUrl = `${protocol}//localhost:8000/ws/image-updates`;
+  const { isConnected } = useWebSocket(isAuthenticated ? websocketUrl : null, handleWebSocketMessage);
+
+  const ConnectionStatus = () => (
+    <div style={{ position: 'fixed', bottom: '10px', right: '10px', padding: '5px 10px', backgroundColor: isConnected ? '#28a745' : '#dc3545', color: 'white', borderRadius: '5px', zIndex: 1000, fontSize: '0.8em' }}>
+      {isConnected ? 'Connected' : 'Disconnected'}
+    </div>
+  );
 
   // Callback to update search and sort states from NavSearchBar
   const handleSearchAndSortChange = useCallback((newSearchTerm, newSortBy, newSortOrder) => {
@@ -201,6 +223,7 @@ function App() {
             activeFilters={activeFilters}
             setActiveFilters={setActiveFilters}
           />
+          <ConnectionStatus />
           <SideBar
             isOpen={isLeftSidebarOpen}
             onClose={closeAllSidebars}
@@ -252,6 +275,7 @@ function App() {
                 sortBy={sortBy}
                 sortOrder={sortOrder}
                 setSearchTerm={setSearchTerm}
+                refreshKey={refreshKey}
                 activeFilters={activeFilters}
               />
             } />

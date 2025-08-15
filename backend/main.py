@@ -1,14 +1,17 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os, threading
 from contextlib import asynccontextmanager
+import asyncio
 
 import config
 import models
 import database
 import image_processor
 import auth
+from websocket_manager import manager
+from file_watcher import start_file_watcher
 
 # Import APIRouters
 from routes import auth_routes
@@ -155,6 +158,16 @@ async def lifespan(app: FastAPI):
     finally:
         db.close()
 
+    # Get the running event loop for the watcher to use for thread-safe async calls
+    loop = asyncio.get_running_loop()
+
+    # Start the file watcher in a background thread
+    print("Starting file watcher thread...")
+    watcher_thread = threading.Thread(
+        target=start_file_watcher, args=(loop,), daemon=True
+    )
+    watcher_thread.start()
+
     yield
 
     # Shutdown Events
@@ -172,6 +185,23 @@ app.add_middleware(
     allow_methods=["*"], # Allows all methods (GET, POST, PUT, DELETE, etc.)
     allow_headers=["*"], # Allows all headers
 )
+
+@app.websocket("/ws/image-updates")
+async def websocket_endpoint(websocket: WebSocket):
+    """
+    This is the main WebSocket endpoint for clients to connect to.
+    """
+    await manager.connect(websocket)
+    print(f"Client connected: {websocket.client.host}")
+    try:
+        # This loop keeps the connection alive.
+        # It waits for messages from the client, but we won't do anything
+        # with them in this basic example.
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+        print(f"Client disconnected: {websocket.client.host}")
 
 # --- Include Routers ---
 app.include_router(auth_routes.router, prefix="/api", tags=["Auth"])
