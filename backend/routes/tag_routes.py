@@ -40,7 +40,7 @@ def read_tags(
     # retrieves a list of tags.
     # If ID is None, returns all tags filtered by admin_only if non-admin
     if not imageId:
-        tags = db.query(models.Tag)
+        tags = db.query(models.Tag).filter_by(internal=False)
 
         if not current_user.admin:
             tags = tags.filter_by(admin_only=False)

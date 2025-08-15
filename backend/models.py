@@ -57,6 +57,7 @@ class Tag(Base):
     admin_only = Column(Boolean, default=False)
     text_color = Column(String, default="#ffffff")
     built_in = Column(Boolean, default=False)
+    internal = Column(Boolean, default=False)
 
     images = relationship("Image", secondary=image_tags, back_populates="tags")
     image_paths = relationship("ImagePath", secondary=imagepath_tags, back_populates="tags")

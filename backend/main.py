@@ -43,6 +43,7 @@ async def lifespan(app: FastAPI):
             db.add(models.Tag(name='Like', built_in=True, color='hotpink', text_color='black', icon='hand-thumbs-up'))
             db.add(models.Tag(name='Star', built_in=True, color='gold', text_color='black', icon='star'))
             db.add(models.Tag(name='NSFW', built_in=True, color='darkred', text_color='white', icon='solar-xxx'))
+            db.add(models.Tag(name='Trash', built_in=True, color='red', text_color='white', icon='trashcan', internal=True))
             db.commit()
             # Refresh the session for the Tag object to be accessible after commit,
             # especially for the relationship linking below.
