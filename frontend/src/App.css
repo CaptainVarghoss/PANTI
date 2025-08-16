@@ -822,18 +822,15 @@ input:checked + .slider:before {
   );
   min-height: 100dvh;
   align-content: baseline;
-  margin-top: 0.2rem;
+  margin:0.2em;
 }
 
 div.image-card {
   display: block;
-  margin: 0.2rem;
-  margin-inline: 0.45rem;
 }
 
 .image-card div {
   overflow: hidden;
-  align-items: top;
 }
 
 .image-card-inner:hover {
@@ -850,10 +847,9 @@ div.image-card {
 
 .image-card-inner {
   border-radius: 0.3rem;
-  border-color: #333;
   border-width: 0.25rem;
+  border-color: transparent;
   border-style: solid;
-  width:100%;
   transition: all 0.5s ease;
 }
 
