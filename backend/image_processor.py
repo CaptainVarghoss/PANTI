@@ -82,11 +82,11 @@ def add_file_to_db(db: Session, file_full_path: str, existing_checksums: Optiona
     is_video = mime_type and mime_type.startswith('video/')
 
     initial_meta = {
-        "original_filepath": file_full_path,
+        #"original_filepath": file_full_path,
         "mime_type": mime_type,
-        "is_video": is_video,
-        "original_filename": f,
-        "original_path": root
+        #"is_video": is_video,
+        #"original_filename": f,
+        #"original_path": root
     }
 
     new_meta = get_meta(file_full_path)

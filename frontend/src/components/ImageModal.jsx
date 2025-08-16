@@ -317,8 +317,9 @@ function ImageModal({ isOpen, onClose, currentImage, images, onNavigate, searchT
                     <div className="modal-meta-section">
                         <h4 className="modal-section-subtitle">Metadata</h4>
                         <ul className="modal-general-info-list">
-                            <li><strong className="modal-info-label">Filename:</strong> {currentImage.filename}</li>
                             <li><strong className="modal-info-label">Path:</strong> {currentImage.path}</li>
+                            <li><strong className="modal-info-label">Filename:</strong> {currentImage.filename}</li>
+                            <li><strong className="modal-info-label">ID:</strong> {currentImage.id}</li>
                             <li><strong className="modal-info-label">Checksum:</strong> {currentImage.checksum}</li>
                             <li><strong className="modal-info-label">Is Video:</strong> {currentImage.is_video ? 'Yes' : 'No'}</li>
                             <li><strong className="modal-info-label">Date Created:</strong> {new Date(currentImage.date_created).toLocaleString()}</li>
