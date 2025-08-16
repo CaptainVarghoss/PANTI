@@ -49,7 +49,7 @@ function ModalTagGroup({ searchTerm, setSearchTerm, currentImage, onClose }) {
         } finally {
             setIsLoadingTags(false);
         }
-    }, [token, currentImage]);
+    }, [token]);
 
     const fetchImageTags = useCallback(async () => {
         if (!currentImage || !currentImage.id) {
@@ -70,20 +70,18 @@ function ModalTagGroup({ searchTerm, setSearchTerm, currentImage, onClose }) {
             const data = await response.json();
             setImageTags(data);
         } catch (error) {
-            console.error('Error fetching all tags:', error);
+            console.error('Error fetching image tags:', error);
         } finally {
             setIsLoadingTags(false);
         }
     }, [currentImage, token]);
 
-    // Effect to fetch all available tags
     useEffect(() => {
-        fetchAllTags();
-    }, [fetchAllTags]);
-
-    useEffect(() => {
-        fetchImageTags();
-    }, [fetchImageTags]);
+        if (isAuthenticated) {
+            fetchAllTags();
+            fetchImageTags();
+        }
+    }, [isAuthenticated, fetchAllTags, fetchImageTags]);
 
     const handleShowEdit = () => {
         setShowEdit(!showEdit);
@@ -126,7 +124,7 @@ function ModalTagGroup({ searchTerm, setSearchTerm, currentImage, onClose }) {
         } finally {
             setIsUpdatingTags(false);
         }
-    }, [currentImage, isAuthenticated, imageTags, token, isUpdatingTags]);
+    }, [currentImage, isAuthenticated, imageTags, token, isUpdatingTags, fetchImageTags]);
 
     const handleTagClick = (tag) => {
         if (showEdit) {
