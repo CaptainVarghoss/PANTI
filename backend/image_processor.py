@@ -11,11 +11,13 @@ import json
 from typing import Tuple, Optional
 import threading
 import subprocess
+import asyncio # Import asyncio
+from websocket_manager import manager # Import the WebSocket manager
 
 import models
 import database
 import config
-import image_processor
+import schemas
 
 # Define supported image and video MIME types
 # This list can be expanded based on your needs
@@ -48,7 +50,7 @@ def add_file_to_db(db: Session, file_full_path: str, existing_checksums: Optiona
         db (Session): The SQLAlchemy database session.
         file_full_path (str): The absolute path to the media file.
         existing_checksums (set, optional): A set of existing checksums to check against
-                                             before querying the database. If not provided,
+                                             before querying the database. If not provided, 
                                              the database will be queried.
 
     Returns:
@@ -170,7 +172,6 @@ def scan_paths(db: Session):
         print(f"[{datetime.now().isoformat()}] Error during file scan database commit/processing initiation: {e}")
 
 
-
 def get_file_checksum(filepath: str, block_size=65536):
     # Calculates the SHA256 checksum of a file.
     sha256 = hashlib.sha256()
@@ -192,27 +193,53 @@ def generate_thumbnail_in_background(
     image_id: int,
     image_checksum: str,
     original_filepath: str,
-    thumb_size: int,
 ):
     thread_db = database.SessionLocal() # This session is for this background thread
     try:
         print(f"Background: Starting thumbnail generation for image ID {image_id}, checksum {image_checksum}")
-        image_processor.generate_thumbnail(
+
+        thumb_size_setting = thread_db.query(models.Setting).filter_by(name='thumb_size').first()
+        thumb_size = config.THUMBNAIL_SIZE
+        if thumb_size_setting and thumb_size_setting.value:
+            thumb_size = int(thumb_size_setting.value)
+
+        generate_thumbnail(
+            image_id=image_id,
             source_filepath=original_filepath,
             output_filename_base=image_checksum,
             thumb_size=thumb_size
         )
         print(f"Background: Finished thumbnail generation for image ID {image_id}")
+        
+        # Fetch the full image object to send to the frontend
+        db_image = thread_db.query(models.Image).filter_by(id=image_id).first()
+        if db_image:
+            if isinstance(db_image.meta, str):
+                db_image.meta = json.loads(db_image.meta)
+
+            image_schema = schemas.Image.from_orm(db_image)
+            image_schema.static_assets_base_url = config.STATIC_FILES_URL_PREFIX
+            image_schema.generated_media_path = f"{config.STATIC_FILES_URL_PREFIX}/{config.GENERATED_MEDIA_DIR_NAME}"
+            image_schema.thumbnails_path = f"{config.STATIC_FILES_URL_PREFIX}/{config.GENERATED_MEDIA_DIR_NAME}/{config.THUMBNAILS_DIR_NAME}"
+            image_schema.previews_path = f"{config.STATIC_FILES_URL_PREFIX}/{config.GENERATED_MEDIA_DIR_NAME}/{config.PREVIEWS_DIR_NAME}"
+
+            # Notify frontend via WebSocket that a thumbnail has been generated
+            message = {
+                "type": "thumbnail_generated",
+                "image": json.loads(image_schema.model_dump_json())
+            }
+            asyncio.run(manager.broadcast_json(message))
     except Exception as e:
         print(f"Background: Error generating thumbnail for image ID {image_id}: {e}")
     finally:
         thread_db.close()
 
 def generate_thumbnail(
+    image_id: int,
     source_filepath: str,
     output_filename_base: str,
     thumb_size: int,
-) -> dict:
+) -> str:
 
     generated_urls = {}
     source_path_obj = source_filepath
@@ -221,7 +248,7 @@ def generate_thumbnail(
 
     if not os.path.exists(source_filepath):
         print(f"Error: Source file not found: {source_filepath}")
-        return
+        return None
 
     # Determine if the file is a video based on its MIME type
     mime_type, _ = mimetypes.guess_type(source_filepath)
@@ -247,7 +274,7 @@ def generate_thumbnail(
                 '-i', source_filepath,
                 '-ss', '00:00:00.001',
                 '-vframes', '1',
-                '-vf', f'scale=min(iw\\,{thumb_size}):min(ih\\,{thumb_size}):force_original_aspect_ratio=decrease',
+                '-vf', f'scale=min(iw,{thumb_size}):min(ih,{thumb_size}):force_original_aspect_ratio=decrease',
                 '-q:v', '2',
                 '-y',
                 str(temp_image_path)
@@ -281,7 +308,7 @@ def generate_thumbnail(
         print(f"Warning: Could not identify image format for {source_filepath}. Skipping image thumbnail generation.")
     except Exception as e:
         print(f"Error generating image thumbnail for {source_filepath}: {e}")
-        return
+        return None
 
     if (temp_image_path):
         if (os.path.exists(temp_image_path)):
@@ -290,7 +317,7 @@ def generate_thumbnail(
                 print(f"Deleted temporary thumbnail file: {temp_image_path}")
             except Exception as e:
                 print(f"Error deleting temporary file {temp_image_path}: {e}")
-                return
+                return None
 
     return thumb_filepath
 

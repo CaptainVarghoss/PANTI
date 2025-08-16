@@ -1,10 +1,10 @@
 :root {
 
-/** Base colors */
+/** Base colors*/
 --clr-dark-a0: #000000;
 --clr-light-a0: #ffffff;
 
-/** Theme primary colors */
+/** Theme primary colors*/
 --clr-primary-a0: #a0078f;
 --clr-primary-a10: #ad379b;
 --clr-primary-a20: #b954a8;
@@ -12,7 +12,7 @@
 --clr-primary-a40: #cf86c0;
 --clr-primary-a50: #da9ecd;
 
-/** Theme surface colors */
+/** Theme surface colors*/
 --clr-surface-a0: #121212;
 --clr-surface-a10: #282828;
 --clr-surface-a20: #3f3f3f;
@@ -20,7 +20,7 @@
 --clr-surface-a40: #717171;
 --clr-surface-a50: #8b8b8b;
 
-/** Theme tonal surface colors */
+/** Theme tonal surface colors*/
 --clr-surface-tonal-a0: #20161d;
 --clr-surface-tonal-a10: #352b32;
 --clr-surface-tonal-a20: #4b4248;
@@ -57,7 +57,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
   color: #e2e8f0;
 }
 
-/* --- Navbar Styles --- */
+/* --- Navbar Styles ---*/
 .navbar {
   display: flex;
   background-color: rgba(30, 30, 30, 30.5);
@@ -149,7 +149,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     color: #333;
 }
 
-/* --- SideBar Styles --- */
+/* --- SideBar Styles ---*/
 .sidebar-overlay {
   position: fixed;
   top: 0;
@@ -259,7 +259,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
   height: 1.5rem;
 }
 
-/* --- Internal Panel Animation Styles (SideBar level) --- */
+/* --- Internal Panel Animation Styles (SideBar level) ---*/
 .sidebar-panel-wrapper {
   position: relative;
   flex-grow: 1;
@@ -337,7 +337,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
   background-color: #4a5568;
 }
 
-/* --- SettingsForm Styles (existing, now applies to container) --- */
+/* --- SettingsForm Styles (existing, now applies to container) ---*/
 .settings-form-container {
   padding: 0;
   flex-grow: 1;
@@ -630,7 +630,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     margin-left: 0; /* Override default left margin if any */
 }
 
-/* --- Switch Component Styles --- */
+/* --- Switch Component Styles ---*/
 /* These styles are taken from the provided input CSS */
 .switch-container {
   display: flex;
@@ -744,7 +744,7 @@ input:checked + .slider:before {
   gap: 0.5rem;
 }
 
-/* --- Tooltip Styles --- */
+/* --- Tooltip Styles ---*/
 .tooltip-container {
   position: relative;
   display: inline-flex;
@@ -865,7 +865,7 @@ div.image-card {
 
 
 
-/* --- ImagePathsManagement Component Specific Styles --- */
+/* --- ImagePathsManagement Component Specific Styles ---*/
 
 .image-paths-container {
   padding: 1rem;
@@ -1071,7 +1071,7 @@ div.image-card {
   width:2em;
 }
 
-/* -- Login Page -- */
+/* -- Login Page --*/
 .login-container {
   width:100%;
   height:100%;
@@ -1107,7 +1107,7 @@ div.image-card {
   margin-top: 0.5em;
 }
 
-/* -- Modal -- */
+/* -- Modal --*/
 
 .modal-overlay {
     position: fixed;
@@ -1727,4 +1727,33 @@ div.image-card {
     width: 1.5rem; /* h-6 */
     height: 1.5rem; /* w-6 */
     margin-right: 0.75rem; /* mr-3 */
+}
+
+/* Spinner Styles */
+.spinner {
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border-left-color: #09f;
+  animation: spin 1s ease infinite;
+  margin: auto;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-indicator {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%; /* Take full height of parent */
+  width: 100%; /* Take full width of parent */
+  min-height: 100px; /* Minimum height for the spinner to be visible */
 }

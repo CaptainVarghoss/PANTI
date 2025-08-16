@@ -12,6 +12,7 @@ import database
 import image_processor
 import models
 import config
+import schemas
 from websocket_manager import manager
 
 def get_watched_paths(db: Session) -> List[str]:
@@ -50,8 +51,20 @@ class ImageChangeEventHandler(FileSystemEventHandler):
                     db.commit()
                     db.refresh(new_image)
                     print(f"File Watcher: Added new image to DB with ID {new_image.id}")
+                    
+                    if isinstance(new_image.meta, str):
+                        new_image.meta = json.loads(new_image.meta)
 
-                    self._schedule_broadcast({"event": "created", "path": event.src_path})
+                    image_schema = schemas.Image.from_orm(new_image)
+                    image_schema.static_assets_base_url = config.STATIC_FILES_URL_PREFIX
+                    image_schema.generated_media_path = f"{config.STATIC_FILES_URL_PREFIX}/{config.GENERATED_MEDIA_DIR_NAME}"
+                    image_schema.thumbnails_path = f"{config.STATIC_FILES_URL_PREFIX}/{config.GENERATED_MEDIA_DIR_NAME}/{config.THUMBNAILS_DIR_NAME}"
+                    image_schema.previews_path = f"{config.STATIC_FILES_URL_PREFIX}/{config.GENERATED_MEDIA_DIR_NAME}/{config.PREVIEWS_DIR_NAME}"
+
+                    self._schedule_broadcast({
+                        "type": "thumbnail_generated",
+                        "image": json.loads(image_schema.model_dump_json())
+                    })
             except Exception as e:
                 print(f"File Watcher: Error processing created file {event.src_path}: {e}")
                 db.rollback()
@@ -85,7 +98,7 @@ class ImageChangeEventHandler(FileSystemEventHandler):
                         os.remove(preview_path)
                         print(f"File Watcher: Deleted preview {preview_path}")
 
-                    self._schedule_broadcast({"event": "deleted", "path": event.src_path})
+                    self._schedule_broadcast({"type": "deleted", "path": event.src_path})
             except Exception as e:
                 print(f"File Watcher: Error processing deleted file {event.src_path}: {e}")
                 db.rollback()
@@ -108,7 +121,7 @@ class ImageChangeEventHandler(FileSystemEventHandler):
                     image_to_move.path = new_dir
                     image_to_move.filename = new_filename
                     db.commit()
-                    self._schedule_broadcast({"event": "moved", "from_path": event.src_path, "to_path": event.dest_path})
+                    self._schedule_broadcast({"type": "moved", "from_path": event.src_path, "to_path": event.dest_path})
             except Exception as e:
                 print(f"File Watcher: Error processing moved file {event.src_path}: {e}")
                 db.rollback()

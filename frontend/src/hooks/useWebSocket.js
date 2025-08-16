@@ -3,6 +3,9 @@ import { useState, useEffect, useRef } from 'react';
 export function useWebSocket(url, onMessage) {
     const [isConnected, setIsConnected] = useState(false);
     const ws = useRef(null);
+    const messageHandler = useRef(null);
+
+    messageHandler.current = onMessage;
 
     useEffect(() => {
         if (!url) return;
@@ -16,11 +19,10 @@ export function useWebSocket(url, onMessage) {
             };
 
             ws.current.onmessage = (event) => {
-                console.log('Message from server: ', event.data);
-                if (onMessage) {
+                if (messageHandler.current) {
                     try {
                         const messageData = JSON.parse(event.data);
-                        onMessage(messageData);
+                        messageHandler.current(messageData);
                     } catch (e) {
                         console.error('Failed to parse WebSocket message:', e);
                     }
@@ -50,7 +52,7 @@ export function useWebSocket(url, onMessage) {
                 ws.current.close();
             }
         };
-    }, [url, onMessage]); // Re-run the effect if the URL or onMessage changes
+    }, [url]); // Only re-run the effect if the URL changes
 
     return { isConnected };
 }

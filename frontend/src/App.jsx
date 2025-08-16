@@ -112,15 +112,12 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('date_created');
   const [sortOrder, setSortOrder] = useState('desc');
-  const [refreshKey, setRefreshKey] = useState(0); // New state for triggering refreshes
+  const [webSocketMessage, setWebSocketMessage] = useState(null);
 
   // Callback to handle incoming WebSocket messages
   const handleWebSocketMessage = useCallback((message) => {
-    console.log("File change detected, triggering refresh:", message);
-    // A simple way to trigger a refresh is to update a key/nonce.
-    // A more sophisticated implementation could inspect `message.event`
-    // and update the image list state directly without a full refetch.
-    setRefreshKey(prev => prev + 1);
+    console.log("File change detected:", message);
+    setWebSocketMessage(message);
   }, []);
 
   // WebSocket connection
@@ -275,7 +272,7 @@ function App() {
                 sortBy={sortBy}
                 sortOrder={sortOrder}
                 setSearchTerm={setSearchTerm}
-                refreshKey={refreshKey}
+                webSocketMessage={webSocketMessage}
                 activeFilters={activeFilters}
               />
             } />

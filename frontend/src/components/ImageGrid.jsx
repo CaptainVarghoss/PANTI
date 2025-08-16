@@ -3,13 +3,12 @@ import ImageCard from '../components/ImageCard';
 import ImageModal from '../components/ImageModal';
 import ContextMenu from './ContextMenu';
 import { useAuth } from '../context/AuthContext'; // To get token and settings for authenticated calls
-//import { handleCloseContextMenu, handleContextMenu, handleMenuItemClick } from './ContextMenu';
 
 /**
  * Component to display the image gallery with infinite scrolling using cursor-based pagination.
  * Fetches image data from the backend in pages and appends them.
  */
-function ImageGrid({ searchTerm, setSearchTerm, sortBy, sortOrder, activeFilters, refreshKey }) {
+function ImageGrid({ searchTerm, setSearchTerm, sortBy, sortOrder, activeFilters, webSocketMessage }) {
   const { token, isAuthenticated, settings } = useAuth();
   const [images, setImages] = useState([]);
   const [imagesLoading, setImagesLoading] = useState(true); // For initial load state
@@ -38,6 +37,62 @@ function ImageGrid({ searchTerm, setSearchTerm, sortBy, sortOrder, activeFilters
 
   // Get imagesPerPage from settings, default to 60 if not available or invalid
   const imagesPerPage = parseInt(settings.thumb_num) || 60;
+
+  const fetchImageById = useCallback(async (imageId) => {
+    try {
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const response = await fetch(`/api/images/${imageId}`, { headers });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`HTTP Error Details for image ${imageId}:`, response.status, response.statusText, errorText);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error(`Error fetching image ${imageId}:`, error);
+      return null;
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (webSocketMessage && webSocketMessage.type === 'thumbnail_generated') {
+      //console.log("WebSocket message received in ImageGrid:", webSocketMessage);
+      const { image } = webSocketMessage;
+
+      if (!image) {
+        console.error("WebSocket message of type 'thumbnail_generated' did not contain an 'image' object.");
+        return;
+      }
+
+      fetchImageById(image.id).then(fetchedImage => {
+        if (fetchedImage) {
+          setImages(prevImages => {
+            const existingImageIndex = prevImages.findIndex(img => img.id === fetchedImage.id);
+
+            if (existingImageIndex > -1) {
+              // Image exists, update its thumbnail_url and refreshKey
+              const updatedImages = [...prevImages];
+              updatedImages[existingImageIndex] = {
+                ...updatedImages[existingImageIndex],
+                thumbnail_url: image.thumbnail_url, // Update with the new thumbnail URL
+                refreshKey: new Date().getTime(), // Trigger re-render
+              };
+              return updatedImages;
+            } else {
+              // Image does not exist, add it to the beginning
+              const newImageEntry = { ...fetchedImage, thumbnail_url: image.thumbnail_url, refreshKey: new Date().getTime() };
+              return [newImageEntry, ...prevImages];
+            }
+          });
+        } else {
+          console.log("Fetched image was null or undefined, not updating state.");
+        }
+      });
+    }
+  }, [webSocketMessage, fetchImageById]);
 
   const handleImageClick = useCallback((image) => {
     setSelectedImage(image);
@@ -213,7 +268,7 @@ function ImageGrid({ searchTerm, setSearchTerm, sortBy, sortOrder, activeFilters
       setLastSortValue(null);
       setImagesError("Please log in to view images.");
     }
-  }, [isAuthenticated, imagesPerPage, searchTerm, sortBy, sortOrder, fetchImages, activeFilters, refreshKey]);
+  }, [isAuthenticated, imagesPerPage, searchTerm, sortBy, sortOrder, fetchImages, activeFilters]);
 
   // Ref for the element to observe for infinite scrolling
   const observer = useRef();
@@ -263,6 +318,7 @@ function ImageGrid({ searchTerm, setSearchTerm, sortBy, sortOrder, activeFilters
                         key={image.id} image={image}
                         onClick={handleImageClick}
                         onContextMenu={(e) => handleContextMenu(e, image)}
+                        refreshKey={image.refreshKey}
                       />;
           }
           return <ImageCard
@@ -270,6 +326,7 @@ function ImageGrid({ searchTerm, setSearchTerm, sortBy, sortOrder, activeFilters
                     image={image}
                     onClick={handleImageClick}
                     onContextMenu={(e) => handleContextMenu(e, image)}
+                    refreshKey={image.refreshKey}
                   />;
         })}
 
