@@ -138,6 +138,7 @@ class Filter(Base):
     built_in = Column(Boolean, default=False)
     admin_only = Column(Boolean, default=False)
     reverse = Column(Boolean, default=False)
+    internal = Column(Boolean, default=False)
 
     tags = relationship("Tag", secondary=filter_tags, back_populates="filters_positive")
     neg_tags = relationship("Tag", secondary=filter_neg_tags, back_populates="filters_negative")

@@ -67,13 +67,11 @@ function FilterGroup({ searchTerm, setSearchTerm, setSubPanel, activeFilters, se
                         allAvailableFilters.map(filter => {
                             const styles = getStyles(filter.color);
                             const selectedFilter = activeFilters.find(row => row.id === filter.id);
-                            if (selectedFilter) {
-                                const isSelected = selectedFilter.isSelected;
-                             }
+                            const isActive = selectedFilter ? selectedFilter.isSelected : false;
                             return (
                                 <button
                                     key={filter.id}
-                                    className=""
+                                    className={`filter-button ${isActive ? 'filter-button-active' : ''}`}
                                     style={styles}
                                     onClick={() => {handleToggleFilter(filter.id)}}
                                 >
@@ -82,7 +80,7 @@ function FilterGroup({ searchTerm, setSearchTerm, setSubPanel, activeFilters, se
                             )
                         })
                     ) : (
-                        <p className="sidebar-text-gray">No tags assigned.</p>
+                        <p className="sidebar-text-gray">No filters assigned.</p>
                     )}
                 </div>
             </div>

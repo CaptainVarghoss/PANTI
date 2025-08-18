@@ -123,7 +123,8 @@ async def lifespan(app: FastAPI):
 
         if not db.query(models.Filter).first():
             print("Adding initial Filter and linking Tag...")
-            db.add(models.Filter(name='Explicit Content', built_in=True, color='DarkRed', text_color='White', icon='explicit', header_display=True, enabled=False, search_terms='NOT (nude|penis|pussy|cock|handjob|fellatio|"anal"|vaginal|"ass"|blowjob|deepthroat)', reverse=True))
+            db.add(models.Filter(name='Explicit Content', built_in=True, color='DarkRed', text_color='White', icon='explicit', header_display=True, enabled=False, search_terms='NOT (nude|penis|pussy|cock|handjob|fellatio|"anal"|vaginal|"ass"|blowjob|deepthroat)', reverse=True, internal=True))
+            db.add(models.Filter(name='Trash', built_in=True, color='red', text_color='white', icon='trashcan', header_display=False, enabled=False, search_terms='', reverse=True, internal=True))
             db.commit() # Commit filter first to get its ID
 
             first_filter_tag = db.query(models.Tag).filter_by(name='NSFW').first()
@@ -131,6 +132,13 @@ async def lifespan(app: FastAPI):
 
             if first_filter and first_filter_tag:
                 first_filter.tags.append(first_filter_tag)
+                db.commit()
+            
+            second_filter_tag = db.query(models.Tag).filter_by(name='Trash').first()
+            second_filter = db.query(models.Filter).filter_by(name='Trash').first()
+
+            if second_filter and second_filter_tag:
+                second_filter.tags.append(second_filter_tag)
                 db.commit()
 
         if not db.query(models.User).first():

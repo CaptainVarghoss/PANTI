@@ -60,6 +60,15 @@ def read_tag(tag_id: int, db: Session = Depends(database.get_db)):
         raise HTTPException(status_code=404, detail="Tag not found")
     return db_tag
 
+@router.get("/trash_tag", response_model=schemas.Tag)
+def trash_tag(db: Session = Depends(database.get_db)):
+    # Retrieves trash tag by name. Accessible by all.
+
+    db_tag = db.query(models.Tag).filter(models.Tag.name == 'Trash').first()
+    if db_tag is None:
+        raise HTTPException(status_code=404, detail="Tag not found")
+    return db_tag
+
 @router.put("/tags/{tag_id}", response_model=schemas.Tag)
 def update_tag(tag_id: int, tag: schemas.TagUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
     # Updates an existing tag.

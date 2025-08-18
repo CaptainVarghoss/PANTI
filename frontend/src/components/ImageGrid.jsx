@@ -138,11 +138,57 @@ function ImageGrid({ searchTerm, setSearchTerm, sortBy, sortOrder, activeFilters
           alert(`Viewing info for ${data.title}: ${data.description}`);
           break;
           case 'delete':
-          if (window.confirm(`Are you sure you want to delete "${data.title}"?`)) {
-              alert(`Deleting ${data.title}...`);
-              // In a real app, trigger actual delete API call and update state
-          }
-          break;
+            const addTrashTag = async (imageId) => {
+                try {
+                    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+                    const response = await fetch('/api/trash_tag', { headers });
+                    if (!response.ok) {
+                        if (response.status === 404) {
+                            throw new Error("The 'Trash' tag does not exist. Please create it first.");
+                        }
+                        throw new Error('Failed to fetch the Trash tag');
+                    }
+                    const trashTag = await response.json();
+
+                    const imageToUpdate = images.find(img => img.id === imageId);
+                    if (!imageToUpdate) {
+                        console.error("Image not found in state.");
+                        return;
+                    }
+
+                    const existingTagIds = imageToUpdate.tags.map(tag => tag.id);
+                    if (existingTagIds.includes(trashTag.id)) {
+                        return; // Or alert the user
+                    }
+
+                    const updatedTagIds = [...existingTagIds, trashTag.id];
+
+                    const updateResponse = await fetch(`/api/images/${imageId}`, {
+                        method: 'PUT',
+                        headers: {
+                            ...headers,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ tag_ids: updatedTagIds }),
+                    });
+
+                    if (!updateResponse.ok) {
+                        const errorText = await updateResponse.text();
+                        throw new Error(`Failed to add "Trash" tag to the image. ${errorText}`);
+                    }
+
+                    const updatedImage = await updateResponse.json();
+                    setImages(prevImages =>
+                        prevImages.map(img => (img.id === imageId ? { ...img, ...updatedImage, refreshKey: new Date().getTime() } : img))
+                    );
+
+                } catch (error) {
+                    console.error("Error adding 'Trash' tag:", error);
+                    alert("Error adding 'Trash' tag: " + error.message);
+                }
+            };
+            addTrashTag(data.id);
+            break;
           default:
           break;
       }
