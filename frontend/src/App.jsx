@@ -216,6 +216,10 @@ function App() {
             toggleRightSidebar={toggleRightSidebar}
             searchTerm={searchTerm}
             onSearchAndSortChange={handleSearchAndSortChange}
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            setSortBy={setSortBy}
+            setSortOrder={setSortOrder}
             setSearchTerm={setSearchTerm}
             activeFilters={activeFilters}
             setActiveFilters={setActiveFilters}
@@ -227,11 +231,7 @@ function App() {
             side="left"
             subPanel={currentSubPanel}
             setSubPanel={setCurrentSubPanel}
-            sortBy={sortBy}
-            sortOrder={sortOrder}
             onSearchAndSortChange={handleSearchAndSortChange}
-            setSortBy={setSortBy}
-            setSortOrder={setSortOrder}
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
             activeFilters={activeFilters}
@@ -243,11 +243,7 @@ function App() {
             side="right"
             subPanel={currentSubPanel}
             setSubPanel={setCurrentSubPanel}
-            sortBy={sortBy}
-            sortOrder={sortOrder}
             onSearchAndSortChange={handleSearchAndSortChange}
-            setSortBy={setSortBy}
-            setSortOrder={setSortOrder}
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
             activeFilters={activeFilters}

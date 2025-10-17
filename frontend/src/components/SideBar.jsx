@@ -23,10 +23,6 @@ function Sidebar({
   side,
   subPanel,
   setSubPanel,
-  sortBy,
-  setSortBy,
-  sortOrder,
-  setSortOrder,
   searchTerm,
   setSearchTerm,
   activeFilters,
@@ -98,33 +94,6 @@ function Sidebar({
               </div>
 
               <div className="refiner-container">
-
-                <div className="sidebar-sort">
-                  <div className="sidebar-sort-section">
-                    <div className=""><h4 className="sidebar-sort-subtitle">Sort:</h4></div>
-                    <div className="navbar-search-select">
-                          <select
-                              className="sort-by"
-                              value={sortBy}
-                              onChange={(e) => setSortBy(e.target.value)}
-                          >
-                              <option value="date_created">Sort by Date</option>
-                              <option value="filename">Sort by Filename</option>
-                              <option value="checksum">Sort by Checksum</option>
-                          </select>
-                      </div>
-                      <div className="navbar-search-select">
-                          <select
-                              className="sort-order"
-                              value={sortOrder}
-                              onChange={(e) => setSortOrder(e.target.value)}
-                          >
-                              <option value="desc">Descending</option>
-                              <option value="asc">Ascending</option>
-                          </select>
-                      </div>
-                  </div>
-                </div>
 
                 <div className="sidebar-tags">
                   <GroupDisplay

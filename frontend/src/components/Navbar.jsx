@@ -19,6 +19,10 @@ function Navbar({
   searchTerm,
   setSearchTerm,
   onSearchAndSortChange,
+  sortBy,
+  setSortBy,
+  sortOrder,
+  setSortOrder,
   activeFilters,
   setActiveFilters
 }) {
@@ -44,6 +48,10 @@ function Navbar({
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
             onSearchAndSortChange={onSearchAndSortChange}
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            setSortBy={setSortBy}
+            setSortOrder={setSortOrder}
             activeFilters={activeFilters}
             setActiveFilters={setActiveFilters}
           />

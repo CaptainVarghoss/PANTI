@@ -126,10 +126,14 @@ def read_images(
             )
 
     # Apply sorting
+    sort_model = models.ImageContent
+    if sort_by == 'filename':
+        sort_model = models.ImageLocation
+    
     if sort_order == 'desc':
-        query = query.order_by(getattr(models.ImageContent, sort_by).desc(), models.ImageLocation.id.desc())
+        query = query.order_by(getattr(sort_model, sort_by).desc(), models.ImageLocation.id.desc())
     else: # 'asc'
-        query = query.order_by(getattr(models.ImageContent, sort_by).asc(), models.ImageLocation.id.asc())
+        query = query.order_by(getattr(sort_model, sort_by).asc(), models.ImageLocation.id.asc())
 
     # Apply limit
     images = query.limit(limit).all()
