@@ -3,7 +3,7 @@ from fastapi import Depends, Query
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, and_, not_
 from sqlalchemy.sql import expression
-from models import Image, Tag, ImagePath, Filter
+from models import ImageContent, Tag, ImagePath, Filter, ImageLocation
 import database
 
 # --- Token Definitions for Lexical Analysis ---
@@ -296,15 +296,16 @@ class Parser:
 # --- SQLAlchemy Query Filter Builder ---
 # This component translates the AST into SQLAlchemy filter expressions.
 
-def build_sqlalchemy_filter(node: Node, Image, Tag):
+def build_sqlalchemy_filter(node: Node, ImageContent, Tag, ImageLocation):
     """
     Recursively traverses the Abstract Syntax Tree (AST) and translates each node
     into a corresponding SQLAlchemy filter clause.
 
     Args:
         node (Node): The current AST node being processed.
-        Image: The SQLAlchemy Image model class.
+        ImageContent: The SQLAlchemy ImageContent model class.
         Tag: The SQLAlchemy Tag model class.
+        ImageLocation: The SQLAlchemy ImageLocation model class.
 
     Returns:
         sqlalchemy.sql.expression.BinaryExpression: A SQLAlchemy filter clause
@@ -313,8 +314,8 @@ def build_sqlalchemy_filter(node: Node, Image, Tag):
     if isinstance(node, BinaryOpNode):
         # For binary operators (AND, OR), recursively build filters for both sides
         # and combine them using SQLAlchemy's `and_` or `or_`.
-        left_filter = build_sqlalchemy_filter(node.left, Image, Tag)
-        right_filter = build_sqlalchemy_filter(node.right, Image, Tag)
+        left_filter = build_sqlalchemy_filter(node.left, ImageContent, Tag, ImageLocation)
+        right_filter = build_sqlalchemy_filter(node.right, ImageContent, Tag, ImageLocation)
         if node.op_type == TOKEN_TYPE_AND:
             return and_(left_filter, right_filter)
         elif node.op_type == TOKEN_TYPE_OR:
@@ -322,7 +323,7 @@ def build_sqlalchemy_filter(node: Node, Image, Tag):
     elif isinstance(node, UnaryOpNode):
         # For unary operators (NOT), recursively build the filter for the operand
         # and apply SQLAlchemy's `not_`.
-        operand_filter = build_sqlalchemy_filter(node.operand, Image, Tag)
+        operand_filter = build_sqlalchemy_filter(node.operand, ImageContent, Tag, ImageLocation)
         if node.op_type == TOKEN_TYPE_NOT:
             return not_(operand_filter)
     elif isinstance(node, TermNode):
@@ -331,19 +332,19 @@ def build_sqlalchemy_filter(node: Node, Image, Tag):
         # Define how to search based on the term's type and original input style (quoted vs. unquoted).
         if node.term_type == TOKEN_TYPE_PHRASE:
             # If it's a standalone quoted phrase (e.g., "blue sky"), search for it
-            # partially (contains) across meta, folder, and tag names.
-            meta_filter = Image.meta.ilike(f"%{search_term}%")
-            folder_filter = Image.path.ilike(f"%{search_term}%")
+            # partially (contains) across exif_data, folder, and tag names.
+            meta_filter = ImageContent.exif_data.ilike(f"%{search_term}%")
+            folder_filter = ImageLocation.path.ilike(f"%{search_term}%")
             # For tags, use `any()` to check if any associated tag's name matches.
-            tag_filter = Image.tags.any(Tag.name.ilike(f"%{search_term}%"))
+            tag_filter = ImageContent.tags.any(Tag.name.ilike(f"%{search_term}%"))
             return or_(meta_filter, folder_filter, tag_filter)
 
         elif node.term_type == TOKEN_TYPE_WORD:
             # If it's a standalone unquoted word (e.g., "cat"), search for it
-            # partially (contains) across meta, folder, and tag names.
-            meta_filter = Image.meta.ilike(f"%{search_term}%")
-            folder_filter = Image.path.ilike(f"%{search_term}%")
-            tag_filter = Image.tags.any(Tag.name.ilike(f"%{search_term}%"))
+            # partially (contains) across exif_data, folder, and tag names.
+            meta_filter = ImageContent.exif_data.ilike(f"%{search_term}%")
+            folder_filter = ImageLocation.path.ilike(f"%{search_term}%")
+            tag_filter = ImageContent.tags.any(Tag.name.ilike(f"%{search_term}%"))
             return or_(meta_filter, folder_filter, tag_filter)
 
         elif node.term_type == TOKEN_TYPE_KEYWORD_TAG:
@@ -351,20 +352,20 @@ def build_sqlalchemy_filter(node: Node, Image, Tag):
             # If the value was originally a quoted phrase (e.g., TAG:"nature photography"),
             # perform an exact match on the Tag name.
             if node.value_original_type == TOKEN_TYPE_PHRASE:
-                return Image.tags.any(Tag.name == search_term) # Exact tag name match
+                return ImageContent.tags.any(Tag.name == search_term) # Exact tag name match
             else: # If the value was an unquoted word (e.g., TAG:landscape)
                 # Perform a partial (contains) match on the Tag name.
-                return Image.tags.any(Tag.name.ilike(f"%{search_term}%")) # Partial tag name match
+                return ImageContent.tags.any(Tag.name.ilike(f"%{search_term}%")) # Partial tag name match
 
         elif node.term_type == TOKEN_TYPE_KEYWORD_FOLDER:
             # For the 'FOLDER:' keyword:
             # If the value was originally a quoted phrase (e.g., FOLDER:"Summer Trip"),
             # perform an exact match on the folder name.
             if node.value_original_type == TOKEN_TYPE_PHRASE:
-                return Image.path == search_term # Exact folder name match
+                return ImageLocation.path == search_term # Exact folder name match
             else: # If the value was an unquoted word (e.g., FOLDER:documents)
                 # Perform a partial (contains) match on the folder name.
-                return Image.path.ilike(f"%{search_term}%") # Partial folder name match
+                return ImageLocation.path.ilike(f"%{search_term}%") # Partial folder name match
     # If for any reason an unexpected node type is encountered, or for an effectively empty query,
     # return `expression.true()`, which means this filter clause won't restrict results.
     return expression.true()
@@ -457,7 +458,7 @@ def generate_image_search_filter(
 
             if tag_conditions:
                 # Image must have ANY of these tags
-                tags_positive_clause = Image.tags.any(or_(*tag_conditions))
+                tags_positive_clause = ImageContent.tags.any(or_(*tag_conditions))
                 current_filter_clause_positive = and_(current_filter_clause_positive, tags_positive_clause)
 
         # Negative tags
@@ -470,7 +471,7 @@ def generate_image_search_filter(
 
             if negative_tag_conditions:
                 # The image must NOT have ANY of these negative tags
-                negative_tags_clause = not_(Image.tags.any(or_(*negative_tag_conditions)))
+                negative_tags_clause = not_(ImageContent.tags.any(or_(*negative_tag_conditions)))
 
         # Combine positive filter conditions with negative tag conditions for this specific filter
         # An image must match the positive criteria AND not match any negative tags
@@ -497,7 +498,7 @@ def generate_image_search_filter(
         # This is achieved by checking that there isn't `any` tag linked to the image
         # that has `admin_only` set to `True`.
         global_admin_filter = and_(global_admin_filter,
-                                   not_(Image.tags.any(Tag.admin_only == True)))
+                                   not_(ImageContent.tags.any(Tag.admin_only == True)))
 
     if search_terms:
         if filter_search_terms:
@@ -513,7 +514,7 @@ def generate_image_search_filter(
             if tokens:
                 parser = Parser(tokens)
                 ast = parser.parse()
-                ast_filter = build_sqlalchemy_filter(ast, Image, Tag)
+                ast_filter = build_sqlalchemy_filter(ast, ImageContent, Tag, ImageLocation)
             # else: If tokens is empty (e.g. from "   "), ast_filter remains true()
         except SyntaxError as e:
             # If a syntax error occurs during parsing, print it and return a filter that yields no results.

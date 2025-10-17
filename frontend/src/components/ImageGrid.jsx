@@ -361,7 +361,8 @@ function ImageGrid({ searchTerm, setSearchTerm, sortBy, sortOrder, activeFilters
           if (images.length === index + 1 && hasMore) {
               return <ImageCard
                         ref={lastImageElementRef}
-                        key={image.id} image={image}
+                        key={image.id}
+                        image={image}
                         onClick={handleImageClick}
                         onContextMenu={(e) => handleContextMenu(e, image)}
                         refreshKey={image.refreshKey}

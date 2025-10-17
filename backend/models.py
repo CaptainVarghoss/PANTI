@@ -10,7 +10,7 @@ Base = declarative_base()
 image_tags = Table(
     'image_tags',
     Base.metadata,
-    Column('image_id', Integer, ForeignKey('images.id'), primary_key=True),
+    Column('image_id', String, ForeignKey('image_content.content_hash'), primary_key=True),
     Column('tag_id', Integer, ForeignKey('tags.id'), primary_key=True)
 )
 
@@ -59,7 +59,7 @@ class Tag(Base):
     built_in = Column(Boolean, default=False)
     internal = Column(Boolean, default=False)
 
-    images = relationship("Image", secondary=image_tags, back_populates="tags")
+    images = relationship("ImageContent", secondary=image_tags, back_populates="tags")
     image_paths = relationship("ImagePath", secondary=imagepath_tags, back_populates="tags")
     filters_positive = relationship("Filter", secondary=filter_tags, back_populates="tags")
     filters_negative = relationship("Filter", secondary=filter_neg_tags, back_populates="neg_tags")
@@ -79,26 +79,30 @@ class ImagePath(Base):
 
     tags = relationship("Tag", secondary=imagepath_tags, back_populates="image_paths")
 
+class ImageContent(Base):
+    __tablename__ = "image_content"
+    content_hash = Column(String, primary_key=True, unique=True, index=True, nullable=False)
+    is_video = Column(Boolean, default=False)
+    exif_data = Column(Text)
+    width = Column(Integer)
+    height = Column(Integer)
+    date_created = Column(DateTime(timezone=True))
+    date_modified = Column(DateTime(timezone=True))
+    date_indexed = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), server_default=func.now())
+    locations = relationship("ImageLocation", back_populates="content")
+    tags = relationship("Tag", secondary=image_tags, back_populates="images")
 
-class Image(Base):
-    __tablename__ = "images"
+class ImageLocation(Base):
+    __tablename__ = "image_location"
     id = Column(Integer, primary_key=True, index=True)
-    checksum = Column(String, unique=True, index=True, nullable=False)
+    content_hash = Column(String, ForeignKey("image_content.content_hash"), index=True, nullable=False)
     filename = Column(String, nullable=False)
     path = Column(String, nullable=False)
-    meta = Column(Text)
-    is_video = Column(Boolean, default=False)
-
-    date_created = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), server_default=func.now())
-    date_modified = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), server_default=func.now())
-
-    created_by = Column(Integer, ForeignKey("users.id"))
-    modified_by = Column(Integer, ForeignKey("users.id"))
-
-    tags = relationship("Tag", secondary=image_tags, back_populates="images")
-    created_user = relationship("User", foreign_keys=[created_by])
-    modified_user = relationship("User", foreign_keys=[modified_by])
-
+    date_scanned = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), server_default=func.now())
+    content = relationship("ImageContent", back_populates="locations")
+    __table_args__ = (
+        UniqueConstraint('path', 'filename', name='uq_path_filename'),
+    )
 
 class Setting(Base):
     __tablename__ = "settings"

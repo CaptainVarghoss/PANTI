@@ -25,12 +25,12 @@ async def get_thumbnail(image_id: int, db: Session = Depends(database.get_db)):
     
     # Serves thumbnails. If a thumbnail doesn't exist, it triggers generation and returns a placeholder.
 
-    db_image = db.query(models.Image).filter(models.Image.id == image_id).first()
+    db_image = db.query(models.ImageLocation).filter(models.ImageLocation.id == image_id).first()
     if not db_image:
         print(f"Image with ID {image_id} not found")
         raise HTTPException(status_code=404, detail="Image not found")
 
-    expected_thumbnail_path = os.path.join(config.THUMBNAILS_DIR, f"{db_image.checksum}_thumb.webp")
+    expected_thumbnail_path = os.path.join(config.THUMBNAILS_DIR, f"{db_image.content_hash}_thumb.webp")
 
     if os.path.exists(expected_thumbnail_path):
         return FileResponse(expected_thumbnail_path, media_type="image/webp")
@@ -49,7 +49,7 @@ async def get_thumbnail(image_id: int, db: Session = Depends(database.get_db)):
         if original_filepath and Path(original_filepath).is_file():
             thread = threading.Thread(
                 target=image_processor.generate_thumbnail_in_background,
-                args=(image_id, db_image.checksum, original_filepath)
+                args=(image_id, db_image.content_hash, original_filepath)
             )
             thread.daemon = True
             thread.start()
@@ -60,30 +60,7 @@ async def get_thumbnail(image_id: int, db: Session = Depends(database.get_db)):
         placeholder_path = os.path.join(config.STATIC_DIR, "placeholder.png")  # Or a loading animation
         return FileResponse(placeholder_path, media_type="image/png")
 
-
-@router.post("/images/", response_model=schemas.Image, status_code=status.HTTP_201_CREATED)
-def create_image(image: schemas.ImageCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
-    # Creates a new image entry in the database.
-    # FIX THIS
-    # Probably not needed at all unless tied to uploads or similar
-
-    db_image = models.Image(
-        checksum=image.checksum,
-        filename=image.filename,
-        path=image.path,
-        meta=image.meta,
-        is_video=image.is_video
-    )
-    for tag_id in image.tag_ids:
-        tag = db.query(models.Tag).filter(models.Tag.id == tag_id).first()
-        if tag:
-            db_image.tags.append(tag)
-    db.add(db_image)
-    db.commit()
-    db.refresh(db_image)
-    return db_image
-
-@router.get("/images/", response_model=List[schemas.Image])
+@router.get("/images/", response_model=List[schemas.ImageContent])
 def read_images(
     limit: int = 100,
     search_query: Optional[str] = Query(None, description="Search term for filename or path"),
@@ -100,8 +77,10 @@ def read_images(
     Accessible by all. Eager loads associated tags and includes paths to generated media.
     Triggers thumbnail generation if not found.
     """
-    query = db.query(models.Image).options(joinedload(models.Image.tags))
-    query = query.outerjoin(models.ImagePath, models.ImagePath.path == models.Image.path)
+    query = db.query(models.ImageLocation, models.ImagePath, models.ImageContent)
+    query = query.join(models.ImageContent.locations)
+    query = query.outerjoin(models.ImagePath, models.ImagePath.path == models.ImageLocation.path)
+    query = query.options(joinedload(models.ImageLocation.content).joinedload(models.ImageContent.tags))
 
     # Apply search filter if provided
     #if search_query:
@@ -112,7 +91,7 @@ def read_images(
     # Apply cursor-based pagination (Keyset Pagination)
     if last_id is not None and last_sort_value is not None:
         # Determine the column to sort by
-        sort_column = getattr(models.Image, sort_by)
+        sort_column = getattr(models.ImageContent, sort_by)
 
         # Handle type conversion for last_sort_value based on sort_by column's type
         # Especially crucial for `date_created` which is a datetime object
@@ -123,7 +102,7 @@ def read_images(
                 converted_last_sort_value = datetime.fromisoformat(last_sort_value.replace('Z', '+00:00'))
             except ValueError:
                 raise HTTPException(status_code=400, detail="Invalid date format for last_sort_value.")
-        elif sort_by in ['checksum', 'filename']:
+        elif sort_by in ['content_hash', 'filename']:
             # These are strings, no special conversion needed
             pass # Keep as string
 
@@ -133,7 +112,7 @@ def read_images(
             query = query.filter(
                 or_(
                     sort_column < converted_last_sort_value,
-                    and_(sort_column == converted_last_sort_value, models.Image.id < last_id)
+                    and_(sort_column == converted_last_sort_value, models.ImageLocation.id < last_id)
                 )
             )
         else: # sort_order == 'asc'
@@ -142,31 +121,31 @@ def read_images(
             query = query.filter(
                 or_(
                     sort_column > converted_last_sort_value,
-                    and_(sort_column == converted_last_sort_value, models.Image.id > last_id)
+                    and_(sort_column == converted_last_sort_value, models.ImageLocation.id > last_id)
                 )
             )
 
     # Apply sorting
     if sort_order == 'desc':
-        query = query.order_by(getattr(models.Image, sort_by).desc(), models.Image.id.desc())
+        query = query.order_by(getattr(models.ImageContent, sort_by).desc(), models.ImageLocation.id.desc())
     else: # 'asc'
-        query = query.order_by(getattr(models.Image, sort_by).asc(), models.Image.id.asc())
+        query = query.order_by(getattr(models.ImageContent, sort_by).asc(), models.ImageLocation.id.asc())
 
     # Apply limit
     images = query.limit(limit).all()
 
     response_images = []
-    for img in images:
+    for location, image_path, img in images:
         # Check if thumbnail exists, if not, trigger generation in background
-        expected_thumbnail_path = os.path.join(config.THUMBNAILS_DIR, f"{img.checksum}_thumb.webp")
+        expected_thumbnail_path = os.path.join(config.THUMBNAILS_DIR, f"{img.content_hash}_thumb.webp")
         if not os.path.exists(expected_thumbnail_path):
-            print(f"Thumbnail for {img.filename} (ID: {img.id}) not found. Triggering background generation.")
+            print(f"Thumbnail for {location.filename} (ID: {location.id}) not found. Triggering background generation.")
 
-            original_filepath = os.path.join(img.path, img.filename)
+            original_filepath = os.path.join(location.path, location.filename)
             if original_filepath and Path(original_filepath).is_file():
                 thread = threading.Thread(
                     target=image_processor.generate_thumbnail_in_background,
-                    args=(img.id, img.checksum, original_filepath)
+                    args=(location.id, img.content_hash, original_filepath)
                 )
                 thread.daemon = True
                 thread.start()
@@ -175,20 +154,24 @@ def read_images(
 
         img_dict = img.__dict__.copy()
         img_dict.pop('_sa_instance_state', None)
+        img_dict['id'] = location.id
+        img_dict['path'] = location.path
+        img_dict['filename'] = location.filename
+        img_dict['date_scanned'] = location.date_scanned
         # Convert meta string back to dict for Pydantic
-        if isinstance(img_dict.get('meta'), str):
+        if isinstance(img_dict.get('exif_data'), str):
              try:
-                 img_dict['meta'] = json.loads(img_dict['meta'])
+                 img_dict['exif_data'] = json.loads(img_dict['exif_data'])
              except json.JSONDecodeError:
-                 img_dict['meta'] = {}
-        elif img_dict.get('meta') is None:
-            img_dict['meta'] = {}
+                 img_dict['exif_data'] = {}
+        elif img_dict.get('exif_data') is None:
+            img_dict['exif_data'] = {}
 
-        response_images.append(schemas.Image(**img_dict))
-
+        response_images.append(schemas.ImageContent(**img_dict))
+    print(response_images)
     return response_images
 
-@router.get("/images/{image_id}", response_model=schemas.Image)
+@router.get("/images/{image_id}", response_model=schemas.ImageContent)
 def read_image(
         image_id: int,
         db: Session = Depends(database.get_db),
@@ -198,7 +181,7 @@ def read_image(
     # Eager loads associated tags and includes paths to generated media.
     # Triggers thumbnail generation if not found.
 
-    db_image = db.query(models.Image).options(joinedload(models.Image.tags)).filter(models.Image.id == image_id).first()
+    db_image = db.query(models.ImageContent).options(joinedload(models.ImageContent.tags)).outerjoin(models.ImageLocation, models.ImageLocation.content_hash == models.ImageContent.content_hash).filter(models.ImageLocation.id == image_id).first()
     if db_image is None:
         raise HTTPException(status_code=404, detail="Image not found")
 
@@ -229,7 +212,7 @@ def read_image(
 
     return schemas.Image(**img_dict)
 
-@router.put("/images/{image_id}", response_model=schemas.Image)
+@router.put("/images/{image_id}", response_model=schemas.ImageContent)
 def update_image(image_id: int, image: schemas.ImageUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
     # Updates an existing image.
     # Requires authentication.
@@ -276,7 +259,7 @@ async def get_original_image(
     # Retrieves the original image file using its checksum and filename.
     # This endpoint uses FileResponse to serve files directly from their disk path.
 
-    db_image = db.query(models.Image).filter(models.Image.checksum == checksum).first()
+    db_image = db.query(models.ImageLocation).filter(models.ImageLocation.content_hash == checksum).first()
 
     full_path = os.path.join(db_image.path, db_image.filename)
 

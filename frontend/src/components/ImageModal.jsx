@@ -49,7 +49,7 @@ function ImageModal({ isOpen, onClose, currentImage, images, onNavigate, searchT
             setIsFetchingOriginal(true);
             setOriginalImageError(null);
 
-            const CHECKSUM = currentImage?.checksum;
+            const CHECKSUM = currentImage?.content_hash;
             const FILENAME = currentImage?.filename;
 
             if (!CHECKSUM || !FILENAME) {
@@ -320,13 +320,15 @@ function ImageModal({ isOpen, onClose, currentImage, images, onNavigate, searchT
                             <li><strong className="modal-info-label">Path:</strong> {currentImage.path}</li>
                             <li><strong className="modal-info-label">Filename:</strong> {currentImage.filename}</li>
                             <li><strong className="modal-info-label">ID:</strong> {currentImage.id}</li>
-                            <li><strong className="modal-info-label">Checksum:</strong> {currentImage.checksum}</li>
+                            <li><strong className="modal-info-label">Checksum:</strong> {currentImage.content_hash}</li>
                             <li><strong className="modal-info-label">Is Video:</strong> {currentImage.is_video ? 'Yes' : 'No'}</li>
                             <li><strong className="modal-info-label">Date Created:</strong> {new Date(currentImage.date_created).toLocaleString()}</li>
                             <li><strong className="modal-info-label">Date Modified:</strong> {new Date(currentImage.date_modified).toLocaleString()}</li>
+                            <li><strong className="modal-info-label">Width:</strong> {currentImage.width}</li>
+                            <li><strong className="modal-info-label">Height:</strong> {currentImage.height}</li>
                         </ul>
                         <div className="modal-metadata-box">
-                            {renderMetadata(currentImage.meta)}
+                            {renderMetadata(currentImage.exif_data)}
                         </div>
                     </div>
                 </div>

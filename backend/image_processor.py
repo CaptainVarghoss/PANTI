@@ -41,7 +41,7 @@ def get_meta(filepath: str):
             print(f"Error getting metadata for {filepath}: {e}")
             return {}
 
-def add_file_to_db(db: Session, file_full_path: str, existing_checksums: Optional[set] = None) -> Optional[models.Image]:
+def add_file_to_db(db: Session, file_full_path: str, existing_checksums: Optional[set] = None) -> Optional[models.ImageLocation]:
     """
     Adds a single media file to the database if it's supported and not a duplicate.
     The caller is responsible for committing the transaction.
@@ -54,73 +54,93 @@ def add_file_to_db(db: Session, file_full_path: str, existing_checksums: Optiona
                                              the database will be queried.
 
     Returns:
-        Optional[models.Image]: The newly created Image object, or None if the file
+        Optional[models.ImageLocation]: The newly created Image location object, or None if the file
                                 was a duplicate, unsupported, or an error occurred.
     """
-    if not is_supported_media(file_full_path):
-        print(f"Ignoring unsupported file: {file_full_path}")
+    # Simple check for existing ImageLocation entry for path + filename
+    root, f = os.path.split(file_full_path)
+    existing_location = db.query(models.ImageLocation).where(models.ImageLocation.path == root, models.ImageLocation.filename == f).first()
+
+    if existing_location:
+        # Entry exists for this file location.
         return None
 
-    checksum = get_file_checksum(file_full_path)
-    if not checksum:
-        return None  # Error calculating checksum
+    else: # No entry found for this file location, add to database then generate checksum and check against checksum list.
+        existing_hash = None
 
-    # Check against the provided set first for performance
-    if existing_checksums is not None and checksum in existing_checksums:
-        return None
-
-    # If not in the set or no set provided, check the database
-    if existing_checksums is None:
-        existing_image = db.query(models.Image).filter(models.Image.checksum == checksum).first()
-        if existing_image:
-            # print(f"Skipping duplicate file: {file_full_path}")
+        if not is_supported_media(file_full_path):
+            print(f"Ignoring unsupported file: {file_full_path}")
             return None
 
-    print(f"Found new media file: {file_full_path}")
-    root, f = os.path.split(file_full_path)
-    mime_type, _ = mimetypes.guess_type(file_full_path)
-    is_video = mime_type and mime_type.startswith('video/')
+        checksum = get_file_checksum(file_full_path)
+        if not checksum:
+            return None  # Error calculating checksum
 
-    initial_meta = {
-        #"original_filepath": file_full_path,
-        "mime_type": mime_type,
-        #"is_video": is_video,
-        #"original_filename": f,
-        #"original_path": root
-    }
+        # Check against the provided set first for performance
+        if existing_checksums is not None and checksum in existing_checksums:
+            existing_hash = True
 
-    new_meta = get_meta(file_full_path)
-    if new_meta:
-        initial_meta.update(new_meta)
+        # If not in the set or no set provided, check the database
+        if existing_checksums is None:
+            existing_image = db.query(models.ImageContent).filter(models.ImageContent.content_hash == checksum).first()
+            if existing_image:
+                # print(f"Skipping duplicate file: {file_full_path}")
+                existing_hash = True
 
-    creation_timestamp = os.path.getctime(file_full_path)
-    modification_timestamp = os.path.getmtime(file_full_path)
-    date_created_dt = datetime.fromtimestamp(creation_timestamp)
-    date_modified_dt = datetime.fromtimestamp(modification_timestamp)
+        if not existing_hash:
+            # Content does not exist, add new image data
+            print(f"Found new media file: {file_full_path}")
+    
+            mime_type, _ = mimetypes.guess_type(file_full_path)
+            is_video = mime_type and mime_type.startswith('video/')
 
-    new_image = models.Image(
-        checksum=checksum,
-        filename=f,
-        path=root,
-        meta=json.dumps(initial_meta),
-        date_created=date_created_dt,
-        date_modified=date_modified_dt,
-        is_video=is_video
-    )
-    db.add(new_image)
-    return new_image
+            initial_meta = {
+                #"original_filepath": file_full_path,
+                "mime_type": mime_type,
+                #"is_video": is_video,
+                #"original_filename": f,
+                #"original_path": root
+            }
+
+            new_meta = get_meta(file_full_path)
+            if new_meta:
+                initial_meta.update(new_meta)
+
+            creation_timestamp = os.path.getctime(file_full_path)
+            modification_timestamp = os.path.getmtime(file_full_path)
+            date_created_dt = datetime.fromtimestamp(creation_timestamp)
+            date_modified_dt = datetime.fromtimestamp(modification_timestamp)
+
+            new_image = models.ImageContent(
+                content_hash=checksum,
+                exif_data=json.dumps(initial_meta),
+                date_created=date_created_dt,
+                date_modified=date_modified_dt,
+                is_video=is_video
+            )
+            db.add(new_image)
+
+        # Add location and reference content by hash.
+        new_location = models.ImageLocation(
+            content_hash=checksum,
+            filename=f,
+            path=root,
+        )
+        db.add(new_location)    
+        return new_location
 
 def scan_paths(db: Session):
     # Scans all paths in the ImagePath table for new images/videos and subdirectories.
     # Adds new media to Image table and new subdirectories to ImagePath table.
     print(f"[{datetime.now().isoformat()}] Starting file scan...")
+    scan_start = datetime.now() # Mark start of scan.
 
     # Get the list of paths to scan from the database
     paths_to_scan = db.query(models.ImagePath).all()
     # Fetch all existing image paths from the database
     existing_image_paths = {p.path for p in paths_to_scan}
-    # Fetch all existing image checksums to avoid duplicates
-    existing_image_checksums = {img.checksum for img in db.query(models.Image).all()}
+    # Fetch all existing image checksums to avoid duplicate content entries
+    existing_image_checksums = {img.content_hash for img in db.query(models.ImageContent).all()}
 
     new_images_to_process = []
     new_subdirectories_found = 0
@@ -132,6 +152,9 @@ def scan_paths(db: Session):
             continue
 
         print(f"Scanning directory: {current_path}")
+        path_time = datetime.now()
+        path_files = 0
+        new_files = 0
         for root, dirs, files in os.walk(current_path):
             # Add new subdirectories to ImagePath table
             for d in dirs:
@@ -155,21 +178,24 @@ def scan_paths(db: Session):
             # Add new images/videos to Image table
             files.sort(key=lambda fn: os.path.getctime(os.path.join(root, fn)))
             for f in files:
+                path_files += 1
                 file_full_path = os.path.join(root, f)
                 new_image = add_file_to_db(db, file_full_path, existing_image_checksums)
                 if new_image:
+                    new_files += 1
                     # Add the new checksum to the set to avoid re-adding it in the same scan session
-                    existing_image_checksums.add(new_image.checksum)
+                    existing_image_checksums.add(new_image.content_hash)
                     new_images_to_process.append((new_image, file_full_path))
+        print(f"{datetime.now().isoformat()} Scanned {path_files} files from {current_path} in {datetime.now() - path_time} seconds. Found {new_files} new files.")
 
-    try:
-        db.commit()
-        print(f"[{datetime.now().isoformat()}] File scan completed. Added {len(new_images_to_process)} new media files and {new_subdirectories_found} new subdirectories.")
+        try:
+            db.commit()
+            print(f"[{datetime.now().isoformat()}] File scan completed. Added {len(new_images_to_process)} new media files and {new_subdirectories_found} new subdirectories.")
 
 
-    except Exception as e:
-        db.rollback()
-        print(f"[{datetime.now().isoformat()}] Error during file scan database commit/processing initiation: {e}")
+        except Exception as e:
+            db.rollback()
+            print(f"[{datetime.now().isoformat()}] Error during file scan database commit/processing initiation: {e}")
 
 
 def get_file_checksum(filepath: str, block_size=65536):

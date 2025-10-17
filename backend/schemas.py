@@ -78,29 +78,32 @@ class ImagePath(ImagePathBase):
 
 # --- Image Schemas ---
 class ImageBase(BaseModel):
-    checksum: str
-    filename: str
-    path: str
-    meta: Dict[str, Any] = {} # Can be empty dict
+    content_hash: str
+    date_created: datetime
+    date_modified: datetime
+    exif_data: Dict[str, Any] = {} # Can be empty dict
     is_video: bool = False
 
 class ImageCreate(ImageBase):
     tag_ids: List[int] = [] # For associating tags on creation
 
 class ImageUpdate(ImageBase):
-    checksum: Optional[str] = None
+    content_hash: Optional[str] = None
     filename: Optional[str] = None
     path: Optional[str] = None
-    meta: Optional[Dict[str, Any]] = None
+    exif_data: Optional[Dict[str, Any]] = None
     is_video: Optional[bool] = None
     tag_ids: Optional[List[int]] = None # For associating tags on update
 
-class Image(ImageBase):
+class ImageContent(ImageBase):
     id: int
+    filename: str
+    path: str
+    date_indexed: datetime
+    width: Optional[int] = None
+    height: Optional[int] = None
     date_created: datetime
     date_modified: datetime
-    created_by: Optional[int] = None
-    modified_by: Optional[int] = None
     tags: List[Tag] = []
     # Add fields for static file URLs for the frontend
     static_assets_base_url: Optional[str] = None

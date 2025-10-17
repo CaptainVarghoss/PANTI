@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 
 import auth
@@ -46,8 +46,8 @@ def read_tags(
             tags = tags.filter_by(admin_only=False)
 
     else:
-        image = db.query(models.Image).filter_by(id=imageId).first()
-        tags = image.tags
+        image = db.query(models.ImageLocation).options(joinedload(models.ImageLocation.content).joinedload(models.ImageContent.tags)).filter_by(id=imageId).first()
+        tags = image.content.tags
 
     return tags
 
