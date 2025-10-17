@@ -168,7 +168,6 @@ def read_images(
             img_dict['exif_data'] = {}
 
         response_images.append(schemas.ImageContent(**img_dict))
-    print(response_images)
     return response_images
 
 @router.get("/images/{image_id}", response_model=schemas.ImageContent)
@@ -202,13 +201,13 @@ def read_image(
 
     img_dict = db_image.__dict__.copy()
     img_dict.pop('_sa_instance_state', None)
-    if isinstance(img_dict.get('meta'), str):
+    if isinstance(img_dict.get('exif_data'), str):
         try:
-            img_dict['meta'] = json.loads(img_dict['meta'])
+            img_dict['exif_data'] = json.loads(img_dict['exif_data'])
         except json.JSONDecodeError:
-            img_dict['meta'] = {}
-    elif img_dict.get('meta') is None:
-        img_dict['meta'] = {}
+            img_dict['exif_data'] = {}
+    elif img_dict.get('exif_data') is None:
+        img_dict['exif_data'] = {}
 
     return schemas.Image(**img_dict)
 
