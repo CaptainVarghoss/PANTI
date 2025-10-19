@@ -77,10 +77,12 @@ def read_images(
     Accessible by all. Eager loads associated tags and includes paths to generated media.
     Triggers thumbnail generation if not found.
     """
-    query = db.query(models.ImageLocation, models.ImagePath, models.ImageContent)
-    query = query.join(models.ImageContent.locations)
+    query = db.query(models.ImageLocation).distinct()
+    query = query.join(models.ImageContent, models.ImageLocation.content_hash == models.ImageContent.content_hash)
     query = query.outerjoin(models.ImagePath, models.ImagePath.path == models.ImageLocation.path)
-    query = query.options(joinedload(models.ImageLocation.content).joinedload(models.ImageContent.tags))
+    query = query.options(
+        joinedload(models.ImageLocation.content).joinedload(models.ImageContent.tags)
+    )
 
     # Apply search filter if provided
     #if search_query:
@@ -139,7 +141,8 @@ def read_images(
     images = query.limit(limit).all()
 
     response_images = []
-    for location, image_path, img in images:
+    for location in images:
+        img = location.content
         # Check if thumbnail exists, if not, trigger generation in background
         expected_thumbnail_path = os.path.join(config.THUMBNAILS_DIR, f"{img.content_hash}_thumb.webp")
         if not os.path.exists(expected_thumbnail_path):
@@ -154,24 +157,20 @@ def read_images(
                 thread.daemon = True
                 thread.start()
             else:
-                print(f"Could not trigger thumbnail generation for {img.filename}: original_filepath not found or invalid.")
+                print(f"Could not trigger thumbnail generation for {location.filename}: original_filepath not found or invalid.")
 
-        img_dict = img.__dict__.copy()
-        img_dict.pop('_sa_instance_state', None)
-        img_dict['id'] = location.id
-        img_dict['path'] = location.path
-        img_dict['filename'] = location.filename
-        img_dict['date_scanned'] = location.date_scanned
-        # Convert meta string back to dict for Pydantic
-        if isinstance(img_dict.get('exif_data'), str):
-             try:
-                 img_dict['exif_data'] = json.loads(img_dict['exif_data'])
-             except json.JSONDecodeError:
-                 img_dict['exif_data'] = {}
-        elif img_dict.get('exif_data') is None:
-            img_dict['exif_data'] = {}
-
-        response_images.append(schemas.ImageContent(**img_dict))
+        if isinstance(img.exif_data, str):
+            try:
+                img.exif_data = json.loads(img.exif_data)
+            except json.JSONDecodeError:
+                img.exif_data = {} # Or handle error appropriately
+        
+        response_images.append(schemas.ImageContent(
+            id=location.id,
+            filename=location.filename,
+            path=location.path,
+            **img.__dict__
+        ))
     return response_images
 
 @router.get("/images/{image_id}", response_model=schemas.ImageContent)
@@ -184,58 +183,64 @@ def read_image(
     # Eager loads associated tags and includes paths to generated media.
     # Triggers thumbnail generation if not found.
 
-    db_image = db.query(models.ImageContent).options(joinedload(models.ImageContent.tags)).outerjoin(models.ImageLocation, models.ImageLocation.content_hash == models.ImageContent.content_hash).filter(models.ImageLocation.id == image_id).first()
+    location_image = db.query(models.ImageLocation).filter(models.ImageLocation.id == image_id).first()
+    if location_image is None:
+        raise HTTPException(status_code=404, detail="Image location not found")
+
+    db_image = db.query(models.ImageContent).filter(models.ImageContent.content_hash == location_image.content_hash).first()
     if db_image is None:
-        raise HTTPException(status_code=404, detail="Image not found")
+        raise HTTPException(status_code=404, detail="Image content not found")
 
     # Check if thumbnail exists, if not, trigger generation in background
-    expected_thumbnail_path = os.path.join(config.THUMBNAILS_DIR, f"{db_image.checksum}_thumb.webp")
+    expected_thumbnail_path = os.path.join(config.THUMBNAILS_DIR, f"{db_image.content_hash}_thumb.webp")
     if not os.path.exists(expected_thumbnail_path):
-        print(f"Thumbnail for {db_image.filename} (ID: {db_image.id}) not found. Triggering background generation.")
-        original_filepath = os.path.join(db_image.path, db_image.filename)
+        print(f"Thumbnail for {location_image.filename} (ID: {location_image.id}) not found. Triggering background generation.")
+        original_filepath = os.path.join(location_image.path, location_image.filename)
         if original_filepath and Path(original_filepath).is_file():
             thread = threading.Thread(
                 target=image_processor.generate_thumbnail_in_background,
-                args=(db_image.id, db_image.checksum, original_filepath)
+                args=(location_image.id, db_image.content_hash, original_filepath)
             )
             thread.daemon = True
             thread.start()
         else:
-            print(f"Could not trigger thumbnail generation for {db_image.filename}: original_filepath not found or invalid.")
+            print(f"Could not trigger thumbnail generation for {location_image.filename}: original_filepath not found or invalid.")
 
-    img_dict = db_image.__dict__.copy()
-    img_dict.pop('_sa_instance_state', None)
-    if isinstance(img_dict.get('exif_data'), str):
+    if isinstance(db_image.exif_data, str):
         try:
-            img_dict['exif_data'] = json.loads(img_dict['exif_data'])
+            db_image.exif_data = json.loads(db_image.exif_data)
         except json.JSONDecodeError:
-            img_dict['exif_data'] = {}
-    elif img_dict.get('exif_data') is None:
-        img_dict['exif_data'] = {}
+            db_image.exif_data = {}
 
-    return schemas.Image(**img_dict)
+    return schemas.ImageContent(
+        id=location_image.id,
+        filename=location_image.filename,
+        path=location_image.path,
+        **db_image.__dict__
+    )
 
 @router.put("/images/{image_id}", response_model=schemas.ImageContent)
-def update_image(image_id: int, image: schemas.ImageUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
-    # Updates an existing image.
+def update_image(image_id: int, image_update: schemas.ImageTagUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
+    # Updates an existing image's tags.
     # Requires authentication.
 
-    db_image = db.query(models.Image).filter(models.Image.id == image_id).first()
+    image_location = db.query(models.ImageLocation).filter(models.ImageLocation.id == image_id).first()
+    if image_location is None:
+        raise HTTPException(status_code=404, detail="Image location not found")
+
+    db_image = db.query(models.ImageContent).filter(models.ImageContent.content_hash == image_location.content_hash).first()
     if db_image is None:
-        raise HTTPException(status_code=404, detail="Image not found")
+        raise HTTPException(status_code=404, detail="Image content not found")
 
-    for key, value in image.dict(exclude_unset=True, exclude={'tag_ids'}).items():
-        setattr(db_image, key, value)
-
-    if image.tag_ids is not None:
+    if image_update.tag_ids is not None:
         db_image.tags.clear()
-        for tag_id in image.tag_ids:
+        for tag_id in image_update.tag_ids:
             tag = db.query(models.Tag).filter(models.Tag.id == tag_id).first()
             if tag:
                 db_image.tags.append(tag)
             else:
                 raise HTTPException(status_code=400, detail=f"Tag with ID {tag_id} not found.")
-
+    
     db.commit()
     db.refresh(db_image)
     return read_image(image_id, db)

@@ -89,28 +89,31 @@ class ImageCreate(ImageBase):
 
 class ImageUpdate(ImageBase):
     content_hash: Optional[str] = None
-    filename: Optional[str] = None
-    path: Optional[str] = None
     exif_data: Optional[Dict[str, Any]] = None
     is_video: Optional[bool] = None
     tag_ids: Optional[List[int]] = None # For associating tags on update
 
-class ImageContent(ImageBase):
+class ImageTagUpdate(BaseModel):
+    tag_ids: List[int] = []
+
+class ImageLocationSchema(BaseModel):
     id: int
-    filename: str
     path: str
-    date_indexed: datetime
+    filename: str
+    date_scanned: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+class ImageContent(ImageBase):
+    id: Optional[int] = None
+    filename: Optional[str] = None
+    path: Optional[str] = None
     width: Optional[int] = None
     height: Optional[int] = None
-    date_created: datetime
-    date_modified: datetime
     tags: List[Tag] = []
-    # Add fields for static file URLs for the frontend
-    static_assets_base_url: Optional[str] = None
-    generated_media_path: Optional[str] = None
-    thumbnails_path: Optional[str] = None
-    previews_path: Optional[str] = None
-    model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True) # Directly use ConfigDict, arbitrary types for meta
+    locations: List[ImageLocationSchema] = []
+
+    model_config = ConfigDict(from_attributes=True)
 
 # --- Setting Schemas ---
 class SettingBase(BaseModel):

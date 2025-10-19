@@ -46,8 +46,9 @@ def read_tags(
             tags = tags.filter_by(admin_only=False)
 
     else:
-        image = db.query(models.ImageLocation).options(joinedload(models.ImageLocation.content).joinedload(models.ImageContent.tags)).filter_by(id=imageId).first()
-        tags = image.content.tags
+        location = db.query(models.ImageLocation).filter_by(id=imageId).first()
+        image = db.query(models.ImageContent).filter_by(content_hash=location.content_hash).first()
+        tags = image.tags
 
     return tags
 
