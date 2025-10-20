@@ -125,11 +125,12 @@ function App() {
   const websocketUrl = `${protocol}//localhost:8000/ws/image-updates`;
   const { isConnected } = useWebSocket(isAuthenticated ? websocketUrl : null, handleWebSocketMessage);
 
+  
   const ConnectionStatus = () => (
-    <div style={{ position: 'fixed', bottom: '10px', right: '10px', padding: '5px 10px', backgroundColor: isConnected ? '#28a745' : '#dc3545', color: 'white', borderRadius: '5px', zIndex: 1000, fontSize: '0.8em' }}>
-      {isConnected ? 'Connected' : 'Disconnected'}
+    <div style={{ position: 'fixed', top: '0.2rem', left: '0', height: '2.5rem', width: '0.1rem', border: '0.1rem solid', borderColor: isConnected ? '#28a745' : '#dc3545', backgroundColor: isConnected ? '#28a745' : '#dc3545', zIndex: 1000}}>
     </div>
   );
+  
 
   // Callback to update search and sort states from NavSearchBar
   const handleSearchAndSortChange = useCallback((newSearchTerm, newSortBy, newSortOrder) => {
@@ -220,6 +221,7 @@ function App() {
             setSearchTerm={setSearchTerm}
             filters={filters}
             setFilters={setFilters}
+            isConnected={isConnected}
           />
           <ConnectionStatus />
           <SideBar

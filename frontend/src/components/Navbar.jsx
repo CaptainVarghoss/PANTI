@@ -29,7 +29,8 @@ function Navbar({
   sortOrder,
   setSortOrder,  
   filters = [],
-  setFilters = () => {}
+  setFilters = () => {},
+  isConnected
 }) {
   const { isAuthenticated, user, logout, isAdmin, settings } = useAuth();
   const [navOpen, setNavOpen] = useState(false);
