@@ -25,16 +25,14 @@ function Sidebar({
   setSubPanel,
   searchTerm,
   setSearchTerm,
-  activeFilters,
-  setActiveFilters
+  filters,
+  setFilters
 }) {
   const { isAdmin, isAuthenticated, logout } = useAuth(); // Get admin status from AuthContext
   const sidebarClasses = `sidebar sidebar--${side} ${isOpen ? `sidebar--${side}--open` : ''}`;
   const overlayClasses = `sidebar-overlay ${isOpen ? 'sidebar-overlay--visible' : ''}`;
 
   const [allAvailableTags, setAllAvailableTags] = useState([]);
-  const [allAvailableFilters, setAllAvailableFilters] = useState([]);
-
   const handleShowSettings = (e) => {
     e.preventDefault(); // Prevent default link behavior
     setSubPanel('settings');
@@ -85,10 +83,8 @@ function Sidebar({
             <nav className="sidebar-nav">
               <div className="sidebar-filters">
                 <FilterGroup
-                  activeFilters={activeFilters}
-                  setActiveFilters={setActiveFilters}
-                  allAvailableFilters={allAvailableFilters}
-                  setAllAvailableFilters={setAllAvailableFilters}
+                  filters={filters}
+                  setFilters={setFilters}
                   setSubPanel={setSubPanel}
                 />
               </div>
@@ -130,10 +126,8 @@ function Sidebar({
             <div className="filter-manager">
               <div className="filter-manager-section">
                 <FilterManager
-                  activeFilters={activeFilters}
-                  setActiveFilters={setActiveFilters}
-                  allAvailableFilters={allAvailableFilters}
-                  setAllAvailableFilters={setAllAvailableFilters}
+                  filters={filters}
+                  setFilters={setFilters}
                 />
               </div>
             </div>

@@ -28,7 +28,6 @@ const iconModulePromises = {
   Tb: import('react-icons/tb'),
   Pi: import('react-icons/pi'),
   Lu: import('react-icons/lu'),
-  // Add all other react-icons prefixes you intend to use here.
 };
 
 const Icon = ({ iconName }) => {
@@ -68,9 +67,7 @@ const Icon = ({ iconName }) => {
 
     const SpecificLazyIcon = lazy(async () => {
       try {
-        // *** THE SMALL CHANGE HERE: Explicitly wrap in Promise.resolve() ***
         const moduleExports = await Promise.resolve(modulePromiseFromMap); 
-        // *******************************************************************
 
         const Component = moduleExports[iconName];
 

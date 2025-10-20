@@ -59,14 +59,13 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
 
 /* --- Navbar Styles ---*/
 .navbar {
-  display: flex;
+  display: block;
   background-color: rgba(30, 30, 30, 30.5);
   color: white;
   box-shadow: 0 4px 6px -1px rgba(0, 0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
   position: sticky;
   top: 0;
   z-index: 20;
-  height:3em;
   align-items: center;
 }
 
@@ -75,7 +74,31 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
   justify-content: space-between;
   align-items: center;
   flex-grow: 1;
-  padding-inline: 1.5rem;
+  padding: 0.25rem;
+}
+
+.navbar-open-button, .filter-menu-button {
+  display: flex;
+  font-size: 0.4rem;
+  border: 0.15em solid #888;
+  border-radius: 0.25rem;
+  height: 2rem;
+  margin-inline: 0.1rem;
+}
+
+.filter-menu-button.active {
+  background-color: #f00;
+  color:#000;
+}
+
+.nav-menu-bar.closed {
+  display: none;
+}
+
+.nav-menu-bar.open {
+  display: block;
+  align-items: center;
+  height: 3rem;
 }
 
 .navbar-toggle-button {
@@ -87,26 +110,6 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
   cursor: pointer;
   transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out;
   z-index: 10;
-}
-
-.navbar-toggle-button--left {
-  margin-right: 2rem;
-  order: -1;
-}
-
-.navbar-toggle-button--right {
-  margin-left: 2rem;
-  order: 1;
-}
-
-.navbar-toggle-button:hover {
-  color: white;
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-.navbar-toggle-button:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.5);
 }
 
 .navbar-toggle-icon {
@@ -128,8 +131,6 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
 
 .navbar-search {
   height: 1.75rem;
-  margin: 0.1rem;
-  padding: 0.1rem;
   display: flex;
   flex-grow: 1;
   border-style: solid;
@@ -159,7 +160,7 @@ input.search-bar {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 2rem;
+    height: 1.75rem;
     padding: 0;
 }
 
@@ -1553,10 +1554,6 @@ div.image-card {
     border: none;
     cursor: pointer;
     outline: none; /* remove default focus outline */
-}
-
-.button:focus {
-    box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px var(--focus-color); /* focus:ring-2 focus:ring-offset-2 */
 }
 
 .button-edit {

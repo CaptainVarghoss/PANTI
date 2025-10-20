@@ -6,12 +6,10 @@ import { MdEdit } from "react-icons/md";
 import { FaCirclePlus } from "react-icons/fa6";
 
 
-function FilterManager({activeFilters, setActiveFilters, allAvailableFilters, setAllAvailableFilters}) {
+function FilterManager({filters, setFilters}) {
     const { token, isAuthenticated, settings, isAdmin } = useAuth();
 
-    //const [allAvailableFilters, setAllAvailableFilters] = useState([]);
     const [isLoadingFilters, setIsLoadingFilters] = useState(false);
-    const [filters, setFilters] = useState([]);
     const [editingFilterId, setEditingFilterId] = useState(null);
     const [newFilterMode, setNewFilterMode] = useState(false);
     const [currentEditFilter, setCurrentEditFilter] = useState({});
@@ -20,27 +18,6 @@ function FilterManager({activeFilters, setActiveFilters, allAvailableFilters, se
     const [error, setError] = useState(null);
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
     const [filterToDelete, setFilterToDelete] = useState('');
-
-
-    const fetchAllFilters = async () => {
-        setIsLoadingFilters(true);
-        try {
-            const response = await fetch('/api/filters/', {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-            });
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const data = await response.json();
-            setAllAvailableFilters(data);
-        } catch (error) {
-            console.error('Error fetching all filters:', error);
-        } finally {
-            setIsLoadingFilters(false);
-        }
-    };
 
 
     const updateFilter = async (filterId, updatedData) => {
@@ -101,25 +78,6 @@ function FilterManager({activeFilters, setActiveFilters, allAvailableFilters, se
         }
     };
 
-    useEffect(() => {
-        const getFilters = async () => {
-        try {
-            const data = await fetchAllFilters();
-            setFilters(data);
-        } catch (err) {
-            setError(err.message || 'Failed to fetch filters.');
-            console.error(err);
-        } finally {
-            setIsLoadingFilters(false);
-        }
-        };
-        getFilters();
-    }, []);
-
-    useEffect(() => {
-        fetchAllFilters();
-    }, []);
-
     const handleEditChange = (e) => {
         const { name, value, type, checked } = e.target;
         setCurrentEditFilter(prev => ({
@@ -154,7 +112,10 @@ function FilterManager({activeFilters, setActiveFilters, allAvailableFilters, se
             setError(err.message || 'An error occured while deleting the filter.');
             console.error(err);
         } finally {
-            fetchAllFilters();
+            // After deleting, we need to refetch the filters from the main App component.
+            // A simple way is to pass down the fetch function, but for now, a page reload
+            // can work, or we can manually update the state.
+            // For a better UX, we'd pass a refetch function from App.jsx
         }
     };
 
@@ -165,7 +126,12 @@ function FilterManager({activeFilters, setActiveFilters, allAvailableFilters, se
         try {
             // Ensure the ID is correctly passed to the API function
             const response = await updateFilter(editingFilterId, currentEditFilter);
-            fetchAllFilters();
+            // Manually update the state to reflect the change without a full refetch
+            setFilters(prevFilters => 
+                prevFilters.map(f => 
+                    f.id === editingFilterId ? { ...f, ...currentEditFilter } : f
+                )
+            );
             setEditingFilterId(null);
             setCurrentEditFilter({});
         } catch (err) {
@@ -182,7 +148,8 @@ function FilterManager({activeFilters, setActiveFilters, allAvailableFilters, se
         setError(null);
         try {
             const response = await addFilter(newFilter);
-            fetchAllFilters();
+            // Add the new filter to the state
+            setFilters(prevFilters => [...prevFilters, response]);
             setNewFilterMode(false);
         } catch (err) {
             setError(err.message || 'An error occurred while adding the filter.');
@@ -219,7 +186,7 @@ function FilterManager({activeFilters, setActiveFilters, allAvailableFilters, se
 
             {/* List of existing filters */}
             <div className="filter-list-section">
-            {activeFilters.map(filter => {
+            {filters && filters.map(filter => {
                 const styles = getStyles(filter.color);
                 return (
                     <div key={filter.id} className="filter-item">

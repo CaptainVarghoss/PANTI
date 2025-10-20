@@ -139,7 +139,7 @@ function App() {
   }, []);
 
   // Filter states
-  const [activeFilters, setActiveFilters] = useState([]);
+  const [filters, setFilters] = useState([]);
 
   // States for Sidebars
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(false);
@@ -176,7 +176,6 @@ function App() {
   useEffect(() => {
     if (!isAuthenticated) { return }
     const fetchFilters = async () => {
-        const fetchedFilters = [];
         try {
             const response = await fetch('/api/filters/', {
                 headers: {
@@ -187,17 +186,15 @@ function App() {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const fetchedFilters = await response.json();
-            const filterRows = fetchedFilters.map(row => ({
-              ...row,
-              isSelected: false
-            }));
-            setActiveFilters(filterRows);
+            // Initialize each filter with isSelected: false
+            const initializedFilters = fetchedFilters.map(f => ({ ...f, isSelected: f.enabled || false }));
+            setFilters(initializedFilters);
         } catch (error) {
             console.error(`Error fetching filters:`, error);
         }
     };
     fetchFilters();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, token]);
 
   if (loading) {
     return (
@@ -221,8 +218,8 @@ function App() {
             setSortBy={setSortBy}
             setSortOrder={setSortOrder}
             setSearchTerm={setSearchTerm}
-            activeFilters={activeFilters}
-            setActiveFilters={setActiveFilters}
+            filters={filters}
+            setFilters={setFilters}
           />
           <ConnectionStatus />
           <SideBar
@@ -233,9 +230,9 @@ function App() {
             setSubPanel={setCurrentSubPanel}
             onSearchAndSortChange={handleSearchAndSortChange}
             searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            activeFilters={activeFilters}
-            setActiveFilters={setActiveFilters}
+            setSearchTerm={setSearchTerm}            
+            filters={filters}
+            setFilters={setFilters}
           />
           <SideBar
             isOpen={isRightSidebarOpen}
@@ -245,9 +242,9 @@ function App() {
             setSubPanel={setCurrentSubPanel}
             onSearchAndSortChange={handleSearchAndSortChange}
             searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            activeFilters={activeFilters}
-            setActiveFilters={setActiveFilters}
+            setSearchTerm={setSearchTerm}            
+            filters={filters}
+            setFilters={setFilters}
           />
         </>
       }
@@ -269,7 +266,7 @@ function App() {
                 sortOrder={sortOrder}
                 setSearchTerm={setSearchTerm}
                 webSocketMessage={webSocketMessage}
-                activeFilters={activeFilters}
+                filters={filters}
               />
             } />
           </Route>

@@ -3,43 +3,10 @@ import { useAuth } from '../context/AuthContext';
 import { MdEdit } from "react-icons/md";
 import {getStyles} from '../helpers/color_helper';
 
-function FilterGroup({ searchTerm, setSearchTerm, setSubPanel, activeFilters, setActiveFilters }) {
+function FilterGroup({ setSubPanel, activeFilters, setActiveFilters, allAvailableFilters }) {
     const { token, isAuthenticated, settings, isAdmin } = useAuth();
 
-    const [isLoadingFilters, setIsLoadingFilters] = useState(false);
-    const [allAvailableFilters, setAllAvailableFilters] = useState([]);
-    const [isUpdatingFilters, setIsUpdatingFilters] = useState(false);
-    const [filterUpdateMessage, setFilterUpdateMessage] = useState('');
-    const [filterUpdateError, setFilterUpdateError] = useState('');
-
     const canModifyFilters = isAdmin;
-
-    // Effect to fetch all available tags
-    useEffect(() => {
-        if (!isAuthenticated) return;
-
-        const fetchAllFilters = async () => {
-            setIsLoadingFilters(true);
-            try {
-                const response = await fetch('/api/filters/', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                    },
-                });
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const data = await response.json();
-                setAllAvailableFilters(data);
-            } catch (error) {
-                console.error('Error fetching all filters:', error);
-            } finally {
-                setIsLoadingFilters(false);
-            }
-        };
-
-        fetchAllFilters();
-    }, []);
 
     const handleToggleFilter = (id) => {
         setActiveFilters(prevRows =>
