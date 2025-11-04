@@ -111,6 +111,10 @@ function Navbar({
           <NavMenuBar 
             navOpen={navOpen}
             setNavOpen={setNavOpen}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+            sortOrder={sortOrder}
+            setSortOrder={setSortOrder}
           />
         )}
         {/* Right Sidebar Toggle Button */}
