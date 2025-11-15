@@ -7,7 +7,10 @@ function NavMenuBar({
     sortBy,
     setSortBy,
     sortOrder,
-    setSortOrder
+    setSortOrder,
+    isSelectMode,
+    setIsSelectMode,
+    onExitSelectMode
 }) {
 
     // --- Dropdown Logic ---
@@ -78,7 +81,10 @@ function NavMenuBar({
                         </ul>
                     )}
                 </NavMenuDropdown>
-                <button className="select-button" title="Select Multiple">
+                <button
+                    className={`select-button ${isSelectMode ? 'active' : ''}`}
+                    title="Select Multiple"
+                    onClick={() => setIsSelectMode(!isSelectMode)}>
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 -960 960 960"><path d="M200-200v80q-33 0-56.5-23.5T120-200zm-80-80v-80h80v80zm0-160v-80h80v80zm0-160v-80h80v80zm80-160h-80q0-33 23.5-56.5T200-840zm80 640v-80h80v80zm0-640v-80h80v80zm160 640v-80h80v80zm0-640v-80h80v80zm160 640v-80h80v80zm0-640v-80h80v80zm160 560h80q0 33-23.5 56.5T760-120zm0-80v-80h80v80zm0-160v-80h80v80zm0-160v-80h80v80zm0-160v-80q33 0 56.5 23.5T840-760z"/></svg>
                     <span>Select</span>
                 </button>

@@ -131,6 +131,9 @@ function App() {
     </div>
   );
   
+  // States for select mode
+  const [isSelectMode, setIsSelectMode] = useState(false);
+
 
   // Callback to update search and sort states from NavSearchBar
   const handleSearchAndSortChange = useCallback((newSearchTerm, newSortBy, newSortOrder) => {
@@ -222,6 +225,8 @@ function App() {
             filters={filters}
             setFilters={setFilters}
             isConnected={isConnected}
+            isSelectMode={isSelectMode}
+            setIsSelectMode={setIsSelectMode}
           />
           <ConnectionStatus />
           <SideBar
@@ -269,6 +274,8 @@ function App() {
                 setSearchTerm={setSearchTerm}
                 webSocketMessage={webSocketMessage}
                 filters={filters}
+                isSelectMode={isSelectMode}
+                setIsSelectMode={setIsSelectMode}
               />
             } />
           </Route>

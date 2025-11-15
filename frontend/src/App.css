@@ -153,6 +153,14 @@ input.search-bar {
   padding-inline: 0.5rem;
 }
 
+.selection-toolbar {
+  display: flex;
+  align-items: center;
+  flex-grow:1;
+  width: 100%;
+  justify-content: space-between;
+}
+
 .sort-toggle-button {
   height: 1.75rem;
   color: #a0aec0;
@@ -913,7 +921,23 @@ div.image-card {
   width: 100%;
 }
 
+/* In select mode, all images are dimmed by default */
+.image-grid.select-mode .image-card-inner img {
+  filter: brightness(0.5);
+  transition: filter 0.3s ease, transform 0.3s ease;
+}
 
+/* The visual selection indicator (border, shadow, scale) should still apply only to selected items */
+.image-grid.select-mode .image-card.selected .image-card-inner {
+  border-color: var(--clr-primary-a10);
+  transform: scale(0.95);
+  box-shadow: 0 0 15px var(--clr-primary-a20);
+}
+
+/* In select mode, selected images are brightened back to normal */
+.image-grid.select-mode .image-card.selected .image-card-inner img {
+  filter: brightness(1.0);
+}
 
 /* --- ImagePathsManagement Component Specific Styles ---*/
 

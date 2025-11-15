@@ -7,7 +7,7 @@ import React, { forwardRef, useState, useEffect, useRef } from 'react';
  * @param {object} props.image - The image object containing details like id, filename, and meta.
  * @param {any} props.refreshKey - A key that triggers a refresh of the thumbnail.
  */
-const ImageCard = forwardRef(({ image, onClick, onContextMenu, refreshKey }, ref) => {
+const ImageCard = forwardRef(({ image, onClick, onContextMenu, refreshKey, isSelected }, ref) => {
   const [isLoading, setIsLoading] = useState(true);
   const [thumbnailUrl, setThumbnailUrl] = useState(`/api/thumbnails/${image.id}`);
   const retryTimeoutRef = useRef(null);
@@ -47,7 +47,11 @@ const ImageCard = forwardRef(({ image, onClick, onContextMenu, refreshKey }, ref
   }, [refreshKey, image.id]);
 
   return (
-    <div ref={ref} key={image.id} className="image-card" onClick={() => onClick(image)}>
+    <div
+      ref={ref}
+      key={image.id}
+      className={`image-card ${isSelected ? 'selected' : ''}`}
+      onClick={() => onClick(image)}>
       <div className="image-card-inner">
         {thumbnailUrl && (
           <img

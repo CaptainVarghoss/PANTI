@@ -24,6 +24,8 @@ function Navbar({
   setSortBy,
   sortOrder,
   setSortOrder,  
+  isSelectMode,
+  setIsSelectMode,
   filters = [],
   setFilters = () => {},
   isConnected
@@ -111,6 +113,8 @@ function Navbar({
             setSortBy={setSortBy}
             sortOrder={sortOrder}
             setSortOrder={setSortOrder}
+            isSelectMode={isSelectMode}
+            setIsSelectMode={setIsSelectMode}
           />
         )}
         {/* Right Sidebar Toggle Button */}
