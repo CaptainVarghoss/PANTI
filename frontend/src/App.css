@@ -73,6 +73,8 @@ button, input {
 }
 
 /* --- Navbar Styles ---*/
+
+/* -- Navbar First Section -- */
 .navbar {
   display: block;
   background-color: rgba(30, 30, 30, 30.5);
@@ -85,39 +87,24 @@ button, input {
   padding-bottom: 0.1rem;
 }
 
-.navbar-container {
+.navbar-main {
   margin-bottom: 0.1rem;
 }
 
-.navbar-container, .nav-menu-bar {
+.navbar-main .navbar-buttons {
+  display: flex;
+}
+
+.navbar-buttons.side-right {
+  flex-direction: row-reverse;
+}
+
+.navbar-main, .navbar-menu {
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-grow: 1;
 
-}
-
-.nav-menu-bar-sub {
-  display: flex;
-  flex-grow: 1;
-  justify-content: space-between;
-}
-
-.filter-menu-button.active {
-  background-color: #f00;
-  color:#000;
-}
-
-.nav-menu-bar.closed {
-  display: none;
-}
-
-.nav-menu-bar.open {
-  display: flex;
-}
-
-.nav-menu-bar .layout-buttons {
-  display: flex;
 }
 
 .navbar-search-wrapper {
@@ -135,7 +122,7 @@ input.search-bar {
 
 .clear-search-button {
     position: absolute;
-    right: 4.5rem;
+    right: 5.5rem;
     background: none;
     border: none;
     cursor: pointer;
@@ -149,9 +136,45 @@ input.search-bar {
     color: #888;
 }
 
-.nav-menu-bar-sub span {
+.filter-menu-button.active {
+  background-color: #f00;
+  color:#000;
+}
+
+/* -- Navbar Second Section -- */
+
+.navbar-menu.closed {
+  display: none;
+}
+
+.navbar-menu.open {
+  display: flex;
+}
+
+.navbar-menu-buttons {
+  display: flex;
+}
+
+.navbar-menu-buttons.side-right {
+  flex-direction: row-reverse;
+}
+
+.navbar-menu-sub {
+  display: flex;
+  flex-grow: 1;
+  justify-content: center;
+}
+
+.navbar-menu-sub span {
   padding-inline: 0.5rem;
 }
+
+.navbar-menu-sub .layout-buttons {
+  display: flex;
+}
+
+
+
 
 .selection-toolbar {
   display: flex;
