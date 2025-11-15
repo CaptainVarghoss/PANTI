@@ -57,16 +57,36 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
   color: #e2e8f0;
 }
 
+button, input {
+  display: flex;
+  font-size: 1rem;
+  line-height: 2.5rem;
+  border: 0.15em solid #888;
+  border-radius: 0.25rem;
+  height: 2.5rem;
+  min-width: 2.5rem;
+  justify-content: center;
+  align-items: center;
+  background-color: transparent;
+  padding: 0;
+  margin: 0.1rem;
+}
+
 /* --- Navbar Styles ---*/
 .navbar {
   display: block;
   background-color: rgba(30, 30, 30, 30.5);
   color: white;
-  box-shadow: 0 4px 6px -1px rgba(0, 0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
   position: sticky;
   top: 0;
   z-index: 20;
   align-items: center;
+  padding: 0.25rem;
+  padding-bottom: 0.1rem;
+}
+
+.navbar-container {
+  margin-bottom: 0.1rem;
 }
 
 .navbar-container, .nav-menu-bar {
@@ -74,47 +94,13 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
   justify-content: space-between;
   align-items: center;
   flex-grow: 1;
-  padding: 0.25rem;
+
 }
 
 .nav-menu-bar-sub {
   display: flex;
   flex-grow: 1;
   justify-content: space-between;
-  padding-inline: 3rem;
-  margin-bottom: 0.25rem;
-}
-
-
-
-.navbar button {
-  display: flex;
-  font-size: 0.4rem;
-  border: 0.15em solid #888;
-  border-radius: 0.25rem;
-  height: 2rem;
-  margin-inline: 0.1rem;
-}
-
-.nav-menu-bar-sub button {
-  display: flex;
-  justify-content:center;
-  align-items: center;
-  font-size: 1rem;
-  line-height: 2rem;
-}
-
-.nav-menu-bar-sub svg {
-  margin-right:0.4rem;
-}
-
-.nav-menu-bar-sub .trash-button {
-  width: 2.5rem;
-  padding: 0.45rem;
-}
-
-.nav-menu-bar-sub .trash-button svg {
-  margin-right:0rem;
 }
 
 .filter-menu-button.active {
@@ -130,33 +116,21 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
   display: flex;
 }
 
-.navbar-search-wrapper {
-  padding: 0.25rem;
-  width: 100%;
-  height: 2rem;
+.nav-menu-bar .layout-buttons {
   display: flex;
-  flex-grow: 1;  
 }
 
-.navbar-search {
-  height: 1.75rem;
+.navbar-search-wrapper {
   display: flex;
   flex-grow: 1;
-  border-style: solid;
-  border-radius: 0.25rem;
-  border-width: 0.15rem;
-  border-color: rgb(118, 118, 118);
-  background-color: #3f3f3f;
+  align-items: center;
+  justify-content: center;
 }
 
 input.search-bar {
-  display: flex;
   width: 100%;
-  height: 2rem;
-  border: none;
-  padding-left: 1rem;
-  background: none;
-  align-self: center;
+  height: 2.2rem;
+  padding-left:1.25rem;
 }
 
 .clear-search-button {
@@ -169,12 +143,14 @@ input.search-bar {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 1.75rem;
-    padding: 0;
 }
 
 .clear-search-button:hover {
     color: #888;
+}
+
+.nav-menu-bar-sub span {
+  padding-inline: 0.5rem;
 }
 
 .sort-toggle-button {
@@ -186,7 +162,6 @@ input.search-bar {
 }
 .sort-dropdown-menu {
   position: absolute;
-  /* top: 100%; will be handled by wrapper */
   z-index: 20;
   min-width: 200px;
   border-radius: 8px;
@@ -1568,18 +1543,6 @@ div.image-card {
     font-size: 0.75rem; /* Equivalent to text-xs */
     font-weight: 600; /* Equivalent to font-semibold */
     border-radius: 9999px; /* Equivalent to rounded-full */
-}
-
-.button {
-    display: flex;
-    align-items: center;
-    padding: 0.5rem 0.75rem; /* px-3 py-1 */
-    border-radius: 0.375rem; /* rounded-md */
-    transition: all 150ms ease-in-out; /* transition duration-150 ease-in-out */
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
-    border: none;
-    cursor: pointer;
-    outline: none; /* remove default focus outline */
 }
 
 .button-edit {

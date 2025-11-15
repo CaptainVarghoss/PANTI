@@ -54,26 +54,24 @@ function NavSearchBar({
     };
 
     return (
-        <div className="navbar-search-wrapper" style={{ position: 'relative' }}>
-            {/* Base Search Bar Container */}
-            <div className="navbar-search">
-                <input
-                    type="text"
-                    placeholder="Search images..."
-                    className="search-bar"
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                />
-                {inputValue && (
-                    <button
-                        className="clear-search-button"
-                        onClick={handleClear}
-                        aria-label="Clear search"
-                    >
-                        <IoMdCloseCircle size={20} />
-                    </button>
-                )}
-            </div>
+        <div className="navbar-search-wrapper">
+           
+            <input
+                type="text"
+                placeholder="Search images..."
+                className="search-bar"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+            />
+            {inputValue && (
+                <button
+                    className="clear-search-button"
+                    onClick={handleClear}
+                    aria-label="Clear search"
+                >
+                    <IoMdCloseCircle size={20} />
+                </button>
+            )}
         </div>
     );
 }
