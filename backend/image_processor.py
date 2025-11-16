@@ -170,8 +170,8 @@ def scan_paths(db: Session):
                         description=f"Auto-added: {d}",
                         short_name=f"{d}",
                         ignore=False,
-                        admin_only=False,
-                        basepath=False, # auto-added are NOT basepath
+                        admin_only=True, # All paths are added as admin only.
+                        basepath=False, # Auto-added are NOT basepath
                         built_in=False
                     )
                     db.add(new_image_path)
