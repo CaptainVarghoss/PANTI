@@ -11,12 +11,8 @@ import NavMenuBar from './NavMenu';
  * Displays navigation links, search bar, and authentication status.
  *
  * @param {object} props - Component props.
- * @param {function} props.toggleLeftSidebar - Callback to toggle the left sidebar.
- * @param {function} props.toggleRightSidebar - Callback to toggle the right sidebar.
  */
 function Navbar({
-  toggleLeftSidebar,
-  toggleRightSidebar,
   searchTerm,
   setSearchTerm,
   onSearchAndSortChange,
@@ -86,17 +82,16 @@ function Navbar({
               toggleNavOpen={toggleNavOpen}
               handleFilterToggle={handleFilterToggle}
               filters={filters}
+              setFilters={setFilters}
             />
           </div>
         )}
       </div>
       <div className={`navbar-menu ${navOpen ? 'open' : 'closed' }`}>
-        {/* Left Sidebar Toggle Button */}
+        {/* Left Settings Button */}
         {settings.sidebar_left_enabled && (
           <NavbarMenuButtons
             side="left"
-            toggleLeftSidebar={toggleLeftSidebar}
-            toggleRightSidebar={toggleRightSidebar}
           />
         )}
         {isAuthenticated && (
@@ -111,12 +106,10 @@ function Navbar({
             setIsSelectMode={setIsSelectMode}
           />
         )}
-        {/* Right Sidebar Toggle Button */}
+        {/* Right Settings Button */}
         {settings.sidebar_right_enabled && (
           <NavbarMenuButtons
             side="right"
-            toggleLeftSidebar={toggleLeftSidebar}
-            toggleRightSidebar={toggleRightSidebar}
           />
         )}
       </div>

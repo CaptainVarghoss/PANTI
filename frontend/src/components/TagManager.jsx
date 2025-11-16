@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import ConfirmationDialog from './ConfirmDialog';
 import { getStyles } from '../helpers/color_helper';
 import { useAuth } from '../context/AuthContext';
-import { MdEdit } from "react-icons/md";
-import Icon from './Icon';
+import Switch from './Switch';
+import Tooltip from './Tooltip';
 
 
 function TagManager({allAvailableTags, setAllAvailableTags}) {
@@ -214,18 +214,16 @@ function TagManager({allAvailableTags, setAllAvailableTags}) {
     }
 
     return (
-        <div className="tag-manager-container">
-            <h1 className="tag-manager-heading">Manage Tags</h1>
+        <div className="settings-container">
 
             {/* List of existing tags */}
-            <div className="tag-list-section">
+            <div className="settings-group">
             {allAvailableTags.map(tag => {
-                const styles = getStyles(tag.color);
                 return (
-                    <div key={tag.id} className="tag-item">
+                    <div key={tag.id} className="settings-item">
                     {editingTagId === tag.id ? (
                         <form onSubmit={handleUpdateSubmit} className="form-section">
-                        <h3 className="form-heading">Editing Tag: <span className="modal-tag-pill" style={styles}>{tag.name}</span></h3>
+                        <h3 className="form-heading">Editing Tag: <span className="tag-pill">{tag.name}</span></h3>
                         <div className="form-group">
                             <label htmlFor={`edit-name-${tag.id}`} className="form-label">Name</label>
                             <input
@@ -237,34 +235,6 @@ function TagManager({allAvailableTags, setAllAvailableTags}) {
                             className="form-input"
                             required
                             />
-                        </div>
-                        <div className="form-group">
-                            <label htmlFor={`edit-color-${tag.id}`} className="form-label">Color</label>
-                            <input
-                            type="color"
-                            id={`edit-color-${tag.id}`}
-                            name="color"
-                            value={currentEditTag.color || '#000000'}
-                            onChange={handleEditChange}
-                            className="form-input color-input"
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label htmlFor={`edit-icon-${tag.id}`} className="form-label">Icon Name (e.g., PlusCircle, Bolt)</label>
-                            <div className="icon-input-group">
-                            <input
-                                type="text"
-                                id={`edit-icon-${tag.id}`}
-                                name="icon"
-                                value={currentEditTag.icon || ''}
-                                onChange={handleEditChange}
-                                placeholder="e.g., ExclamationCircle, Briefcase"
-                                className="icon-input-field"
-                            />
-                            <span className="icon-preview-box">
-
-                            </span>
-                            </div>
                         </div>
                         <div className="checkbox-container">
                             <input
@@ -304,9 +274,7 @@ function TagManager({allAvailableTags, setAllAvailableTags}) {
                         <div className="tag-item-content">
                         <div className="tag-display-group">
                             <span
-                            className="modal-tag-pill"
-                            style={styles}
-                            title={tag.color}
+                            className="tag-pill"
                             >
                             {tag.name}
                             </span>
@@ -318,7 +286,7 @@ function TagManager({allAvailableTags, setAllAvailableTags}) {
                             onClick={() => handleEditClick(tag)}
                             className="button button-edit"
                         >
-                            <Icon iconName="MdEdit" /> Edit
+                            Edit
                         </button>
                         </div>
                     )}
@@ -328,7 +296,7 @@ function TagManager({allAvailableTags, setAllAvailableTags}) {
             </div>
 
             {/* Add New Tag Section */}
-            <div className="form-container">
+            <div className="settings-group">
             {!newTagMode ? (
                 <button
                 onClick={() => {
@@ -337,50 +305,22 @@ function TagManager({allAvailableTags, setAllAvailableTags}) {
                 }}
                 className="button-add-new"
                 >
-                <Icon iconName="FaCirclePlus" /> Add New Tag
+                Add New Tag
                 </button>
             ) : (
                 <form onSubmit={handleAddNewTagSubmit} className="form-section">
-                <h3 className="form-heading">Add New Tag</h3>
-                <div className="form-group">
-                    <label htmlFor="new-name" className="form-label">Name</label>
+                <h4 className="settings-group-title">Add New Tag</h4>
+                <div className="settings-item">
+                    <label htmlFor="new-name" className="settings-label">Name</label>
                     <input
                     type="text"
                     id="new-name"
                     name="name"
                     value={newTag.name}
                     onChange={handleNewTagChange}
-                    className="form-input new-tag"
+                    className="settings-input"
                     required
                     />
-                </div>
-                <div className="form-group">
-                    <label htmlFor="new-color" className="form-label">Color</label>
-                    <input
-                    type="color"
-                    id="new-color"
-                    name="color"
-                    value={newTag.color}
-                    onChange={handleNewTagChange}
-                    className="form-input color-input new-tag"
-                    />
-                </div>
-                <div className="form-group">
-                    <label htmlFor="new-icon" className="form-label">Icon Name (e.g., PlusCircle, Bolt)</label>
-                    <div className="icon-input-group">
-                    <input
-                        type="text"
-                        id="new-icon"
-                        name="icon"
-                        value={newTag.icon}
-                        onChange={handleNewTagChange}
-                        placeholder="e.g., ExclamationCircle, Briefcase"
-                        className="icon-input-field new-tag"
-                    />
-                    <span className="icon-preview-box">
-
-                    </span>
-                    </div>
                 </div>
                 <div className="checkbox-container">
                     <input
@@ -389,9 +329,9 @@ function TagManager({allAvailableTags, setAllAvailableTags}) {
                     name="admin_only"
                     checked={newTag.admin_only}
                     onChange={handleNewTagChange}
-                    className="checkbox-input new-tag"
+                    className="settings-input"
                     />
-                    <label htmlFor="new-admin_only" className="checkbox-label">Admin Only</label>
+                    <label htmlFor="new-admin_only" className="settings-label">Admin Only</label>
                 </div>
                 <div className="form-actions">
                     <button
@@ -405,7 +345,7 @@ function TagManager({allAvailableTags, setAllAvailableTags}) {
                     type="submit"
                     className="button button-add-new"
                     >
-                    Add Tag
+                    Save Tag
                     </button>
                 </div>
                 </form>

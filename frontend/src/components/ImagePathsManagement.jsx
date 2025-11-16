@@ -216,29 +216,7 @@ function ImagePathsManagement({ onBack }) {
   };
 
   return (
-    <div className="settings-panel-content">
-      <button onClick={onBack} className="settings-back-button">
-        ← Back to Main Menu
-      </button>
-      <h3 className="settings-section-title">Manage Folders (Image Paths)</h3>
-      {message && (
-        <div className="message-box message-success animate-fade-in">
-          <svg className="message-icon" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path></svg>
-          <span>{message}</span>
-        </div>
-      )}
-      {error && (
-        <div className="message-box message-error animate-fade-in">
-          <svg className="message-icon" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586l-1.293-1.293z" clipRule="evenodd"></path></svg>
-          <span>{error}</span>
-        </div>
-      )}
-
-      {!isAuthenticated && (
-          <p className="auth-status-message">
-              Please log in to view folder paths.
-          </p>
-      )}
+    <div className="settings-container">
 
       {showForm && isAuthenticated && isAdmin && (
         <div className="settings-group">
@@ -324,7 +302,7 @@ function ImagePathsManagement({ onBack }) {
         </div>
       )}
 
-      <div className="paths-list-container custom-scrollbar">
+      <div className="settings-group">
         {loading ? (
           <p className="status-text">Loading folder paths...</p>
         ) : imagePaths.length === 0 ? (
@@ -362,7 +340,7 @@ function ImagePathsManagement({ onBack }) {
       </div>
       {/* Conditional rendering for the "Add New Folder Path" button outside the form */}
       {!showForm && isAuthenticated && isAdmin && (
-        <>
+        <div className="settings-group">
             <button
             onClick={handleShowAddForm}
             className="add-path-button"
@@ -375,7 +353,7 @@ function ImagePathsManagement({ onBack }) {
             >
             Run Manual Folder Scan
             </button>
-        </>
+        </div>
       )}
     </div>
   );

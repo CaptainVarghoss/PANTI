@@ -232,171 +232,157 @@ input.search-bar {
   font-weight: bold;
 }
 
-
-
-/* --- SideBar Styles ---*/
-.sidebar-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 40;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.3s ease-in-out;
+/* --- Accordion Styles --- */
+.accordion {
+    width: 99%;
 }
 
-.sidebar-overlay--visible {
-  opacity: 1;
-  visibility: visible;
+.accordion-item {
+    margin: 0.5rem;
+    margin-bottom:2rem;
 }
 
-.sidebar {
-  position: fixed;
-  top: 0;
-  height: 100%;
-  width: 400px;
-  background-color: #2d3748;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-  z-index: 50;
-  transition: transform 0.3s ease-in-out;
-  display: flex;
-  flex-direction: column;
+.accordion-title {
+    border: 0.15rem solid #888;
+    border-radius: 0.75rem;
+    width: 100%;
+    background-color: transparent;
+    text-align: left;
+    padding: 1rem 1.5rem;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #e2e8f0;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background-color 0.2s ease;
 }
 
-.sidebar--left {
-  left: 0;
-  transform: translateX(-100%);
+.accordion-title.open {
+    background-color: #4a5568;
 }
 
-.sidebar--left--open {
-  transform: translateX(0);
+.accordion-title:hover {
+    background-color: #4a5568;
 }
 
-.sidebar--right {
-  right: 0;
-  transform: translateX(100%);
+.accordion-icon {
+    transition: transform 0.3s ease;
 }
 
-.sidebar--right--open {
-  transform: translateX(0);
+.accordion-icon.open {
+    transform: rotate(90deg);
+}
+
+.accordion-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out, padding 0.3s ease;
+}
+
+.accordion-content.open {
+    max-height: 99vh;
+}
+
+.accordion-group {
+  background-color: #333;
 }
 
 
-.sidebar-header {
-  padding: 0.5rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid #4a5568;
-  flex-shrink: 0;
-  height: 2rem;
+.settings-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    background-color: #555;
+    padding: 1rem;
+    margin-top:1rem;
+    border-radius: 0.5rem;
+    flex-grow: 1;
+    min-height: 0;
+    overflow-y: auto;
 }
 
-/* Specific header styles based on side */
-.sidebar-header--left {
-  display: flex;
+.settings-group {
+    background-color: #333;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
 }
 
-.sidebar-header--left .navbar-toggle-button {
-  margin-left: 1rem;
+.settings-group:last-child {
+    margin-bottom: 0;
 }
 
-.sidebar-header--right {
-  display: flex;
-  justify-content: right;
+.settings-group-title {
+    font-size: 1.15rem;
+    font-weight: bold;
+    color: #63b3ed;
+    margin:0;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #4a5568;
 }
 
-.sidebar-header--right .navbar-toggle-button {
-  margin-right: 1rem;
-}
-
-.sidebar-title {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #63b3ed;
-}
-
-.sidebar-close-button {
+.settings-label {
+  font-size: 0.9rem;
   color: #a0aec0;
-  background: none;
-  border: none;
-  padding: 0.25rem;
-  border-radius: 9999px;
-  cursor: pointer;
-  transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out;
-}
-
-.sidebar-close-button:hover {
-  color: white;
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-.sidebar-close-button:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.5);
-}
-
-.sidebar-close-icon {
-  width: 1.5rem;
-  height: 1.5rem;
-}
-
-/* --- Internal Panel Animation Styles (SideBar level) ---*/
-.sidebar-panel-wrapper {
-  position: relative;
-  flex-grow: 1;
-  overflow: hidden;
-}
-
-.sidebar-panel {
-  position: absolute;
-  top: 0;
-  width: 100%;
-  max-height: 100%;
-  transition: transform 0.3s ease-in-out;
   display: flex;
-  flex-direction: column; /* Changed to column to support flex-grow on children */
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.panel-active {
-  z-index: 1;
+.settings-input {
+  display: flex;
+  justify-content: center;
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  border: 1px solid #4a5568;
+  background-color: #444;
+  color: #e2e8f0;
 }
 
-.panel-inactive {
-  z-index: 0;
-  pointer-events: none;
-  visibility: hidden;
-  opacity: 0;
-  transition: transform 0.3s ease-in-out, opacity 0.3s ease-out, visibility 0s 0.3s;
+.settings-input:disabled {
+    background-color: #4a5568;
+    color: #a0aec0;
+    cursor: not-allowed;
 }
 
-
-/* Left-side panel animations */
-.panel-slide-in-from-left {
-  transform: translateX(0%);
-  opacity: 1;
-  visibility: visible;
+.settings-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px dashed #4a5568;
+}
+.settings-item:last-child {
+    border-bottom: none;
 }
 
-.panel-slide-out-to-left {
-  transform: translateX(-100%);
+.tag-pill {
+  padding: 0rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  background-color: transparent;
+  border: 0.15rem dashed #777;
+  display: flex;
 }
 
-/* Right-side panel animations */
-.panel-slide-in-from-right {
-  transform: translateX(0%);
-  opacity: 1;
-  visibility: visible;
+.tag-pill-edit {
+  position: relative;
+  right: -0.2rem;
+  max-height: 1.25rem;
+  min-width: 1.25rem;
+  max-width: 1.25rem;
+  border-color: transparent;
+  border-radius: 9999px;
+  padding:0;
+  margin:0;
 }
 
-.panel-slide-out-to-right {
-  transform: translateX(100%);
-}
-
-
+/* ---- OLD STUFF ----- */
 .sidebar-nav {
   flex-grow: 1;
   display: flex;
@@ -552,29 +538,6 @@ input.search-bar {
   border-radius: 0.5rem;
 }
 
-.settings-label {
-  font-size: 0.9rem;
-  color: #a0aec0;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.settings-input {
-  width: 100%;
-  padding: 0.5rem;
-  border-radius: 0.25rem;
-  border: 1px solid #4a5568;
-  background-color: #2d3748;
-  color: #e2e8f0;
-}
-
-.settings-input:disabled {
-    background-color: #4a5568;
-    color: #a0aec0;
-    cursor: not-allowed;
-}
-
 .settings-submit-button {
   background-color: #48bb78;
   color: white;
@@ -628,29 +591,6 @@ input.search-bar {
   background-color: #c53030;
 }
 
-.global-settings-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    background-color: #3d4657;
-    padding: 1rem;
-    border-radius: 0.5rem;
-    flex-grow: 1;
-    min-height: 0;
-    overflow-y: auto;
-}
-
-.global-setting-item {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px dashed #4a5568;
-}
-.global-setting-item:last-child {
-    border-bottom: none;
-}
-
 .settings-loading {
     text-align: center;
     padding: 2rem;
@@ -687,32 +627,6 @@ input.search-bar {
 
 .settings-list-container {
     margin: 0;
-}
-
-.settings-item {
-    /* General styling for each setting row */
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.75rem 0;
-    border-bottom: 1px solid #555;
-}
-
-.settings-item:last-child {
-    border-bottom: none; /* No border for the last item in a group */
-}
-
-/* Styles for inputs and labels within settings-item */
-/* settings-label and settings-input already defined above, ensuring consistency */
-
-.sidebar-switch-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem; /* Space between the main label and the individual switches */
-}
-
-.sidebar-switch-group .switch-label { /* Assuming your Switch component has a .switch-label */
-    margin-left: 0; /* Override default left margin if any */
 }
 
 /* --- Switch Component Styles ---*/
@@ -802,26 +716,7 @@ input:checked + .slider:before {
 }
 
 /* Styles for grouping settings */
-.settings-group {
-    background-color: #2d3748;
-    border-radius: 0.5rem;
-    padding: 1rem;
-    margin-bottom: 1rem;
-    box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
-}
 
-.settings-group:last-child {
-    margin-bottom: 0;
-}
-
-.settings-group-title {
-    font-size: 1.15rem;
-    font-weight: bold;
-    color: #63b3ed;
-    margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid #4a5568;
-}
 
 .sidebar-switch-group {
   display: flex;
@@ -1438,23 +1333,6 @@ div.image-card {
   flex-wrap: wrap;
 }
 
-.modal-tag-pill, .sidebar-tag-pill {
-    padding: 0.4rem 1rem;
-    border-radius: 9999px;
-    font-size: 0.9rem;
-    font-weight: 600;
-}
-
-.modal-tag-pill-edit {
-  height:1rem;
-  padding:0;
-  margin-right:-0.5rem;
-  margin-left:0.3rem;
-  background-color: transparent;
-  align-self: center;
-  vertical-align: sub;
-}
-
 .modal-metadata-box {
     background-color: #2d3748;
     padding: 0.75rem;
@@ -1809,6 +1687,134 @@ div.image-card {
     height: 1.5rem; /* w-6 */
     margin-right: 0.75rem; /* mr-3 */
 }
+
+/* --- Settings Modal Styles --- */
+.settings-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.settings-modal-content {
+    background-color: rgba(30, 30, 30, 1);
+    color: #e2e8f0;
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2), 0 5px 10px rgba(0, 0, 0, 0.1);
+    width: 90vw;
+    max-width: 90vw;
+    min-height: 90vh;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.settings-modal-header {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #4a5568;
+    flex-shrink: 0;
+    margin-bottom: 0.5rem;
+}
+
+.settings-modal-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.settings-modal-close-button {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: none;
+    border: none;
+    color: #a0aec0;
+    font-size: 2rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    transition: color 0.2s ease;
+}
+
+.settings-modal-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #4a5568;
+    flex-shrink: 0;
+}
+
+.settings-modal-close-button:hover {
+    color: white;
+}
+
+.settings-modal-body {
+    padding: 0;
+    overflow-y: auto; /* Allows the body to scroll if content is too tall */
+    flex-grow: 1;
+    position: relative; /* For panel animations */
+}
+
+.settings-modal-panel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    padding: 1.5rem;
+    box-sizing: border-box;
+    overflow: scroll;
+    transition: transform 0.3s ease-in-out, opacity 0.3s ease-out;
+}
+
+.settings-logout-button {
+    width: 100%;
+    margin-top: 1rem;
+    background-color: #e53e3e;
+    color: white;
+    font-weight: 700;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+}
+
+.settings-logout-button:hover {
+    background-color: #c53030;
+}
+
+/* Re-using sidebar panel animations for the modal */
+.settings-modal-body .sidebar-panel-wrapper {
+    position: relative;
+    flex-grow: 1;
+    overflow: hidden;
+    min-height: 400px; /* Ensure wrapper has height */
+}
+
+.settings-modal-body .panel-active {
+    z-index: 1;
+    opacity: 1;
+    visibility: visible;
+}
+
+.settings-modal-body .panel-inactive {
+    z-index: 0;
+    pointer-events: none;
+    visibility: hidden;
+    opacity: 0;
+    transition: transform 0.3s ease-in-out, opacity 0.3s ease-out, visibility 0s 0.3s;
+}
+
 
 /* Spinner Styles */
 .spinner {

@@ -5,7 +5,6 @@ import ImageGrid from "./components/ImageGrid"; // Assuming ImageGrid is now a p
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Navbar from './components/Navbar'; // Import Navbar from its own file
-import SideBar from './components/SideBar'; // Import SideBar
 import { useWebSocket } from './hooks/useWebSocket'; // Import the custom hook
 
 import './App.css';
@@ -145,28 +144,6 @@ function App() {
   // Filter states
   const [filters, setFilters] = useState([]);
 
-  // States for Sidebars
-  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(false);
-  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
-  const [currentSubPanel, setCurrentSubPanel] = useState('menu');
-
-  // Toggle functions for sidebars, ensuring only one is open at a time
-  const toggleLeftSidebar = () => {
-    setIsLeftSidebarOpen(!isLeftSidebarOpen);
-    if (isRightSidebarOpen) setIsRightSidebarOpen(false); // Close right if opening left
-  };
-
-  const toggleRightSidebar = () => {
-    setIsRightSidebarOpen(!isRightSidebarOpen);
-    if (isLeftSidebarOpen) setIsLeftSidebarOpen(false); // Close left if opening right
-  };
-
-  // Function to close both sidebars
-  const closeAllSidebars = () => {
-    setIsLeftSidebarOpen(false);
-    setIsRightSidebarOpen(false);
-  };
-
   const debouncedSearchTerm = useDebounce(searchTerm, 500); // Debounce search input by 500ms
 
   // Effect to call the parent's callback when debounced search term or sort options change
@@ -213,8 +190,6 @@ function App() {
       {isAuthenticated &&
         <>
           <Navbar
-            toggleLeftSidebar={toggleLeftSidebar}
-            toggleRightSidebar={toggleRightSidebar}
             searchTerm={searchTerm}
             onSearchAndSortChange={handleSearchAndSortChange}
             sortBy={sortBy}
@@ -229,30 +204,6 @@ function App() {
             setIsSelectMode={setIsSelectMode}
           />
           <ConnectionStatus />
-          <SideBar
-            isOpen={isLeftSidebarOpen}
-            onClose={closeAllSidebars}
-            side="left"
-            subPanel={currentSubPanel}
-            setSubPanel={setCurrentSubPanel}
-            onSearchAndSortChange={handleSearchAndSortChange}
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}            
-            filters={filters}
-            setFilters={setFilters}
-          />
-          <SideBar
-            isOpen={isRightSidebarOpen}
-            onClose={closeAllSidebars}
-            side="right"
-            subPanel={currentSubPanel}
-            setSubPanel={setCurrentSubPanel}
-            onSearchAndSortChange={handleSearchAndSortChange}
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}            
-            filters={filters}
-            setFilters={setFilters}
-          />
         </>
       }
       <div className="app-content"> {/* Main content area where routes are rendered */}

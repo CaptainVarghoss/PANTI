@@ -45,42 +45,24 @@ function DeviceSpecificSettingsForm({ onBack, onClose }) {
     );
   }
 
-  if (!isAuthenticated || !deviceId) {
-      return (
-          <div className="settings-panel-content">
-              <button onClick={onBack} className="settings-back-button">
-                  ← Back to Settings Menu
-              </button>
-              <p className="settings-message error">{error || "Access Denied: You must be logged in and have a device ID to view and edit device-specific settings."}</p>
-              <button onClick={onClose} className="settings-close-button">
-                  Close Sidebar
-              </button>
-          </div>
-      );
-  }
-
   return (
-    <div className="settings-panel-content">
-      <button onClick={onBack} className="settings-back-button">
-        ← Back to Settings Menu
-      </button>
-
-      <h3 className="settings-section-title">Your Device Settings (ID: {deviceId ? deviceId.substring(0, 8) + '...' : 'N/A'})</h3>
-
-      {message && <p className="settings-message success">{message}</p>}
-      {error && <p className="settings-message error">{error}</p>}
+    <div className="settings-container">
 
       {/* Toggle for "Use Device Specific Settings" */}
-      <div className="device-settings-toggle-container">
-        <label className="device-settings-toggle-label">
-          Use Device Specific Settings
-          <Tooltip content="When enabled, these settings will override global defaults for this specific device. When disabled, this device will use global settings." />
-        </label>
-        <Switch
-          isOn={useDeviceSettings}
-          handleToggle={handleUseDeviceSettingsOverrideToggle}
-          label=""
-        />
+      <div className="settings-group">
+        <div className="settings-item">
+          <div className="switch-container">
+              <span className="switch-label">
+                <h4 className="settings-group-title">Use Device Specific Settings -- (ID: {deviceId ? deviceId.substring(0, 8) + '...' : 'N/A'})</h4>
+                <Tooltip content="When enabled, these settings will override global defaults for this specific device. When disabled, this device will use global settings." />
+              </span>
+              <Switch
+                isOn={useDeviceSettings}
+                handleToggle={handleUseDeviceSettingsOverrideToggle}
+                label=""
+              />
+          </div>
+        </div>
       </div>
 
       <p className="device-settings-info-text">
@@ -89,7 +71,6 @@ function DeviceSpecificSettingsForm({ onBack, onClose }) {
           : "Device-specific settings are currently disabled. This device is using global settings (read-only mode). Toggle the switch above to enable editing."}
       </p>
 
-      <div className="settings-list-container">
         {Object.entries(groupedSettings).map(([groupName, settingsInGroup]) => (
           <div key={groupName} className="settings-group">
             <h4 className="settings-group-title">{groupName}</h4>
@@ -160,8 +141,6 @@ function DeviceSpecificSettingsForm({ onBack, onClose }) {
             ))}
           </div>
         ))}
-      </div>
-
     </div>
   );
 }

@@ -2,7 +2,6 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { MdEdit } from "react-icons/md";
 import { IoMdCloseCircle } from "react-icons/io";
-import { getStyles } from '../helpers/color_helper';
 
 function ModalTagGroup({ searchTerm, setSearchTerm, currentImage, onClose }) {
     const { token, isAuthenticated, settings, isAdmin } = useAuth();
@@ -187,18 +186,16 @@ function ModalTagGroup({ searchTerm, setSearchTerm, currentImage, onClose }) {
                     <div className="modal-current-tags">
                         {relevantTags && relevantTags.length > 0 ? (
                             relevantTags.map(tag => {
-                                const styles = getStyles(tag.color); // Get dynamic styles
                                 return (
                                     <span
                                         key={tag.id}
                                         onClick={() => handleTagClick(tag)}
-                                        className="modal-tag-pill"
-                                        style={styles} // Apply the dynamic styles
+                                        className="tag-pill"
                                     >
                                         {tag.name}
                                         {showEdit && canModifyTags &&
                                             <button
-                                                className="modal-tag-pill-edit"
+                                                className="tag-pill-edit"
                                                 onClick={(e) => {
                                                     e.stopPropagation(); // Prevent parent span's onClick
                                                     handleRemoveTag(tag.id);
@@ -222,13 +219,11 @@ function ModalTagGroup({ searchTerm, setSearchTerm, currentImage, onClose }) {
                             <div className="modal-add-tag-tags">
                                 {allAvailableTags && allAvailableTags.length > 0 ? (
                                     allAvailableTags.map(tag => {
-                                        const styles = getStyles(tag.color); // Get dynamic styles
                                         return (
                                             <span
                                                 key={tag.id}
                                                 onClick={() => handleAddTag(tag.id)}
-                                                className="modal-tag-pill add-tag-pill"
-                                                style={styles} // Apply the dynamic styles
+                                                className="tag-pill add-tag-pill"
                                             >
                                                 {tag.name}
                                             </span>

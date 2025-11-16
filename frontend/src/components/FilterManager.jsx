@@ -182,7 +182,6 @@ function FilterManager({filters, setFilters}) {
 
     return (
         <div className="filter-manager-container">
-            <h1 className="filter-manager-heading">Manage Filters</h1>
 
             {/* List of existing filters */}
             <div className="filter-list-section">
