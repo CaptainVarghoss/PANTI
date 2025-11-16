@@ -41,7 +41,7 @@ function App() {
 
   // WebSocket connection
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const websocketUrl = `${protocol}//localhost:8000/ws/image-updates`;
+  const websocketUrl = `${protocol}//${window.location.hostname}:8000/ws/image-updates`;
   const { isConnected } = useWebSocket(isAuthenticated ? websocketUrl : null, handleWebSocketMessage);
 
   

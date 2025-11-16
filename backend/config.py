@@ -64,16 +64,16 @@ config = configparser.ConfigParser()
 config.read(USER_CONFIG_FILE)
 
 # --- Server Configuration ---
-frontend_host_from_config = config.get('Server', 'FRONTEND_HOST', fallback='127.0.0.1')
-FRONTEND_HOST = os.getenv("FRONTEND_APP_HOST", frontend_host_from_config)
+frontend_host_from_config = config.get('Server', 'FRONTEND_HOST', fallback='0.0.0.0')
+FRONTEND_HOST = os.getenv("FRONTEND_HOST", frontend_host_from_config)
 
 frontend_port_from_config = config.getint('Server', 'FRONTEND_PORT', fallback=5173)
 FRONTEND_PORT = int(os.getenv("FRONTEND_APP_PORT", frontend_port_from_config))
 
 # --- Backend Server Configuration ---
-backend_host_from_config = config.get('Server', 'BACKEND_HOST', fallback='127.0.0.1')
+backend_host_from_config = config.get('Server', 'BACKEND_HOST', fallback='0.0.0.0')
 BACKEND_HOST = os.getenv("BACKEND_APP_HOST", backend_host_from_config)
-
+BACKEND_HOST_LISTEN = os.getenv("BACKEND_HOST_LISTEN", "0.0.0.0")
 backend_port_from_config = config.getint('Server', 'BACKEND_PORT', fallback=8000)
 BACKEND_PORT = int(os.getenv("BACKEND_APP_PORT", backend_port_from_config))
 
@@ -90,6 +90,8 @@ default_cors_list = [
     f"https://{FRONTEND_HOST}:{FRONTEND_PORT}", # Include HTTPS for production scenarios
     f"http://localhost:{FRONTEND_PORT}", # Keep for separate frontend development (Vite's default)
     f"http://127.0.0.1:{FRONTEND_PORT}",
+    f"http://{BACKEND_HOST}:{FRONTEND_PORT}", # Allow access from the backend's host IP
+    f"http://{BACKEND_HOST}:{BACKEND_PORT}", # Allow backend to be an origin
 ]
 default_cors_str = ",".join(default_cors_list)
 cors_from_config = config.get('Server', 'CORS_ALLOWED_ORIGINS', fallback=default_cors_str)
