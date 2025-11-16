@@ -248,6 +248,7 @@ function ImagePathsManagement({ onBack }) {
                 value={currentShortName}
                 onChange={(e) => setCurrentShortName(e.target.value)}
                 className="settings-input"
+                required
               />
             </div>
             <div>
