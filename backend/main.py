@@ -42,11 +42,9 @@ async def lifespan(app: FastAPI):
         # Populate initial data if tables are empty
         if not db.query(models.Tag).first():
             print("Adding initial Tags...")
-            db.add(models.Tag(name='Favorite', built_in=True, color='darkviolet', text_color='white', icon='heart'))
-            db.add(models.Tag(name='Like', built_in=True, color='hotpink', text_color='black', icon='hand-thumbs-up'))
-            db.add(models.Tag(name='Star', built_in=True, color='gold', text_color='black', icon='star'))
-            db.add(models.Tag(name='NSFW', built_in=True, color='darkred', text_color='white', icon='solar-xxx'))
-            db.add(models.Tag(name='Trash', built_in=True, color='red', text_color='white', icon='trashcan', internal=True))
+            db.add(models.Tag(name='Favorite', built_in=True))
+            db.add(models.Tag(name='Like', built_in=True))
+            db.add(models.Tag(name='NSFW', built_in=True))
             db.commit()
             # Refresh the session for the Tag object to be accessible after commit,
             # especially for the relationship linking below.
@@ -54,11 +52,11 @@ async def lifespan(app: FastAPI):
 
         if not db.query(models.Setting).first():
             print("Adding initial Settings...")
-            db.add(models.Setting(name='sidebar_left_enabled', value='True', admin_only=False,
-                                 display_name='Enable Left Sidebar', description='Controls if the left sidebar is enabled.',
+            db.add(models.Setting(name='left_enabled', value='True', admin_only=False,
+                                 display_name='Enable Left Icons', description='Controls if the left icons are enabled.',
                                  group='Appearance', input_type='switch'))
-            db.add(models.Setting(name='sidebar_right_enabled', value='False', admin_only=False,
-                                 display_name='Enable Right Sidebar', description='Controls if the right sidebar is enabled.',
+            db.add(models.Setting(name='right_enabled', value='False', admin_only=False,
+                                 display_name='Enable Right Icons', description='Controls if the right icons are enabled.',
                                  group='Appearance', input_type='switch'))
             db.add(models.Setting(name='allow_signup', value='False', admin_only=True,
                                  display_name='Allow New User Signup', description='If enabled, new users can register themselves. Admin only.',
@@ -113,18 +111,9 @@ async def lifespan(app: FastAPI):
                                  group='Appearance', input_type='text')) # Could be a dropdown in future
             db.commit()
 
-        if not db.query(models.ImagePath).first():
-            print("Adding initial ImagePath...")
-            # Use the directory defined in config.py
-            image_path_to_add = str(config.DEFAULT_STATIC_IMAGES_DIR)
-            os.makedirs(image_path_to_add, exist_ok=True) # Ensure the directory exists
-            db.add(models.ImagePath(path=image_path_to_add, description='Default Path', basepath=True, built_in=True, short_name='Default Path'))
-            db.commit()
-
         if not db.query(models.Filter).first():
             print("Adding initial Filter and linking Tag...")
-            db.add(models.Filter(name='Explicit Content', built_in=True, color='DarkRed', text_color='White', icon='MdOutlineExplicit', header_display=True, enabled=False, search_terms='NOT (nude|penis|pussy|cock|handjob|fellatio|"anal"|vaginal|"ass"|blowjob|deepthroat)', reverse=True, internal=True))
-            db.add(models.Filter(name='Trash', built_in=True, color='red', text_color='white', icon='BsTrash3', header_display=False, enabled=False, search_terms='', reverse=True, internal=True))
+            db.add(models.Filter(name='Explicit Content', built_in=True, color='DarkRed', text_color='White', icon='<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q56 0 105.5-17.5T676-227L543-360h113l76 76q32-41 50-90.5T800-480q0-133-93.5-226.5T480-800q-56 0-105.5 18T284-732l133 132H304l-76-76q-32 41-50 90.5T160-480q0 133 93.5 226.5T480-160ZM200-400l60-80-60-80h60l30 40 30-40h60l-60 80 60 80h-60l-30-40-30 40h-60Zm190 0 60-80-60-80h60l30 40 30-40h60l-60 80 60 80h-60l-30-40-30 40h-60Zm190 0 60-80-60-80h60l30 40 30-40h60l-60 80 60 80h-60l-30-40-30 40h-60Z"/></svg>', header_display=True, enabled=False, search_terms='NOT (nude|penis|pussy|cock|handjob|fellatio|"anal"|vaginal|"ass"|blowjob|deepthroat)', reverse=True, internal=True))
             db.commit() # Commit filter first to get its ID
 
             first_filter_tag = db.query(models.Tag).filter_by(name='NSFW').first()
@@ -132,13 +121,6 @@ async def lifespan(app: FastAPI):
 
             if first_filter and first_filter_tag:
                 first_filter.tags.append(first_filter_tag)
-                db.commit()
-            
-            second_filter_tag = db.query(models.Tag).filter_by(name='Trash').first()
-            second_filter = db.query(models.Filter).filter_by(name='Trash').first()
-
-            if second_filter and second_filter_tag:
-                second_filter.tags.append(second_filter_tag)
                 db.commit()
 
         if not db.query(models.User).first():

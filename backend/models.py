@@ -52,10 +52,7 @@ class Tag(Base):
     __tablename__ = "tags"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True, nullable=False)
-    color = Column(String, default="#333333")
-    icon = Column(String, default="tag")
     admin_only = Column(Boolean, default=False)
-    text_color = Column(String, default="#ffffff")
     built_in = Column(Boolean, default=False)
     internal = Column(Boolean, default=False)
 
@@ -89,6 +86,7 @@ class ImageContent(Base):
     date_created = Column(DateTime(timezone=True))
     date_modified = Column(DateTime(timezone=True))
     date_indexed = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), server_default=func.now())
+    orphaned = Column(Boolean, default=False)
     locations = relationship("ImageLocation", back_populates="content")
     tags = relationship("Tag", secondary=image_tags, back_populates="images")
 
@@ -99,6 +97,7 @@ class ImageLocation(Base):
     filename = Column(String, nullable=False)
     path = Column(String, nullable=False)
     date_scanned = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), server_default=func.now())
+    deleted = Column(Boolean, default=False)
     content = relationship("ImageContent", back_populates="locations")
     __table_args__ = (
         UniqueConstraint('path', 'filename', name='uq_path_filename'),

@@ -137,6 +137,9 @@ def scan_paths(db: Session):
 
     # Get the list of paths to scan from the database
     paths_to_scan = db.query(models.ImagePath).all()
+    if not paths_to_scan:
+        print(f"No directories found in database. Add an image path in settings.")
+        return
     # Fetch all existing image paths from the database
     existing_image_paths = {p.path for p in paths_to_scan}
     # Fetch all existing image checksums to avoid duplicate content entries
