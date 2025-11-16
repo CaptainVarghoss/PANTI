@@ -46,7 +46,7 @@ function Navbar({
     <nav className="navbar">
       <div className="navbar-main">
         {/* Left Navbar Buttons */}
-        {settings.sidebar_left_enabled && (
+        {settings.left_enabled && (
           <div className="navbar-buttons side-left">
             <NavbarButtons
               navOpen={navOpen}
@@ -74,7 +74,7 @@ function Navbar({
         )}
 
         {/* Right Navbar Buttons */}
-        {settings.sidebar_right_enabled && (
+        {settings.right_enabled && (
           <div className="navbar-buttons side-right">
             <NavbarButtons
               navOpen={navOpen}
@@ -89,7 +89,7 @@ function Navbar({
       </div>
       <div className={`navbar-menu ${navOpen ? 'open' : 'closed' }`}>
         {/* Left Settings Button */}
-        {settings.sidebar_left_enabled && (
+        {settings.left_enabled && (
           <NavbarMenuButtons
             side="left"
           />
@@ -107,7 +107,7 @@ function Navbar({
           />
         )}
         {/* Right Settings Button */}
-        {settings.sidebar_right_enabled && (
+        {settings.right_enabled && (
           <NavbarMenuButtons
             side="right"
           />
