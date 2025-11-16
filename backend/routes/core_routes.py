@@ -20,11 +20,12 @@ def trigger_file_scan(current_user: models.User = Depends(auth.get_current_admin
     print("Manual file scan triggered via API. Starting in background thread...")
 
     def run_scan_in_thread():
-        thread_db = database.SessionLocal()
+        # Create a new database session specifically for this background thread
+        db_session = database.SessionLocal()
         try:
-            image_processor.scan_paths(thread_db)
+            image_processor.scan_paths(db=db_session)
         finally:
-            thread_db.close()
+            db_session.close()
 
     scan_thread = threading.Thread(target=run_scan_in_thread)
     scan_thread.daemon = True

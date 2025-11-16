@@ -1,13 +1,30 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from typing import List
+import threading
 
 import auth
 import database
 import models
 import schemas
+import image_processor
 
 router = APIRouter()
+
+def _run_scan_in_background():
+    """Helper to run the image_processor.scan_paths in a background thread."""
+    print("Change in ImagePaths detected. Starting file scan in background thread...")
+
+    def run_scan_in_thread():
+        db_session = database.SessionLocal()
+        try:
+            image_processor.scan_paths(db=db_session)
+        finally:
+            db_session.close()
+
+    scan_thread = threading.Thread(target=run_scan_in_thread)
+    scan_thread.daemon = True
+    scan_thread.start()
 
 # --- ImagePath Endpoints ---
 
@@ -19,6 +36,7 @@ def create_image_path(path: schemas.ImagePathCreate, db: Session = Depends(datab
     db.add(db_image_path)
     db.commit()
     db.refresh(db_image_path)
+    _run_scan_in_background()
     return db_image_path
 
 @router.get("/imagepaths/", response_model=List[schemas.ImagePath])
@@ -59,4 +77,5 @@ def delete_image_path(path_id: int, db: Session = Depends(database.get_db), curr
         raise HTTPException(status_code=404, detail="ImagePath not found")
     db.delete(db_image_path)
     db.commit()
+    _run_scan_in_background()
     return
