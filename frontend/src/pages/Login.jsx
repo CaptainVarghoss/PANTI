@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 /**
  * Login component for user authentication.
  * Handles username and password input, and calls the login function from AuthContext.
  */
-function Login() {
+function Login({ onSwitchToSignup }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -15,7 +15,8 @@ function Login() {
 
   // Effect to redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated) {
+    // This component should not be mounted if authenticated, but as a safeguard:
+    if (isAuthenticated && navigate) {
       navigate('/'); // Redirect to home page if already logged in
     }
   }, [isAuthenticated, navigate]);
@@ -41,55 +42,64 @@ function Login() {
   return (
     <div className="login-container">
       <div className="login-form-container">
-        <h2 className="login-header">Login</h2>
-        <form onSubmit={handleSubmit} className="login-form">
-          <div className="login-username-group">
-            <label htmlFor="username" className="login-username-label">
-              Username
-            </label>
-            <input
-              type="text"
-              id="username"
-              className="login-username-input"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-              aria-label="Username"
-            />
-          </div>
-          <div className="login-password-group">
-            <label htmlFor="password" className="login-password-label">
-              Password
-            </label>
-            <input
-              type="password"
-              id="password"
-              className="login-password-input"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              aria-label="Password"
-            />
-          </div>
-          {error && (
-            <div className="">
-              <svg className="" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586l-1.293-1.293z" clipRule="evenodd"></path></svg>
-              <span>{error}</span>
+        <div className="login-header">
+          <h2 className="login-header-title">Login</h2>
+        </div>
+        <div className="login-body">
+          <form onSubmit={handleSubmit} className="login-form login-body-inner">
+            <div className="login-username-group">
+              <label htmlFor="username" className="login-username-label">
+                Username
+              </label>
+              <input
+                type="text"
+                id="username"
+                className="login-username-input"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                aria-label="Username"
+              />
             </div>
-          )}
-          <button
-            type="submit"
-            className="login-submit-button"
-          >
-            Log In
-          </button>
-        </form>
-        <p className="signup-link">
-          Don't have an account?{' '}
-          <Link to="/signup" className="">
-            &nbsp;&nbsp;Sign up here
-          </Link>
-        </p>
+            <div className="login-password-group">
+              <label htmlFor="password" className="login-password-label">
+                Password
+              </label>
+              <input
+                type="password"
+                id="password"
+                className="login-password-input"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                aria-label="Password"
+              />
+            </div>
+            {error && (
+              <div className="">
+                <svg className="" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586l-1.293-1.293z" clipRule="evenodd"></path></svg>
+                <span>{error}</span>
+              </div>
+            )}
+            <button
+              type="submit"
+              className="login-submit-button"
+            >
+              Log In
+            </button>
+          </form>
+        </div>
+
+        <div className="login-body"> 
+          <div className="login-body-inner">
+            <p className="signup-link">
+              Don't have an account?{' '}
+              <button onClick={onSwitchToSignup} className="link-button">
+                Sign up here
+              </button>
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
