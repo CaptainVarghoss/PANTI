@@ -24,7 +24,9 @@ function Navbar({
   setIsSelectMode,
   filters = [],
   setFilters = () => {},
-  isConnected
+  isConnected,
+  currentView,
+  setCurrentView
 }) {
   const { isAuthenticated, user, logout, isAdmin, settings } = useAuth();
   const [navOpen, setNavOpen] = useState(false);
@@ -104,6 +106,8 @@ function Navbar({
             setSortOrder={setSortOrder}
             isSelectMode={isSelectMode}
             setIsSelectMode={setIsSelectMode}
+            currentView={currentView}
+            setCurrentView={setCurrentView}
           />
         )}
         {/* Right Settings Button */}

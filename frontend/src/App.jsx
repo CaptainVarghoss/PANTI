@@ -123,6 +123,8 @@ function App() {
               isConnected={isConnected}
               isSelectMode={isSelectMode}
               setIsSelectMode={setIsSelectMode}
+              currentView={currentView}
+              setCurrentView={setCurrentView}
             />
             <ConnectionStatus />
             {currentView === 'grid' && (

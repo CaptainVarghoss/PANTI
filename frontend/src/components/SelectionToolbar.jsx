@@ -1,5 +1,4 @@
 import React from 'react';
-import { IoMdClose } from "react-icons/io";
 
 /**
  * A toolbar that appears when in selection mode, providing bulk actions.
@@ -31,7 +30,7 @@ function SelectionToolbar({
           Deselect All
         </button>
         <button onClick={onExit} className="exit-selection-button" title="Exit Select Mode">
-          Clear
+          Close
         </button>
         <span className="selection-count">{selectedCount} selected</span>
         <button onClick={onMove} className="toolbar-button" disabled={selectedCount === 0}>

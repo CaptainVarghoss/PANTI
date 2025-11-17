@@ -275,7 +275,7 @@ input.search-bar {
 .navbar-menu-sub {
   display: flex;
   flex-grow: 1;
-  justify-content: center;
+  justify-content: space-evenly;
 }
 
 .navbar-menu-sub span {
@@ -284,6 +284,11 @@ input.search-bar {
 
 .navbar-menu-sub .layout-buttons {
   display: flex;
+}
+
+.layout-buttons .active {
+  background-color: var(--color-secondary);
+  color:#000;
 }
 
 .selection-toolbar {
