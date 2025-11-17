@@ -17,7 +17,8 @@ function SelectionToolbar({
   onSelectAll,
   onDelete,
   onMove,
-  onExit
+  onExit,
+  customActions = []
 }) {
   return (
     <div className="selection-toolbar">
@@ -33,12 +34,23 @@ function SelectionToolbar({
           Close
         </button>
         <span className="selection-count">{selectedCount} selected</span>
-        <button onClick={onMove} className="toolbar-button" disabled={selectedCount === 0}>
-          Move
-        </button>
-        <button onClick={onDelete} className="toolbar-button toolbar-button-danger" disabled={selectedCount === 0}>
-          Delete
-        </button>
+        {customActions.length > 0 ? (
+            customActions.map((action, index) => (
+                <button
+                    key={index}
+                    onClick={action.handler}
+                    className={`toolbar-button ${action.danger ? 'toolbar-button-danger' : ''}`}
+                    disabled={selectedCount === 0}
+                >
+                    {action.label}
+                </button>
+            ))
+        ) : (
+            <>
+                <button onClick={onMove} className="toolbar-button" disabled={selectedCount === 0}>Move</button>
+                <button onClick={onDelete} className="toolbar-button toolbar-button-danger" disabled={selectedCount === 0}>Delete</button>
+            </>
+        )}
       </div>
   );
 }

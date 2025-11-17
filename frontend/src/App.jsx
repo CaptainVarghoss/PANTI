@@ -185,6 +185,10 @@ function App() {
                 webSocketMessage={webSocketMessage}
                 setTrashCount={setTrashCount}
                 setCurrentView={setCurrentView}
+                isSelectMode={isSelectMode}
+                setIsSelectMode={setIsSelectMode}
+                selectedImages={selectedImages}
+                setSelectedImages={setSelectedImages}
               />
             )}
           </>

@@ -20,9 +20,9 @@ function ImageGrid({
   isSelectMode,
   setIsSelectMode,
   selectedImages,
+  handleMoveSelected,
   setSelectedImages,
   trash_only = false,
-  refetchTrashCount,
   contextMenuItems
 }) {
   const { token, isAuthenticated, settings } = useAuth();
@@ -104,8 +104,6 @@ function ImageGrid({
 
   // Handle right-click event on a thumbnail
   const handleContextMenu = (event, thumbnail) => {
-    if (isSelectMode) return; // Disable context menu in select mode
-
     event.preventDefault(); // Prevent default browser context menu
     setContextMenu({
         isVisible: true,
@@ -113,6 +111,16 @@ function ImageGrid({
         y: event.clientY,
         thumbnailData: thumbnail,
     });
+
+    // If the right-clicked image is not already in the selection,
+    // add it to the selection. This makes the context menu feel more intuitive.
+    if (isSelectMode && !selectedImages.has(thumbnail.id)) {
+      setSelectedImages(prevSelected => {
+        const newSelected = new Set(prevSelected);
+        newSelected.add(thumbnail.id);
+        return newSelected;
+      });
+    }
   };
 
   // Close the context menu
@@ -160,7 +168,6 @@ function ImageGrid({
 
           // On success, remove the image from the local trash view state
           setImages(prevImages => prevImages.filter(img => img.id !== imageId));
-          if (refetchTrashCount) refetchTrashCount();
         } catch (error) {
           console.error(`Error restoring image ${imageId}:`, error);
           alert(`Error restoring image: ${error.message}`);
@@ -180,11 +187,79 @@ function ImageGrid({
           if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
           setImages(prevImages => prevImages.filter(img => img.id !== imageId));
-          if (refetchTrashCount) refetchTrashCount();
         } catch (error) {
           console.error(`Error permanently deleting image ${imageId}:`, error);
           alert(`Error permanently deleting image: ${error.message}`);
         }
+      };
+
+      const deleteSelectedImages = async () => {
+        const imageIds = Array.from(selectedImages);
+        if (imageIds.length === 0) return;
+
+        if (window.confirm(`Are you sure you want to move ${imageIds.length} image(s) to the trash?`)) {
+          try {
+            const response = await fetch('/api/images/delete-bulk', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify(imageIds),
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.detail || 'Failed to move images to trash.');
+            }
+
+            // UI updates via websocket, just clear selection
+            setSelectedImages(new Set());
+          } catch (error) {
+            console.error("Error during bulk delete from context menu:", error);
+            alert(`Error: ${error.message}`);
+          }
+        }
+      };
+
+      const restoreSelectedImages = async () => {
+          const imageIds = Array.from(selectedImages);
+          if (imageIds.length === 0) return;
+
+          if (window.confirm(`Are you sure you want to restore ${imageIds.length} selected image(s)?`)) {
+              try {
+                  const response = await fetch('/api/trash/restore', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                      body: JSON.stringify(imageIds),
+                  });
+                  if (!response.ok) throw new Error('Failed to restore images.');
+                  setImages(prev => prev.filter(img => !selectedImages.has(img.id)));
+                  setSelectedImages(new Set());
+              } catch (error) {
+                  alert(`Error: ${error.message}`);
+              }
+          }
+      };
+
+      const deleteSelectedPermanently = async () => {
+          const imageIds = Array.from(selectedImages);
+          if (imageIds.length === 0) return;
+
+          if (window.confirm(`Are you sure you want to PERMANENTLY delete ${imageIds.length} selected image(s)? This cannot be undone.`)) {
+              try {
+                  const response = await fetch('/api/trash/delete-permanent', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                      body: JSON.stringify(imageIds),
+                  });
+                  if (!response.ok) throw new Error('Failed to permanently delete images.');
+                  setImages(prev => prev.filter(img => !selectedImages.has(img.id)));
+                  setSelectedImages(new Set());
+              } catch (error) {
+                  alert(`Error: ${error.message}`);
+              }
+          }
       };
 
       // Implement specific logic based on the action
@@ -202,10 +277,45 @@ function ImageGrid({
         case 'delete_permanent':
             deleteImagePermanently(data.id);
             break;
+        case 'delete_selected':
+            deleteSelectedImages();
+            break;
+        case 'move_selected':
+            if (handleMoveSelected) handleMoveSelected();
+            break;
+        case 'restore_selected':
+            restoreSelectedImages();
+            break;
+        case 'delete_permanent_selected':
+            deleteSelectedPermanently();
+            break;
         default:
             break;
       }
   };
+
+  // Determine which menu items to show based on the current mode
+  let activeContextMenuItems;
+  if (isSelectMode) {
+    if (trash_only) {
+        activeContextMenuItems = [
+            { label: `Restore ${selectedImages.size} Selected`, action: "restore_selected" },
+            { label: `Delete ${selectedImages.size} Permanently`, action: "delete_permanent_selected" },
+        ];
+    } else {
+        activeContextMenuItems = [
+            { label: `Delete ${selectedImages.size} Selected`, action: "delete_selected" },
+            { label: `Move ${selectedImages.size} Selected`, action: "move_selected" },
+        ];
+    }
+  } else {
+    // Not in select mode, use single-item actions
+    if (contextMenuItems) { // If custom items are passed (like in TrashView)
+        activeContextMenuItems = [{ label: "Select", action: "select" }, ...contextMenuItems];
+    } else { // Default for main grid
+        activeContextMenuItems = [ { label: "Select", action: "select" }, { label: "Delete", action: "delete" } ];
+    }
+  }
 
   // Clear selection when exiting select mode
   useEffect(() => {
@@ -318,7 +428,7 @@ function ImageGrid({
   useEffect(() => {
     if (!webSocketMessage) return;
 
-    const { type, reason, image_id } = webSocketMessage;
+    const { type, reason, image_id, image_ids } = webSocketMessage;
 
     if (type === 'refresh_images') {
       if (reason === 'thumbnail_generated' && image_id) {
@@ -340,13 +450,20 @@ function ImageGrid({
       }
 
     } else if (type === 'image_deleted') {
-      const { image_id } = webSocketMessage;
       if (!image_id) {
         console.error("WebSocket message of type 'image_deleted' did not contain an 'image_id'.");
         return;
       }
       console.log("Removing image from grid from WebSocket:", image_id);
       setImages(prevImages => prevImages.filter(img => img.id !== image_id));
+    } else if (type === 'images_deleted') {
+      if (!image_ids || !Array.isArray(image_ids)) {
+        console.error("WebSocket message of type 'images_deleted' did not contain an 'image_ids' array.");
+        return;
+      }
+      console.log("Removing multiple images from grid via WebSocket:", image_ids);
+      const idsToRemove = new Set(image_ids);
+      setImages(prevImages => prevImages.filter(img => !idsToRemove.has(img.id)));
     }
   }, [webSocketMessage, searchTerm, sortBy, sortOrder, fetchImages]);
 
@@ -470,7 +587,7 @@ function ImageGrid({
         thumbnailData={contextMenu.thumbnailData}
         onMenuItemClick={handleMenuItemClick}
         setContextMenu={setContextMenu}
-        menuItems={contextMenuItems}
+        menuItems={activeContextMenuItems}
       />
     </>
   );

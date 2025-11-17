@@ -278,6 +278,31 @@ def mark_image_as_deleted(
         print("Warning: Could not get main event loop to broadcast WebSocket message for image deletion.")
     return
 
+@router.post("/images/delete-bulk", status_code=status.HTTP_204_NO_CONTENT)
+def mark_images_as_deleted_bulk(
+    image_ids: List[int],
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """
+    Marks a list of image locations as deleted by setting their 'deleted' flag to True.
+    This is a "soft delete" performed in bulk.
+    """
+    if not image_ids:
+        return
+
+    db.query(models.ImageLocation).filter(
+        models.ImageLocation.id.in_(image_ids)
+    ).update({"deleted": True}, synchronize_session=False)
+    
+    db.commit()
+
+    if database.main_event_loop:
+        message = {"type": "images_deleted", "image_ids": image_ids}
+        asyncio.run_coroutine_threadsafe(manager.broadcast_json(message), database.main_event_loop)
+        print(f"Sent 'images_deleted' notification for {len(image_ids)} images.")
+    return
+
 @router.post("/images/{image_id}/restore", status_code=status.HTTP_204_NO_CONTENT)
 def restore_image(
     image_id: int,
@@ -382,6 +407,68 @@ def empty_trash(
         db.delete(location)
     
     db.commit()
+    return
+
+@router.post("/trash/restore", status_code=status.HTTP_204_NO_CONTENT)
+def restore_trashed_images(
+    image_ids: List[int],
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """
+    Restores a list of soft-deleted images by setting their 'deleted' flag to False.
+    """
+    if not image_ids:
+        return
+
+    db.query(models.ImageLocation).filter(
+        models.ImageLocation.id.in_(image_ids)
+    ).update({"deleted": False}, synchronize_session=False)
+    
+    db.commit()
+
+    # Broadcast a generic refresh message. Clients can refetch to see the restored images.
+    if database.main_event_loop:
+        message = {"type": "refresh_images", "reason": "images_restored", "image_ids": image_ids}
+        asyncio.run_coroutine_threadsafe(manager.broadcast_json(message), database.main_event_loop)
+        print(f"Sent 'images_restored' notification for {len(image_ids)} images.")
+    return
+
+@router.post("/trash/delete-permanent", status_code=status.HTTP_204_NO_CONTENT)
+def permanently_delete_trashed_images(
+    image_ids: List[int],
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """
+    Permanently deletes a list of images from the disk and the database.
+    This action is irreversible and restricted to admins.
+    """
+    if not current_user.admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admins can permanently delete images.")
+
+    if not image_ids:
+        return
+
+    locations_to_delete = db.query(models.ImageLocation).filter(models.ImageLocation.id.in_(image_ids)).all()
+
+    for location in locations_to_delete:
+        full_path = os.path.join(location.path, location.filename)
+        try:
+            if os.path.exists(full_path):
+                os.remove(full_path)
+        except OSError as e:
+            print(f"Error deleting file {full_path}: {e}")
+            # Continue even if a file fails to delete
+
+        db.delete(location)
+
+    db.commit()
+
+    if database.main_event_loop:
+        message = {"type": "images_deleted", "image_ids": image_ids}
+        asyncio.run_coroutine_threadsafe(manager.broadcast_json(message), database.main_event_loop)
+        print(f"Sent 'images_deleted' (permanent) notification for {len(image_ids)} images.")
     return
 
 @router.get("/images/original/{checksum}", response_class=FileResponse)

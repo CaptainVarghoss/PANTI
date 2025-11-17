@@ -49,7 +49,7 @@ const ContextMenu = ({ x, y, isOpen, onClose, thumbnailData, onMenuItemClick, me
             key={item.action}
             className="context-menu-item"
             onClick={() => {
-              onMenuItemClick(item.action, thumbnailData);
+              onMenuItemClick(item.action, thumbnailData, itemsToRender);
               onClose(); // Close menu after clicking an item
             }}
           >

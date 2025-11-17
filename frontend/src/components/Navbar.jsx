@@ -65,27 +65,26 @@ function Navbar({
     if (selectedImages.size > 0) {
       if (window.confirm(`Are you sure you want to move ${selectedImages.size} image(s) to the trash?`)) {
         const imageIds = Array.from(selectedImages);
-        const deletePromises = imageIds.map(imageId => {
-          return fetch(`/api/images/${imageId}/delete`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` },
-          });
-        });
-
         try {
-            const responses = await Promise.all(deletePromises);
-            const failed = responses.filter(res => !res.ok);
+          const response = await fetch('/api/images/delete-bulk', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`,
+              },
+              body: JSON.stringify(imageIds),
+          });
 
-            if (failed.length > 0) {
-                console.error(`${failed.length} images failed to delete.`);
-                alert(`Error: Could not delete ${failed.length} of the selected images. Check console for details.`);
-            }
-            // The UI will update automatically via the WebSocket message for each deleted image.
-            // We just need to clear the local selection state.
-            setSelectedImages(new Set());
+          if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.detail || 'Failed to move images to trash.');
+          }
+
+          // UI updates via websocket, just clear selection
+          setSelectedImages(new Set());
         } catch (error) {
-            console.error("Error during bulk delete:", error);
-            alert("An error occurred while trying to delete the images.");
+          console.error("Error during bulk delete:", error);
+          alert(`Error: ${error.message}`);
         }
       }
     }
@@ -170,7 +169,7 @@ function Navbar({
           />
         )}
       </div>
-      {isSelectMode && (
+      {isSelectMode && currentView !== 'trash' && (
         <SelectionToolbar
           selectedCount={selectedImages.size}
           onClearSelection={handleClearSelection}
