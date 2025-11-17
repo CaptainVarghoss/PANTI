@@ -5,6 +5,7 @@ import NavbarButtons from './NavbarButtons';
 import NavbarMenuButtons from './NavbarMenuButtons';
 import NavSearchBar from './NavSearchBar';
 import NavMenuBar from './NavMenu';
+import SelectionToolbar from './SelectionToolbar';
 
 /**
  * Navigation bar component for the application.
@@ -26,7 +27,12 @@ function Navbar({
   setFilters = () => {},
   isConnected,
   currentView,
-  setCurrentView
+  setCurrentView,
+  selectedImages,
+  setSelectedImages,
+  images,
+  addTrashTagToImages,
+  handleMoveSelected
 }) {
   const { isAuthenticated, user, logout, isAdmin, settings } = useAuth();
   const [navOpen, setNavOpen] = useState(false);
@@ -42,6 +48,25 @@ function Navbar({
         f.id === filterId ? { ...f, isSelected: !f.isSelected } : f
       )
     );
+  };
+
+  // --- Selection Toolbar Handlers ---
+  const handleSelectAll = () => {
+    const allImageIds = new Set(images.map(img => img.id));
+    setSelectedImages(allImageIds);
+  };
+
+  const handleClearSelection = () => {
+    setSelectedImages(new Set());
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedImages.size > 0) {
+      if (window.confirm(`Are you sure you want to delete ${selectedImages.size} image(s)? This will add the 'Trash' tag.`)) {
+        addTrashTagToImages(Array.from(selectedImages));
+        setSelectedImages(new Set()); // Clear selection after action
+      }
+    }
   };
 
   return (
@@ -117,6 +142,16 @@ function Navbar({
           />
         )}
       </div>
+      {isSelectMode && (
+        <SelectionToolbar
+          selectedCount={selectedImages.size}
+          onClearSelection={handleClearSelection}
+          onSelectAll={handleSelectAll}
+          onDelete={handleDeleteSelected}
+          onMove={handleMoveSelected}
+          onExit={() => setIsSelectMode(false)}
+        />
+      )}
     </nav>
   );
 }

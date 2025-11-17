@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ImageCard from '../components/ImageCard';
 import ImageModal from '../components/ImageModal';
 import ContextMenu from './ContextMenu';
-import SelectionToolbar from './SelectionToolbar';
 import { useAuth } from '../context/AuthContext'; // To get token and settings for authenticated calls
 
 /**
@@ -10,6 +9,8 @@ import { useAuth } from '../context/AuthContext'; // To get token and settings f
  * Fetches image data from the backend in pages and appends them.
  */
 function ImageGrid({
+  images,
+  setImages,
   searchTerm,
   setSearchTerm,
   sortBy,
@@ -17,10 +18,13 @@ function ImageGrid({
   filters,
   webSocketMessage,
   isSelectMode,
-  setIsSelectMode
+  setIsSelectMode,
+  selectedImages,
+  setSelectedImages,
+  addTrashTagToImages,
+  handleMoveSelected
 }) {
   const { token, isAuthenticated, settings } = useAuth();
-  const [images, setImages] = useState([]);
   const [imagesLoading, setImagesLoading] = useState(true); // For initial load state
   const [imagesError, setImagesError] = useState(null);
   const [lastId, setLastId] = useState(null); // Cursor for pagination: ID of the last image fetched
@@ -30,7 +34,6 @@ function ImageGrid({
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
-  const [selectedImages, setSelectedImages] = useState(new Set());
 
   const [contextMenu, setContextMenu] = useState({
       isVisible: false,
@@ -114,63 +117,6 @@ function ImageGrid({
   // Close the context menu
   const handleCloseContextMenu = () => {
       setContextMenu({ ...contextMenu, isVisible: false });
-  };
-
-  const addTrashTagToImages = async (imageIds) => {
-    try {
-      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-      const response = await fetch('/api/trash_tag', { headers });
-      if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error("The 'Trash' tag does not exist. Please create it first.");
-        }
-        throw new Error('Failed to fetch the Trash tag');
-      }
-      const trashTag = await response.json();
-
-      // Create a batch of promises to update all selected images
-      const updatePromises = imageIds.map(imageId => {
-        const imageToUpdate = images.find(img => img.id === imageId);
-        if (!imageToUpdate) {
-          console.error(`Image with ID ${imageId} not found in state.`);
-          return Promise.resolve(); // Skip this one
-        }
-
-        const existingTagIds = imageToUpdate.tags.map(tag => tag.id);
-        if (existingTagIds.includes(trashTag.id)) {
-          return Promise.resolve(); // Already tagged
-        }
-
-        const updatedTagIds = [...existingTagIds, trashTag.id];
-
-        return fetch(`/api/images/${imageId}`, {
-          method: 'PUT',
-          headers: {
-            ...headers,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ tag_ids: updatedTagIds }),
-        });
-      });
-
-      const results = await Promise.all(updatePromises);
-
-      // After all updates, refetch or update state locally
-      // For simplicity, we'll just clear selection and let the user see the result on next load
-      // A more robust solution would update the state for each image.
-      const updatedImages = await Promise.all(results.filter(res => res.ok).map(res => res.json()));
-
-      setImages(prevImages =>
-        prevImages.map(img => {
-          const updatedVersion = updatedImages.find(uImg => uImg.id === img.id);
-          return updatedVersion ? { ...img, ...updatedVersion, refreshKey: new Date().getTime() } : img;
-        })
-      );
-
-    } catch (error) {
-      console.error("Error adding 'Trash' tag:", error);
-      alert("Error adding 'Trash' tag: " + error.message);
-    }
   };
 
   // Handle click on a context menu item
@@ -385,42 +331,8 @@ function ImageGrid({
     if (node) observer.current.observe(node);
   }, [imagesLoading, isFetchingMore, hasMore, fetchImages, searchTerm, sortBy, sortOrder]);
 
-  // --- Selection Toolbar Handlers ---
-  const handleSelectAll = () => {
-    const allImageIds = new Set(images.map(img => img.id));
-    setSelectedImages(allImageIds);
-  };
-
-  const handleClearSelection = () => {
-    setSelectedImages(new Set());
-  };
-
-  const handleDeleteSelected = () => {
-    if (selectedImages.size > 0) {
-      if (window.confirm(`Are you sure you want to delete ${selectedImages.size} image(s)? This will add the 'Trash' tag.`)) {
-        addTrashTagToImages(Array.from(selectedImages));
-        setSelectedImages(new Set()); // Clear selection after action
-      }
-    }
-  };
-
-  const handleMoveSelected = () => {
-    // Placeholder for move functionality
-    alert(`Move action for ${selectedImages.size} images is not yet implemented.`);
-  };
-
   return (
     <>
-      {isSelectMode && (
-        <SelectionToolbar
-          selectedCount={selectedImages.size}
-          onClearSelection={handleClearSelection}
-          onSelectAll={handleSelectAll}
-          onDelete={handleDeleteSelected}
-          onMove={handleMoveSelected}
-          onExit={() => setIsSelectMode(false)}
-        />
-      )}
       <div className={`image-grid ${isSelectMode ? 'select-mode' : ''}`}>
 
         {imagesError && <p className="">{imagesError}</p>}

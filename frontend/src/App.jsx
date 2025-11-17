@@ -32,6 +32,9 @@ function App() {
   const [sortOrder, setSortOrder] = useState('desc');
   const [webSocketMessage, setWebSocketMessage] = useState(null);
   const [currentView, setCurrentView] = useState('grid');
+  const [images, setImages] = useState([]);
+  const [selectedImages, setSelectedImages] = useState(new Set());
+
 
   // Callback to handle incoming WebSocket messages
   const handleWebSocketMessage = useCallback((message) => {
@@ -97,6 +100,68 @@ function App() {
     fetchFilters();
   }, [isAuthenticated, token]);
 
+  const addTrashTagToImages = async (imageIds) => {
+    try {
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const response = await fetch('/api/trash_tag', { headers });
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error("The 'Trash' tag does not exist. Please create it first.");
+        }
+        throw new Error('Failed to fetch the Trash tag');
+      }
+      const trashTag = await response.json();
+
+      // Create a batch of promises to update all selected images
+      const updatePromises = imageIds.map(imageId => {
+        const imageToUpdate = images.find(img => img.id === imageId);
+        if (!imageToUpdate) {
+          console.error(`Image with ID ${imageId} not found in state.`);
+          return Promise.resolve(); // Skip this one
+        }
+
+        const existingTagIds = imageToUpdate.tags.map(tag => tag.id);
+        if (existingTagIds.includes(trashTag.id)) {
+          return Promise.resolve(); // Already tagged
+        }
+
+        const updatedTagIds = [...existingTagIds, trashTag.id];
+
+        return fetch(`/api/images/${imageId}`, {
+          method: 'PUT',
+          headers: {
+            ...headers,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ tag_ids: updatedTagIds }),
+        });
+      });
+
+      const results = await Promise.all(updatePromises);
+
+      // After all updates, refetch or update state locally
+      // For simplicity, we'll just clear selection and let the user see the result on next load
+      // A more robust solution would update the state for each image.
+      const updatedImages = await Promise.all(results.filter(res => res.ok).map(res => res.json()));
+
+      setImages(prevImages =>
+        prevImages.map(img => {
+          const updatedVersion = updatedImages.find(uImg => uImg.id === img.id);
+          return updatedVersion ? { ...img, ...updatedVersion, refreshKey: new Date().getTime() } : img;
+        })
+      );
+
+    } catch (error) {
+      console.error("Error adding 'Trash' tag:", error);
+      alert("Error adding 'Trash' tag: " + error.message);
+    }
+  };
+
+  const handleMoveSelected = () => {
+    // Placeholder for move functionality
+    alert(`Move action for ${selectedImages.size} images is not yet implemented.`);
+  };
+
   if (loading) {
     return (
       <div className="loading-full-page">
@@ -125,10 +190,17 @@ function App() {
               setIsSelectMode={setIsSelectMode}
               currentView={currentView}
               setCurrentView={setCurrentView}
+              selectedImages={selectedImages}
+              setSelectedImages={setSelectedImages}
+              images={images}
+              addTrashTagToImages={addTrashTagToImages}
+              handleMoveSelected={handleMoveSelected}
             />
             <ConnectionStatus />
             {currentView === 'grid' && (
               <ImageGrid
+                images={images}
+                setImages={setImages}
                 searchTerm={searchTerm}
                 sortBy={sortBy}
                 sortOrder={sortOrder}
@@ -137,6 +209,10 @@ function App() {
                 filters={filters}
                 isSelectMode={isSelectMode}
                 setIsSelectMode={setIsSelectMode}
+                selectedImages={selectedImages}
+                setSelectedImages={setSelectedImages}
+                addTrashTagToImages={addTrashTagToImages}
+                handleMoveSelected={handleMoveSelected}
               />
             )}
           </>
