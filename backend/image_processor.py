@@ -149,27 +149,10 @@ def add_file_to_db(
                     joinedload(models.ImageContent.tags)
                 ).filter_by(content_hash=new_location.content_hash).first()
 
-                if image_content:
-                    # Prepare data for the schema, ensuring exif_data is a dict
-                    if isinstance(image_content.exif_data, str):
-                        try:
-                            image_content.exif_data = json.loads(image_content.exif_data)
-                        except json.JSONDecodeError:
-                            image_content.exif_data = {} # Default to empty dict on error
-
-                    # Create a dictionary from the content model first
-                    image_data_dict = schemas.ImageContent.model_validate(image_content).model_dump()
-                    
-                    # Now, add/overwrite the location-specific data
-                    image_data_dict['id'] = new_location.id
-                    image_data_dict['filename'] = new_location.filename
-                    image_data_dict['path'] = new_location.path
-
-                    image_data = schemas.ImageContent(**image_data_dict)
-
+                if image_content: # Just need to know if it exists to send a message
                     message_payload = {
-                        "type": "image_added",
-                        "image": json.loads(image_data.model_dump_json())
+                        "type": "refresh_images",
+                        "reason": "image_added"
                     }
 
                     # Determine who to send the message to based on the folder's admin_only status
@@ -178,7 +161,7 @@ def add_file_to_db(
                         asyncio.run_coroutine_threadsafe(manager.broadcast_to_admins_json(message_payload), loop)
                     else: # For public folders, broadcast to all users (including anonymous)
                         asyncio.run_coroutine_threadsafe(manager.broadcast_json(message_payload), loop)
-                    print(f"Sent 'image_added' notification for image {new_location.id} (admin_only: {is_admin_only})")
+                    print(f"Sent 'refresh_images' (image_added) notification for image {new_location.id} (admin_only: {is_admin_only})")
 
             return new_location
         except IntegrityError:
@@ -335,28 +318,14 @@ def generate_thumbnail_in_background(
             joinedload(models.ImageLocation.content).joinedload(models.ImageContent.tags)
         ).filter_by(id=image_id).first()
 
-        if db_image_location and db_image_location.content:
-            # Prepare data for the schema, ensuring exif_data is a dict
-            if isinstance(db_image_location.content.exif_data, str):
-                try:
-                    db_image_location.content.exif_data = json.loads(db_image_location.content.exif_data)
-                except json.JSONDecodeError:
-                    db_image_location.content.exif_data = {} # Default to empty dict on error
-
-            # Create a dictionary from the content model first
-            image_data_dict = schemas.ImageContent.model_validate(db_image_location.content).model_dump()
-
-            # Now, add/overwrite the location-specific data
-            image_data_dict['id'] = db_image_location.id
-            image_data_dict['filename'] = db_image_location.filename
-            image_data_dict['path'] = db_image_location.path
-
-            image_data = schemas.ImageContent(**image_data_dict)
-
+        if db_image_location:
             # Notify frontend via WebSocket that a thumbnail has been generated
+            # This can be simplified to just a refresh message. The client will refetch
+            # and the thumbnail URL will resolve correctly on the next render.
             message = {
-                "type": "thumbnail_generated",
-                "image": json.loads(image_data.model_dump_json())
+                "type": "refresh_images",
+                "reason": "thumbnail_generated",
+                "image_id": image_id
             }
             # Determine who to send the message to based on the image's path visibility
             image_path_entry = thread_db.query(models.ImagePath).filter_by(path=db_image_location.path).first()
@@ -367,7 +336,7 @@ def generate_thumbnail_in_background(
                     asyncio.run_coroutine_threadsafe(manager.broadcast_to_admins_json(message), loop)
                 else: # For public folders, broadcast to all users (including anonymous)
                     asyncio.run_coroutine_threadsafe(manager.broadcast_json(message), loop)
-                print(f"Sent 'thumbnail_generated' notification for image ID {image_id} (admin_only: {is_admin_only})")
+                print(f"Sent 'refresh_images' (thumbnail_generated) notification for image ID {image_id} (admin_only: {is_admin_only})")
             else:
                 print(f"Warning: No event loop provided to 'generate_thumbnail_in_background'. Cannot send WebSocket notification for image ID {image_id}.")
     except Exception as e:
