@@ -1,6 +1,8 @@
 from sqlalchemy import create_engine, event
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from typing import Optional
+import asyncio
 import re
 
 import config
@@ -12,6 +14,9 @@ engine = create_engine(
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
+
+# A global variable to hold the main asyncio event loop, captured at startup.
+main_event_loop: Optional[asyncio.AbstractEventLoop] = None
 
 def get_db():
     db = SessionLocal()

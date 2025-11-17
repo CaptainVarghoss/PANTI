@@ -44,27 +44,25 @@ class ImageChangeEventHandler(FileSystemEventHandler):
         if not event.is_directory and self._is_supported_media(event.src_path):
             print(f"File Watcher: Created {event.src_path}")
             db = self._get_db()
+            image_path = os.path.dirname(event.src_path)
             try:
-                # add the file to the DB
-                new_image = image_processor.add_file_to_db(db, event.src_path)
-                if new_image:
-                    db.commit()
-                    db.refresh(new_image)
-                    print(f"File Watcher: Added new image to DB with ID {new_image.id}")
-                    
-                    if isinstance(new_image.meta, str):
-                        new_image.meta = json.loads(new_image.meta)
+                # Find the corresponding ImagePath entry to check its admin_only status.
+                # This is crucial for determining who should receive the websocket notification.
+                image_path_entry = db.query(models.ImagePath).filter(models.ImagePath.path == image_path).first()
+                if not image_path_entry:
+                    # This can happen if a file is added to a directory that is not yet tracked in the DB.
+                    # The main periodic scanner will pick it up later.
+                    print(f"File Watcher: Skipping file in untracked path: {event.src_path}")
+                    return
 
-                    image_schema = schemas.Image.from_orm(new_image)
-                    image_schema.static_assets_base_url = config.STATIC_FILES_URL_PREFIX
-                    image_schema.generated_media_path = f"{config.STATIC_FILES_URL_PREFIX}/{config.GENERATED_MEDIA_DIR_NAME}"
-                    image_schema.thumbnails_path = f"{config.STATIC_FILES_URL_PREFIX}/{config.GENERATED_MEDIA_DIR_NAME}/{config.THUMBNAILS_DIR_NAME}"
-                    image_schema.previews_path = f"{config.STATIC_FILES_URL_PREFIX}/{config.GENERATED_MEDIA_DIR_NAME}/{config.PREVIEWS_DIR_NAME}"
-
-                    self._schedule_broadcast({
-                        "type": "thumbnail_generated",
-                        "image": json.loads(image_schema.model_dump_json())
-                    })
+                # Get existing checksums to avoid redundant DB queries in add_file_to_db
+                existing_checksums = {row[0] for row in db.query(models.ImageContent.content_hash).all()}
+                
+                # Add the file to the DB. Pass the loop and path entry so it can handle the broadcast.
+                image_processor.add_file_to_db(
+                    db, event.src_path, existing_checksums, image_path_entry, self.loop
+                )
+                # The commit is handled within add_file_to_db
             except Exception as e:
                 print(f"File Watcher: Error processing created file {event.src_path}: {e}")
                 db.rollback()
@@ -76,29 +74,22 @@ class ImageChangeEventHandler(FileSystemEventHandler):
             print(f"File Watcher: Deleted {event.src_path}")
             db = self._get_db()
             try:
-                image_to_delete = db.query(models.Image).filter(
-                    models.Image.path == os.path.dirname(event.src_path),
-                    models.Image.filename == os.path.basename(event.src_path)
+                # We are deleting an ImageLocation, not the content itself.
+                location_to_delete = db.query(models.ImageLocation).filter(
+                    models.ImageLocation.path == os.path.dirname(event.src_path),
+                    models.ImageLocation.filename == os.path.basename(event.src_path)
                 ).first()
 
-                if image_to_delete:
-                    checksum = image_to_delete.checksum
-                    print(f"File Watcher: Deleting image from DB with ID {image_to_delete.id}")
-                    db.delete(image_to_delete)
+                if location_to_delete:
+                    image_id = location_to_delete.id
+                    print(f"File Watcher: Deleting image location from DB with ID {image_id}")
+                    db.delete(location_to_delete)
                     db.commit()
 
-                    # Also delete thumbnail and preview files
-                    thumb_path = config.THUMBNAILS_DIR / f"{checksum}_thumb.webp"
-                    if thumb_path.exists():
-                        os.remove(thumb_path)
-                        print(f"File Watcher: Deleted thumbnail {thumb_path}")
-
-                    preview_path = config.PREVIEWS_DIR / f"{checksum}_preview.webp"
-                    if preview_path.exists():
-                        os.remove(preview_path)
-                        print(f"File Watcher: Deleted preview {preview_path}")
-
-                    self._schedule_broadcast({"type": "deleted", "path": event.src_path})
+                    # Broadcast a generic deletion message to all clients.
+                    message = {"type": "image_deleted", "image_id": image_id}
+                    self._schedule_broadcast(message)
+                    print(f"Sent 'image_deleted' notification for image ID {image_id}")
             except Exception as e:
                 print(f"File Watcher: Error processing deleted file {event.src_path}: {e}")
                 db.rollback()
@@ -107,21 +98,26 @@ class ImageChangeEventHandler(FileSystemEventHandler):
 
     def on_moved(self, event: FileSystemEvent):
         if not event.is_directory and self._is_supported_media(event.dest_path):
-            print(f"File Watcher: Moved {event.src_path} to {event.dest_path}")
+            print(f"File Watcher: Moved/Renamed {event.src_path} to {event.dest_path}")
             db = self._get_db()
             try:
-                image_to_move = db.query(models.Image).filter(
-                    models.Image.path == os.path.dirname(event.src_path),
-                    models.Image.filename == os.path.basename(event.src_path)
+                # Find the ImageLocation entry for the source path
+                location_to_move = db.query(models.ImageLocation).filter(
+                    models.ImageLocation.path == os.path.dirname(event.src_path),
+                    models.ImageLocation.filename == os.path.basename(event.src_path)
                 ).first()
 
-                if image_to_move:
+                if location_to_move:
                     new_dir, new_filename = os.path.split(event.dest_path)
-                    print(f"File Watcher: Updating path for image ID {image_to_move.id}")
-                    image_to_move.path = new_dir
-                    image_to_move.filename = new_filename
+                    print(f"File Watcher: Updating path for image location ID {location_to_move.id}")
+                    location_to_move.path = new_dir
+                    location_to_move.filename = new_filename
                     db.commit()
-                    self._schedule_broadcast({"type": "moved", "from_path": event.src_path, "to_path": event.dest_path})
+                    # A 'moved' event could be complex on the frontend. For now, we can treat it
+                    # as a deletion of the old and creation of a new one, or just refetch.
+                    # A simple approach is to just notify clients that something changed.
+                    # A more advanced implementation would send both old and new data.
+                    # For now, we will not broadcast a specific message for 'moved'. The frontend will catch up on refresh.
             except Exception as e:
                 print(f"File Watcher: Error processing moved file {event.src_path}: {e}")
                 db.rollback()

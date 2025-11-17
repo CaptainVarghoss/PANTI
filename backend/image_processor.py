@@ -4,8 +4,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 import hashlib
 import mimetypes
-from datetime import datetime
-from sqlalchemy.orm import Session
+from datetime import datetime, timezone
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func, not_
 import json
@@ -55,13 +55,19 @@ def get_meta(filepath: str):
             print(f"Error getting metadata for {filepath}: {e}")
             return {}
  
-def add_file_to_db(db: Session, file_full_path: str, existing_checksums: set) -> Optional[models.ImageLocation]:
+def add_file_to_db(
+    db: Session,
+    file_full_path: str,
+    existing_checksums: set,
+    image_path_entry: Optional[models.ImagePath] = None,
+    loop: Optional[asyncio.AbstractEventLoop] = None
+) -> Optional[models.ImageLocation]:
     """Adds a single media file to the database using a provided session."""
     root, f = os.path.split(file_full_path)
     existing_location = db.query(models.ImageLocation).where(models.ImageLocation.path == root, models.ImageLocation.filename == f).first()
 
     if existing_location:
-        # Entry exists for this file location.
+        # Entry exists for this file location, do nothing.
         return None
 
     else: # No entry found for this file location, add to database then generate checksum and check against checksum list.
@@ -108,10 +114,10 @@ def add_file_to_db(db: Session, file_full_path: str, existing_checksums: set) ->
                 print(f'Error in metadata for file: {file_full_path}. Skipping.')
                 return None # Prevent adding a record with bad metadata
 
-            creation_timestamp = os.path.getctime(file_full_path)
-            modification_timestamp = os.path.getmtime(file_full_path)
-            date_created_dt = datetime.fromtimestamp(creation_timestamp)
-            date_modified_dt = datetime.fromtimestamp(modification_timestamp)
+            creation_timestamp = os.path.getctime(file_full_path) # This is OS-dependent, might be creation or last metadata change
+            modification_timestamp = os.path.getmtime(file_full_path) # Last content modification
+            date_created_dt = datetime.fromtimestamp(creation_timestamp, tz=timezone.utc)
+            date_modified_dt = datetime.fromtimestamp(modification_timestamp, tz=timezone.utc)
 
             new_image_content = models.ImageContent(
                 content_hash=checksum,
@@ -135,6 +141,45 @@ def add_file_to_db(db: Session, file_full_path: str, existing_checksums: set) ->
             db.commit()
             db.refresh(new_location) # Ensure the object is up-to-date after commit
             existing_checksums.add(checksum) # Update the in-memory set
+
+            # After successfully adding, broadcast a websocket message if the loop is provided
+            if loop and image_path_entry:
+                # We need to construct the full image object to send to the client
+                image_content = db.query(models.ImageContent).options(
+                    joinedload(models.ImageContent.tags)
+                ).filter_by(content_hash=new_location.content_hash).first()
+
+                if image_content:
+                    # Prepare data for the schema, ensuring exif_data is a dict
+                    if isinstance(image_content.exif_data, str):
+                        try:
+                            image_content.exif_data = json.loads(image_content.exif_data)
+                        except json.JSONDecodeError:
+                            image_content.exif_data = {} # Default to empty dict on error
+
+                    # Create a dictionary from the content model first
+                    image_data_dict = schemas.ImageContent.model_validate(image_content).model_dump()
+                    
+                    # Now, add/overwrite the location-specific data
+                    image_data_dict['id'] = new_location.id
+                    image_data_dict['filename'] = new_location.filename
+                    image_data_dict['path'] = new_location.path
+
+                    image_data = schemas.ImageContent(**image_data_dict)
+
+                    message_payload = {
+                        "type": "image_added",
+                        "image": json.loads(image_data.model_dump_json())
+                    }
+
+                    # Determine who to send the message to based on the folder's admin_only status
+                    is_admin_only = image_path_entry.admin_only
+                    if is_admin_only:
+                        asyncio.run_coroutine_threadsafe(manager.broadcast_to_admins_json(message_payload), loop)
+                    else: # For public folders, broadcast to all users (including anonymous)
+                        asyncio.run_coroutine_threadsafe(manager.broadcast_json(message_payload), loop)
+                    print(f"Sent 'image_added' notification for image {new_location.id} (admin_only: {is_admin_only})")
+
             return new_location
         except IntegrityError:
             # This error is expected in a concurrent environment if another thread
@@ -227,7 +272,10 @@ def scan_paths(db: Session):
                 for f in files:
                     path_files_scanned += 1
                     file_full_path = os.path.join(root, f)
-                    newly_added_location = add_file_to_db(db, file_full_path, existing_image_checksums)
+                    # During the main scan, we don't have the asyncio loop, so we can't send websockets here.
+                    # The file watcher will handle real-time updates for newly created files.
+                    # We pass the image_path_entry for consistency, though the loop is None.
+                    newly_added_location = add_file_to_db(db, file_full_path, existing_image_checksums, image_path_entry, None)
                     if newly_added_location:
                         total_new_files += 1
             
@@ -262,12 +310,14 @@ def generate_thumbnail_in_background(
     image_id: int,
     image_checksum: str,
     original_filepath: str,
+    loop: Optional[asyncio.AbstractEventLoop] = None, # Add loop parameter
 ):
     thread_db = database.SessionLocal() # This session is for this background thread
     try:
         print(f"Background: Starting thumbnail generation for image ID {image_id}, checksum {image_checksum}")
 
         thumb_size_setting = thread_db.query(models.Setting).filter_by(name='thumb_size').first()
+        # Fallback to config if setting is not in DB
         thumb_size = config.THUMBNAIL_SIZE
         if thumb_size_setting and thumb_size_setting.value:
             thumb_size = int(thumb_size_setting.value)
@@ -281,23 +331,45 @@ def generate_thumbnail_in_background(
         print(f"Background: Finished thumbnail generation for image ID {image_id}")
         
         # Fetch the full image object to send to the frontend
-        db_image = thread_db.query(models.Image).filter_by(id=image_id).first()
-        if db_image:
-            if isinstance(db_image.meta, str):
-                db_image.meta = json.loads(db_image.meta)
+        db_image_location = thread_db.query(models.ImageLocation).options(
+            joinedload(models.ImageLocation.content).joinedload(models.ImageContent.tags)
+        ).filter_by(id=image_id).first()
 
-            image_schema = schemas.Image.from_orm(db_image)
-            image_schema.static_assets_base_url = config.STATIC_FILES_URL_PREFIX
-            image_schema.generated_media_path = f"{config.STATIC_FILES_URL_PREFIX}/{config.GENERATED_MEDIA_DIR_NAME}"
-            image_schema.thumbnails_path = f"{config.STATIC_FILES_URL_PREFIX}/{config.GENERATED_MEDIA_DIR_NAME}/{config.THUMBNAILS_DIR_NAME}"
-            image_schema.previews_path = f"{config.STATIC_FILES_URL_PREFIX}/{config.GENERATED_MEDIA_DIR_NAME}/{config.PREVIEWS_DIR_NAME}"
+        if db_image_location and db_image_location.content:
+            # Prepare data for the schema, ensuring exif_data is a dict
+            if isinstance(db_image_location.content.exif_data, str):
+                try:
+                    db_image_location.content.exif_data = json.loads(db_image_location.content.exif_data)
+                except json.JSONDecodeError:
+                    db_image_location.content.exif_data = {} # Default to empty dict on error
+
+            # Create a dictionary from the content model first
+            image_data_dict = schemas.ImageContent.model_validate(db_image_location.content).model_dump()
+
+            # Now, add/overwrite the location-specific data
+            image_data_dict['id'] = db_image_location.id
+            image_data_dict['filename'] = db_image_location.filename
+            image_data_dict['path'] = db_image_location.path
+
+            image_data = schemas.ImageContent(**image_data_dict)
 
             # Notify frontend via WebSocket that a thumbnail has been generated
             message = {
                 "type": "thumbnail_generated",
-                "image": json.loads(image_schema.model_dump_json())
+                "image": json.loads(image_data.model_dump_json())
             }
-            asyncio.run(manager.broadcast_json(message))
+            # Determine who to send the message to based on the image's path visibility
+            image_path_entry = thread_db.query(models.ImagePath).filter_by(path=db_image_location.path).first()
+            is_admin_only = image_path_entry.admin_only if image_path_entry else False
+
+            if loop:
+                if is_admin_only:
+                    asyncio.run_coroutine_threadsafe(manager.broadcast_to_admins_json(message), loop)
+                else: # For public folders, broadcast to all users (including anonymous)
+                    asyncio.run_coroutine_threadsafe(manager.broadcast_json(message), loop)
+                print(f"Sent 'thumbnail_generated' notification for image ID {image_id} (admin_only: {is_admin_only})")
+            else:
+                print(f"Warning: No event loop provided to 'generate_thumbnail_in_background'. Cannot send WebSocket notification for image ID {image_id}.")
     except Exception as e:
         print(f"Background: Error generating thumbnail for image ID {image_id}: {e}")
     finally:

@@ -5,7 +5,7 @@ from sqlalchemy import func, and_, or_, not_
 from typing import List, Optional
 from pathlib import Path
 from datetime import datetime
-import os, json, threading, mimetypes
+import os, json, threading, mimetypes, asyncio
 from search_constructor import generate_image_search_filter
 from websocket_manager import manager # Import the WebSocket manager
 
@@ -47,9 +47,10 @@ async def get_thumbnail(image_id: int, db: Session = Depends(database.get_db)):
             thumb_size = config_thumbnail_size
 
         if original_filepath and Path(original_filepath).is_file():
+            loop = asyncio.get_running_loop()
             thread = threading.Thread(
                 target=image_processor.generate_thumbnail_in_background,
-                args=(image_id, db_image.content_hash, original_filepath)
+                args=(image_id, db_image.content_hash, original_filepath, loop)
             )
             thread.daemon = True
             thread.start()
@@ -152,7 +153,7 @@ def read_images(
             if original_filepath and Path(original_filepath).is_file():
                 thread = threading.Thread(
                     target=image_processor.generate_thumbnail_in_background,
-                    args=(location.id, img.content_hash, original_filepath)
+                    args=(location.id, img.content_hash, original_filepath, database.main_event_loop)
                 )
                 thread.daemon = True
                 thread.start()
@@ -199,7 +200,7 @@ def read_image(
         if original_filepath and Path(original_filepath).is_file():
             thread = threading.Thread(
                 target=image_processor.generate_thumbnail_in_background,
-                args=(location_image.id, db_image.content_hash, original_filepath)
+                args=(location_image.id, db_image.content_hash, original_filepath, database.main_event_loop)
             )
             thread.daemon = True
             thread.start()

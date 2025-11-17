@@ -25,7 +25,7 @@ function useDebounce(value, delay) {
 }
 
 function App() {
-  const { isAuthenticated, loading, token } = useAuth();
+  const { isAuthenticated, loading, token, isAdmin } = useAuth();
   // States for search and sort
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('date_created');
@@ -42,7 +42,7 @@ function App() {
   // WebSocket connection
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const websocketUrl = `${protocol}//${window.location.hostname}:8000/ws/image-updates`;
-  const { isConnected } = useWebSocket(isAuthenticated ? websocketUrl : null, handleWebSocketMessage);
+  const { isConnected } = useWebSocket(isAuthenticated ? websocketUrl : null, token, isAdmin, handleWebSocketMessage);
 
   
   const ConnectionStatus = () => (

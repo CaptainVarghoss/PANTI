@@ -1,10 +1,13 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os, threading
 from contextlib import asynccontextmanager
 import asyncio
+from typing import Optional
+from jose import JWTError, jwt
 
+from sqlalchemy.orm import Session
 import config
 import models
 import database
@@ -23,6 +26,8 @@ from routes import image_routes
 from routes import setting_routes
 #from routes import device_setting_routes
 from routes import filter_routes
+
+
 #from routes import user_filter_routes
 
 # --- Application Lifespan Context Manager ---
@@ -33,6 +38,9 @@ async def lifespan(app: FastAPI):
     # Startup Events
     print("Application startup initiated...")
     print("Creating database tables if they don't exist...")
+    # Store the main event loop in a globally accessible place
+    database.main_event_loop = asyncio.get_running_loop()
+    print("Main event loop captured.")
     models.Base.metadata.create_all(bind=database.engine)
     print("Database tables checked/created.")
 
@@ -148,13 +156,10 @@ async def lifespan(app: FastAPI):
     finally:
         db.close()
 
-    # Get the running event loop for the watcher to use for thread-safe async calls
-    loop = asyncio.get_running_loop()
-
     # Start the file watcher in a background thread
     print("Starting file watcher thread...")
     watcher_thread = threading.Thread(
-        target=start_file_watcher, args=(loop,), daemon=True
+        target=start_file_watcher, args=(database.main_event_loop,), daemon=True
     )
     watcher_thread.start()
 
@@ -177,21 +182,40 @@ app.add_middleware(
 )
 
 @app.websocket("/ws/image-updates")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_endpoint(
+    websocket: WebSocket,
+    token: Optional[str] = Query(None),
+    db: Session = Depends(database.get_db)
+):
     """
     This is the main WebSocket endpoint for clients to connect to.
     """
-    await manager.connect(websocket)
-    print(f"Client connected: {websocket.client.host}")
+    await websocket.accept()
+    user: Optional[models.User] = None
+    if token:
+        try:
+            # Manually decode token and fetch user with the endpoint's db session
+            # This replicates the logic from auth.get_current_user without being a dependency
+            payload = jwt.decode(token, config.SECRET_KEY, algorithms=[auth.ALGORITHM])
+            username: str = payload.get("sub")
+            if username is None:
+                user = None # Or raise an exception if you want to close the connection
+            else:
+                user = db.query(models.User).filter(models.User.username == username).first()
+
+        except (JWTError, Exception):
+            # If token is invalid, user remains None, resulting in an anonymous connection.
+            pass
+    await manager.connect(websocket, user)
     try:
         # This loop keeps the connection alive.
         # It waits for messages from the client, but we won't do anything
         # with them in this basic example.
         while True:
+            # We must await something here to keep the connection open
             await websocket.receive_text()
     except WebSocketDisconnect:
-        manager.disconnect(websocket)
-        print(f"Client disconnected: {websocket.client.host}")
+        manager.disconnect(websocket, user)
 
 # --- Include Routers ---
 app.include_router(auth_routes.router, prefix="/api", tags=["Auth"])

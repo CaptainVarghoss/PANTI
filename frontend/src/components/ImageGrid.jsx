@@ -68,42 +68,239 @@ function ImageGrid({
     }
   }, [token]);
 
-  useEffect(() => {
-    if (webSocketMessage && webSocketMessage.type === 'thumbnail_generated') {
-      //console.log("WebSocket message received in ImageGrid:", webSocketMessage);
-      const { image } = webSocketMessage;
+  // --- Client-Side Search Parser ---
+  // This is a simplified re-implementation of the backend's search_constructor.py
+  // to ensure WebSocket images are filtered with the same logic.
+  const clientSideSearchParser = useCallback((image, searchTerm) => {
+    if (!searchTerm || !image) return true;
 
+    // Tokenizer
+    const tokenize = (query) => {
+      const pattern = /("(?<dquote_phrase>[^"]*)"|'(?<squote_phrase>[^']*)'|\b(AND|OR|NOT)\b|([&|!()])|(?<keyword>TAG|FOLDER):|(?<word>[^\s"'\(\)&|!:]+))/gi;
+      const tokens = [];
+      let match;
+      while ((match = pattern.exec(query)) !== null) {
+        const { dquote_phrase, squote_phrase, keyword, word } = match.groups;
+        const operator = match[1]?.toUpperCase();
+        const symbol = match[2];
+
+        if (dquote_phrase !== undefined) tokens.push({ type: 'PHRASE', value: dquote_phrase });
+        else if (squote_phrase !== undefined) tokens.push({ type: 'PHRASE', value: squote_phrase });
+        else if (operator === 'AND' || symbol === '&') tokens.push({ type: 'AND' });
+        else if (operator === 'OR' || symbol === '|') tokens.push({ type: 'OR' });
+        else if (operator === 'NOT' || symbol === '!') tokens.push({ type: 'NOT' });
+        else if (symbol === '(') tokens.push({ type: 'LPAREN' });
+        else if (symbol === ')') tokens.push({ type: 'RPAREN' });
+        else if (keyword) tokens.push({ type: 'KEYWORD', value: keyword.toUpperCase() });
+        else if (word) tokens.push({ type: 'WORD', value: word });
+      }
+      return tokens;
+    };
+
+    // AST Builder (Recursive Descent Parser)
+    let index = 0;
+    const parse = (tokens) => {
+      const parsePrimary = () => {
+        const token = tokens[index];
+        if (token.type === 'LPAREN') {
+          index++;
+          const node = parseExpression();
+          index++; // Consume RPAREN
+          return node;
+        }
+        if (token.type === 'NOT') {
+          index++;
+          return { type: 'NOT', operand: parsePrimary() };
+        }
+        if (token.type === 'KEYWORD') {
+          index++; // consume keyword
+          const valueToken = tokens[index++];
+          return { type: 'KEYWORD', keyword: token.value, value: valueToken.value, valueType: valueToken.type };
+        }
+        index++;
+        return { type: 'TERM', value: token.value };
+      };
+
+      const parseAnd = () => {
+        let node = parsePrimary();
+        while (index < tokens.length && tokens[index].type === 'AND') {
+          index++;
+          node = { type: 'AND', left: node, right: parsePrimary() };
+        }
+        return node;
+      };
+
+      const parseExpression = () => {
+        let node = parseAnd();
+        while (index < tokens.length && tokens[index].type === 'OR') {
+          index++;
+          node = { type: 'OR', left: node, right: parseAnd() };
+        }
+        return node;
+      };
+
+      return parseExpression();
+    };
+
+    // AST Evaluator
+    const evaluate = (node) => {
+      const imageExif = Object.values(image.exif_data || {}).join(' ').toLowerCase();
+      const imagePath = image.path.toLowerCase();
+      const imageTags = (image.tags || []).map(t => t.name.toLowerCase());
+
+      switch (node.type) {
+        case 'TERM':
+          const term = node.value.toLowerCase();
+          return imageExif.includes(term) || imagePath.includes(term) || imageTags.some(t => t.includes(term));
+        case 'KEYWORD':
+          const keywordValue = node.value.toLowerCase();
+          if (node.keyword === 'TAG') {
+            if (node.valueType === 'PHRASE') {
+              return imageTags.includes(keywordValue); // Exact match for phrases
+            }
+            return imageTags.some(t => t.includes(keywordValue)); // Partial match for words
+          }
+          if (node.keyword === 'FOLDER') {
+             if (node.valueType === 'PHRASE') {
+              return imagePath === keywordValue; // Exact match for phrases
+            }
+            return imagePath.includes(keywordValue); // Partial match for words
+          }
+          return false;
+        case 'NOT':
+          return !evaluate(node.operand);
+        case 'AND':
+          return evaluate(node.left) && evaluate(node.right);
+        case 'OR':
+          return evaluate(node.left) || evaluate(node.right);
+        default:
+          return true;
+      }
+    };
+
+    try {
+      const tokens = tokenize(searchTerm);
+      if (tokens.length === 0) return true;
+
+      // Implicit AND logic: insert 'AND' tokens where missing
+      const processedTokens = [];
+      for (let i = 0; i < tokens.length; i++) {
+        processedTokens.push(tokens[i]);
+        if (i < tokens.length - 1) {
+          const current = tokens[i];
+          const next = tokens[i+1];
+          const isCurrentOperand = ['WORD', 'PHRASE', 'RPAREN'].includes(current.type);
+          const isNextOperand = ['WORD', 'PHRASE', 'LPAREN', 'NOT', 'KEYWORD'].includes(next.type);
+          if (isCurrentOperand && isNextOperand) {
+            processedTokens.push({ type: 'AND' });
+          }
+        }
+      }
+
+      const ast = parse(processedTokens);
+      return evaluate(ast);
+    } catch (e) {
+      console.error("Client-side search parsing error:", e);
+      return true; // Fail open, show the image if parsing fails
+    }
+  }, []);
+
+  // Function to check if an image matches the current search and filter criteria
+  const doesImageMatchCriteria = useCallback((image, currentSearchTerm, activeFilters) => {
+    if (!image) return false;
+
+    // 1. Check against search term
+    if (currentSearchTerm) {
+      const lowercasedSearch = currentSearchTerm.toLowerCase();
+      if (!image.filename.toLowerCase().includes(lowercasedSearch)) {
+        return false; // Does not match search term
+      }
+    }
+
+    // 2. Check against active filters
+    const filtersToApply = activeFilters.filter(f => {
+      // This logic mirrors the backend's `generate_image_search_filter`.
+      // A filter's search terms should be applied if:
+      // 1. It's a "show" filter (`reverse: false`) and it IS selected by the user.
+      // 2. It's a "hide" filter (`reverse: true`) and it is NOT selected by the user.
+      //    (The default explicit filter is `reverse: true` and `enabled: true`).
+      if (f.reverse) {
+        return f.isSelected; // Apply "hide" filters when they are NOT selected.
+      }
+      return !f.isSelected; // Apply "show" filters only when they ARE selected.
+    });
+
+    const combinedFilterSearchTerms = filtersToApply
+      .map(f => f.search_terms)
+      .filter(Boolean)
+      .join(' ');
+
+    // Combine user search with filter search terms
+    const finalSearchQuery = [currentSearchTerm, combinedFilterSearchTerms].filter(Boolean).join(' ');
+
+    if (!clientSideSearchParser(image, finalSearchQuery)) {
+      return false;
+    }
+
+    // If we get here, the image passes all checks
+    return true;
+  }, [clientSideSearchParser]);
+
+  useEffect(() => {
+    if (!webSocketMessage) return;
+
+    const { type } = webSocketMessage;
+
+    if (type === 'image_added') {
+      const { image } = webSocketMessage;
+      if (!image) {
+        console.error("WebSocket message of type 'image_added' did not contain an 'image' object.");
+        return;
+      }
+
+      // Check if the new image matches the current search/filter criteria
+      if (doesImageMatchCriteria(image, searchTerm, filters || [])) {
+        setImages(prevImages => {
+          const exists = prevImages.some(img => img.id === image.id);
+          if (!exists) {
+            console.log("Adding new image to grid from WebSocket:", image.id);
+            // Add the new image to the start of the grid.
+            return [image, ...prevImages];
+          }
+          return prevImages; // Return existing state if image is already there
+        });
+      } else {
+        console.log(`New image ${image.id} received via WebSocket but does not match current criteria. Ignoring.`);
+      }
+
+    } else if (type === 'thumbnail_generated') {
+      const { image } = webSocketMessage;
       if (!image) {
         console.error("WebSocket message of type 'thumbnail_generated' did not contain an 'image' object.");
         return;
       }
 
-      fetchImageById(image.id).then(fetchedImage => {
-        if (fetchedImage) {
-          setImages(prevImages => {
-            const existingImageIndex = prevImages.findIndex(img => img.id === fetchedImage.id);
-
-            if (existingImageIndex > -1) {
-              // Image exists, update its thumbnail_url and refreshKey
-              const updatedImages = [...prevImages];
-              updatedImages[existingImageIndex] = {
-                ...updatedImages[existingImageIndex],
-                thumbnail_url: image.thumbnail_url, // Update with the new thumbnail URL
-                refreshKey: new Date().getTime(), // Trigger re-render
-              };
-              return updatedImages;
-            } else {
-              // Image does not exist, add it to the beginning
-              const newImageEntry = { ...fetchedImage, thumbnail_url: image.thumbnail_url, refreshKey: new Date().getTime() };
-              return [newImageEntry, ...prevImages];
-            }
-          });
-        } else {
-          console.log("Fetched image was null or undefined, not updating state.");
-        }
+      console.log("Updating thumbnail from WebSocket for image:", image.id);
+      setImages(prevImages => {
+        return prevImages.map(img =>
+          img.id === image.id
+            ? { ...img, refreshKey: new Date().getTime() } // Trigger a re-render of the ImageCard
+            : img
+        );
       });
+
+    } else if (type === 'image_deleted') {
+      const { image_id } = webSocketMessage;
+      if (!image_id) {
+        console.error("WebSocket message of type 'image_deleted' did not contain an 'image_id'.");
+        return;
+      }
+
+      console.log("Removing image from grid from WebSocket:", image_id);
+      setImages(prevImages => prevImages.filter(img => img.id !== image_id));
     }
-  }, [webSocketMessage, fetchImageById]);
+
+  }, [webSocketMessage, searchTerm, filters, doesImageMatchCriteria, clientSideSearchParser]);
 
   const handleImageClick = useCallback((image) => {
     if (isSelectMode) {
