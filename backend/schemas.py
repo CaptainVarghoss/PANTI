@@ -224,3 +224,7 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     username: Optional[str] = None
+
+# --- Trash Schema ---
+class TrashInfo(BaseModel):
+    item_count: int

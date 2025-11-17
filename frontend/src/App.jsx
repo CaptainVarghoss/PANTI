@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { BrowserRouter as Router } from 'react-router-dom'; // Keep for potential future routing needs
 import { useAuth } from './context/AuthContext';
 import ImageGrid from "./components/ImageGrid"; // Assuming ImageGrid is now a page component
+import TrashView from './components/TrashView';
 import UnauthenticatedApp from './components/UnauthenticatedApp'; // Import the new component
 import Navbar from './components/Navbar'; // Import Navbar from its own file
 import { useWebSocket } from './hooks/useWebSocket'; // Import the custom hook
@@ -33,6 +34,7 @@ function App() {
   const [webSocketMessage, setWebSocketMessage] = useState(null);
   const [currentView, setCurrentView] = useState('grid');
   const [images, setImages] = useState([]);
+  const [trashCount, setTrashCount] = useState(0);
   const [selectedImages, setSelectedImages] = useState(new Set());
 
 
@@ -100,62 +102,25 @@ function App() {
     fetchFilters();
   }, [isAuthenticated, token]);
 
-  const addTrashTagToImages = async (imageIds) => {
-    try {
-      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-      const response = await fetch('/api/trash_tag', { headers });
-      if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error("The 'Trash' tag does not exist. Please create it first.");
-        }
-        throw new Error('Failed to fetch the Trash tag');
-      }
-      const trashTag = await response.json();
+  // Effect to fetch trash count
+  useEffect(() => {
+    if (!isAuthenticated) return;
 
-      // Create a batch of promises to update all selected images
-      const updatePromises = imageIds.map(imageId => {
-        const imageToUpdate = images.find(img => img.id === imageId);
-        if (!imageToUpdate) {
-          console.error(`Image with ID ${imageId} not found in state.`);
-          return Promise.resolve(); // Skip this one
-        }
-
-        const existingTagIds = imageToUpdate.tags.map(tag => tag.id);
-        if (existingTagIds.includes(trashTag.id)) {
-          return Promise.resolve(); // Already tagged
-        }
-
-        const updatedTagIds = [...existingTagIds, trashTag.id];
-
-        return fetch(`/api/images/${imageId}`, {
-          method: 'PUT',
-          headers: {
-            ...headers,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ tag_ids: updatedTagIds }),
+    const fetchTrashCount = async () => {
+      try {
+        const response = await fetch('/api/trash/info', {
+          headers: { 'Authorization': `Bearer ${token}` },
         });
-      });
+        if (!response.ok) throw new Error('Failed to fetch trash count');
+        const data = await response.json();
+        setTrashCount(data.item_count);
+      } catch (error) {
+        console.error("Error fetching trash count:", error);
+      }
+    };
 
-      const results = await Promise.all(updatePromises);
-
-      // After all updates, refetch or update state locally
-      // For simplicity, we'll just clear selection and let the user see the result on next load
-      // A more robust solution would update the state for each image.
-      const updatedImages = await Promise.all(results.filter(res => res.ok).map(res => res.json()));
-
-      setImages(prevImages =>
-        prevImages.map(img => {
-          const updatedVersion = updatedImages.find(uImg => uImg.id === img.id);
-          return updatedVersion ? { ...img, ...updatedVersion, refreshKey: new Date().getTime() } : img;
-        })
-      );
-
-    } catch (error) {
-      console.error("Error adding 'Trash' tag:", error);
-      alert("Error adding 'Trash' tag: " + error.message);
-    }
-  };
+    fetchTrashCount();
+  }, [isAuthenticated, token, webSocketMessage, debouncedSearchTerm]); // Also refetch on search change
 
   const handleMoveSelected = () => {
     // Placeholder for move functionality
@@ -192,8 +157,9 @@ function App() {
               setCurrentView={setCurrentView}
               selectedImages={selectedImages}
               setSelectedImages={setSelectedImages}
+              trashCount={trashCount}
+              setTrashCount={setTrashCount}
               images={images}
-              addTrashTagToImages={addTrashTagToImages}
               handleMoveSelected={handleMoveSelected}
             />
             <ConnectionStatus />
@@ -211,8 +177,14 @@ function App() {
                 setIsSelectMode={setIsSelectMode}
                 selectedImages={selectedImages}
                 setSelectedImages={setSelectedImages}
-                addTrashTagToImages={addTrashTagToImages}
                 handleMoveSelected={handleMoveSelected}
+              />
+            )}
+            {currentView === 'trash' && (
+              <TrashView
+                webSocketMessage={webSocketMessage}
+                setTrashCount={setTrashCount}
+                setCurrentView={setCurrentView}
               />
             )}
           </>

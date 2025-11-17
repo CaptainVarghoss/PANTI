@@ -30,11 +30,12 @@ function Navbar({
   setCurrentView,
   selectedImages,
   setSelectedImages,
+  trashCount,
+  setTrashCount,
   images,
-  addTrashTagToImages,
   handleMoveSelected
 }) {
-  const { isAuthenticated, user, logout, isAdmin, settings } = useAuth();
+  const { token, isAuthenticated, user, logout, isAdmin, settings } = useAuth();
   const [navOpen, setNavOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -60,11 +61,32 @@ function Navbar({
     setSelectedImages(new Set());
   };
 
-  const handleDeleteSelected = () => {
+  const handleDeleteSelected = async () => {
     if (selectedImages.size > 0) {
-      if (window.confirm(`Are you sure you want to delete ${selectedImages.size} image(s)? This will add the 'Trash' tag.`)) {
-        addTrashTagToImages(Array.from(selectedImages));
-        setSelectedImages(new Set()); // Clear selection after action
+      if (window.confirm(`Are you sure you want to move ${selectedImages.size} image(s) to the trash?`)) {
+        const imageIds = Array.from(selectedImages);
+        const deletePromises = imageIds.map(imageId => {
+          return fetch(`/api/images/${imageId}/delete`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+        });
+
+        try {
+            const responses = await Promise.all(deletePromises);
+            const failed = responses.filter(res => !res.ok);
+
+            if (failed.length > 0) {
+                console.error(`${failed.length} images failed to delete.`);
+                alert(`Error: Could not delete ${failed.length} of the selected images. Check console for details.`);
+            }
+            // The UI will update automatically via the WebSocket message for each deleted image.
+            // We just need to clear the local selection state.
+            setSelectedImages(new Set());
+        } catch (error) {
+            console.error("Error during bulk delete:", error);
+            alert("An error occurred while trying to delete the images.");
+        }
       }
     }
   };
@@ -119,6 +141,8 @@ function Navbar({
         {settings.left_enabled && (
           <NavbarMenuButtons
             side="left"
+            trashCount={trashCount}
+            setCurrentView={setCurrentView}
           />
         )}
         {isAuthenticated && (
@@ -133,12 +157,16 @@ function Navbar({
             setIsSelectMode={setIsSelectMode}
             currentView={currentView}
             setCurrentView={setCurrentView}
+            trashCount={trashCount}
+            setTrashCount={setTrashCount}
           />
         )}
         {/* Right Settings Button */}
         {settings.right_enabled && (
           <NavbarMenuButtons
             side="right"
+            trashCount={trashCount}
+            setCurrentView={setCurrentView}
           />
         )}
       </div>

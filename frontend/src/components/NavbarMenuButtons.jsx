@@ -1,6 +1,7 @@
 import React, {useState} from 'react';
 import SettingsButton from './SettingsButton';
 import NavMenuDropdown from './NavMenuDropdown';
+import { useAuth } from '../context/AuthContext';
 
 function NavbarMenuButtons({
     side,
@@ -8,7 +9,10 @@ function NavbarMenuButtons({
     setSortBy,
     sortOrder,
     setSortOrder,
+    trashCount,
+    setCurrentView,
 }) {
+    const { isAdmin } = useAuth();
 
     // --- Dropdown Logic ---
 
@@ -31,10 +35,13 @@ function NavbarMenuButtons({
 
     return (
         <div className={`navbar-menu-buttons side-${side}`}>
-            <SettingsButton />
-            <button className="trash-button" title="View Trash"> 
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 -960 960 960"><path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120zm400-600H280v520h400zM360-280h80v-360h-80zm160 0h80v-360h-80zM280-720v520z"/></svg>
-            </button>
+            <SettingsButton />            
+            {isAdmin && trashCount > 0 && (
+                <button className="trash-button" title="View Trash" onClick={() => setCurrentView('trash')}> 
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 -960 960 960"><path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120zm400-600H280v520h400zM360-280h80v-360h-80zm160 0h80v-360h-80zM280-720v520z"/></svg>
+                    <span className="trash-count-badge">{trashCount}</span>
+                </button>
+            )}
             <NavMenuDropdown
                 buttonClassName="adv-search-button"
                 buttonContent={

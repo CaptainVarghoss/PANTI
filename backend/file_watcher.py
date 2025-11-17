@@ -81,15 +81,18 @@ class ImageChangeEventHandler(FileSystemEventHandler):
                 ).first()
 
                 if location_to_delete:
-                    image_id = location_to_delete.id
-                    print(f"File Watcher: Deleting image location from DB with ID {image_id}")
+                    # The record exists, so we can proceed with deletion.
+                    # This is the expected path for files deleted outside the application.
+                    image_id_to_broadcast = location_to_delete.id
                     db.delete(location_to_delete)
                     db.commit()
-
-                    # Broadcast a generic deletion message to all clients.
-                    message = {"type": "image_deleted", "image_id": image_id}
+                    message = {"type": "image_deleted", "image_id": image_id_to_broadcast}
                     self._schedule_broadcast(message)
-                    print(f"Sent 'image_deleted' notification for image ID {image_id}")
+                    print(f"File Watcher: Deleted image location {image_id_to_broadcast} from DB and sent notification.")
+                else:
+                    # The record was already deleted, likely by an API call (e.g., 'Empty Trash').
+                    # This is expected, so we can just ignore it and not send a redundant notification.
+                    pass
             except Exception as e:
                 print(f"File Watcher: Error processing deleted file {event.src_path}: {e}")
                 db.rollback()

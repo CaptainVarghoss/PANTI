@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 // Reusable Context Menu Component
-const ContextMenu = ({ x, y, isOpen, onClose, thumbnailData, onMenuItemClick, setContextMenu }) => {
+const ContextMenu = ({ x, y, isOpen, onClose, thumbnailData, onMenuItemClick, menuItems, setContextMenu }) => {
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -28,11 +28,13 @@ const ContextMenu = ({ x, y, isOpen, onClose, thumbnailData, onMenuItemClick, se
 
   if (!isOpen) return null;
 
-  const menuItems = [
+  const defaultMenuItems = [
     { label: "Select", action: "select" },
     // { label: "Move", action: "move" }, // Move will be in the selection toolbar
     { label: "Delete", action: "delete" },
   ];
+
+  const itemsToRender = menuItems || defaultMenuItems;
 
   return (
     <>
@@ -42,7 +44,7 @@ const ContextMenu = ({ x, y, isOpen, onClose, thumbnailData, onMenuItemClick, se
       style={{ top: y, left: x }}
     >
       <ul className="context-menu-list">
-        {menuItems.map((item) => (
+        {itemsToRender.map((item) => (
           <li
             key={item.action}
             className="context-menu-item"

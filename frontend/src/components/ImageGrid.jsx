@@ -21,8 +21,9 @@ function ImageGrid({
   setIsSelectMode,
   selectedImages,
   setSelectedImages,
-  addTrashTagToImages,
-  handleMoveSelected
+  trash_only = false,
+  refetchTrashCount,
+  contextMenuItems
 }) {
   const { token, isAuthenticated, settings } = useAuth();
   const [imagesLoading, setImagesLoading] = useState(true); // For initial load state
@@ -122,6 +123,70 @@ function ImageGrid({
   // Handle click on a context menu item
   const handleMenuItemClick = (action, data) => {
       console.log(`Action: ${action} on Thumbnail ID: ${data.id}`);
+
+      const markImageAsDeleted = async (imageId) => {
+        try {
+          const headers = { 'Authorization': `Bearer ${token}` };
+          const response = await fetch(`/api/images/${imageId}/delete`, {
+            method: 'POST',
+            headers,
+          });
+    
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP error! status: ${response.status}, details: ${errorText}`);
+          }
+    
+          // On success, remove the image from the local state to update the UI instantly
+          setImages(prevImages => prevImages.filter(img => img.id !== imageId));
+        } catch (error) {
+          console.error(`Error marking image ${imageId} as deleted:`, error);
+          // Optionally, show an error message to the user
+        }
+      };
+
+      const restoreImage = async (imageId) => {
+        try {
+          const headers = { 'Authorization': `Bearer ${token}` };
+          const response = await fetch(`/api/images/${imageId}/restore`, {
+            method: 'POST',
+            headers,
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP error! status: ${response.status}, details: ${errorText}`);
+          }
+
+          // On success, remove the image from the local trash view state
+          setImages(prevImages => prevImages.filter(img => img.id !== imageId));
+          if (refetchTrashCount) refetchTrashCount();
+        } catch (error) {
+          console.error(`Error restoring image ${imageId}:`, error);
+          alert(`Error restoring image: ${error.message}`);
+        }
+      };
+
+      const deleteImagePermanently = async (imageId) => {
+        if (!window.confirm("Are you sure you want to permanently delete this image? This action cannot be undone.")) return;
+
+        try {
+          const headers = { 'Authorization': `Bearer ${token}` };
+          const response = await fetch(`/api/images/${imageId}/permanent`, {
+            method: 'DELETE',
+            headers,
+          });
+
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+          setImages(prevImages => prevImages.filter(img => img.id !== imageId));
+          if (refetchTrashCount) refetchTrashCount();
+        } catch (error) {
+          console.error(`Error permanently deleting image ${imageId}:`, error);
+          alert(`Error permanently deleting image: ${error.message}`);
+        }
+      };
+
       // Implement specific logic based on the action
       switch (action) {
         case 'select':
@@ -129,7 +194,13 @@ function ImageGrid({
             setSelectedImages(new Set([data.id]));
             break;
         case 'delete':
-            addTrashTagToImages([data.id]);
+            markImageAsDeleted(data.id);
+            break;
+        case 'restore':
+            restoreImage(data.id);
+            break;
+        case 'delete_permanent':
+            deleteImagePermanently(data.id);
             break;
         default:
             break;
@@ -175,6 +246,10 @@ function ImageGrid({
       }
       if (currentLastSortValue !== null) {
         queryString.append('last_sort_value', currentLastSortValue);
+      }
+
+      if (trash_only) {
+        queryString.append('trash_only', 'true');
       }
 
       // Check for active filters and pass IDs
@@ -298,7 +373,7 @@ function ImageGrid({
       setLastSortValue(null);
       setImagesError("Please log in to view images.");
     }
-  }, [isAuthenticated, imagesPerPage, searchTerm, sortBy, sortOrder, fetchImages, filters]);
+  }, [isAuthenticated, imagesPerPage, searchTerm, sortBy, sortOrder, fetchImages, filters, trash_only]);
   
   // Ref for the element to observe for infinite scrolling
   const observer = useRef();
@@ -329,7 +404,7 @@ function ImageGrid({
 
     // Start observing the provided DOM node if it exists
     if (node) observer.current.observe(node);
-  }, [imagesLoading, isFetchingMore, hasMore, fetchImages, searchTerm, sortBy, sortOrder]);
+  }, [imagesLoading, isFetchingMore, hasMore, fetchImages, searchTerm, sortBy, sortOrder, trash_only]);
 
   return (
     <>
@@ -395,6 +470,7 @@ function ImageGrid({
         thumbnailData={contextMenu.thumbnailData}
         onMenuItemClick={handleMenuItemClick}
         setContextMenu={setContextMenu}
+        menuItems={contextMenuItems}
       />
     </>
   );

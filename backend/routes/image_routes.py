@@ -71,6 +71,7 @@ def read_images(
     last_sort_value: Optional[str] = Query(None, description="Value of the sort_by column for the last_id item (for stable pagination)"),
     db: Session = Depends(database.get_db),
     filter: List[int] = Query(None),
+    trash_only: bool = Query(False, description="If true, only returns images marked as deleted."),
     current_user: models.User = Depends(auth.get_current_user)
 ):
     """
@@ -85,11 +86,14 @@ def read_images(
         joinedload(models.ImageLocation.content).joinedload(models.ImageContent.tags)
     )
 
-    # Apply search filter if provided
-    #if search_query:
-    query = query.filter(generate_image_search_filter(search_terms=search_query, admin=current_user.admin, filters=filter, db=db))
-    #else:
-    #    query = query.filter(generate_image_search_filter('', current_user.admin, filter))
+    if trash_only:
+        query = query.filter(models.ImageLocation.deleted == True)
+    else:
+        # If not viewing trash, filter out deleted items and apply search/filter criteria
+        query = query.filter(models.ImageLocation.deleted == False)
+        # Apply search filter if provided
+        query = query.filter(generate_image_search_filter(search_terms=search_query, admin=current_user.admin, filters=filter, db=db))
+
 
     # Apply cursor-based pagination (Keyset Pagination)
     if last_id is not None and last_sort_value is not None:
@@ -246,16 +250,137 @@ def update_image(image_id: int, image_update: schemas.ImageTagUpdate, db: Sessio
     db.refresh(db_image)
     return read_image(image_id, db)
 
-@router.delete("/images/{image_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_image(image_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
-    # Deletes an image.
-    # FIX THIS
-    # Only deletes DB entry, should also handle physical file removal call
+@router.post("/images/{image_id}/delete", status_code=status.HTTP_204_NO_CONTENT)
+def mark_image_as_deleted(
+    image_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """
+    Marks an image location as deleted by setting its 'deleted' flag to True.
+    This is a "soft delete".
+    """
+    image_location = db.query(models.ImageLocation).filter(models.ImageLocation.id == image_id).first()
+    if image_location is None:
+        raise HTTPException(status_code=404, detail="Image location not found")
 
-    db_image = db.query(models.Image).filter(models.Image.id == image_id).first()
-    if db_image is None:
-        raise HTTPException(status_code=404, detail="Image not found")
-    db.delete(db_image)
+    image_location.deleted = True
+    db.commit()
+
+    # Broadcast a websocket message to remove the image from all connected clients' views.
+    if database.main_event_loop:
+        message = {"type": "image_deleted", "image_id": image_id}
+        # Use run_coroutine_threadsafe because we are in a synchronous FastAPI route
+        # calling an asynchronous function in the main event loop.
+        asyncio.run_coroutine_threadsafe(manager.broadcast_json(message), database.main_event_loop)
+        print(f"Sent 'image_deleted' notification for image ID {image_id}")
+    else:
+        print("Warning: Could not get main event loop to broadcast WebSocket message for image deletion.")
+    return
+
+@router.post("/images/{image_id}/restore", status_code=status.HTTP_204_NO_CONTENT)
+def restore_image(
+    image_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """
+    Restores a soft-deleted image by setting its 'deleted' flag to False.
+    """
+    image_location = db.query(models.ImageLocation).filter(models.ImageLocation.id == image_id).first()
+    if image_location is None:
+        raise HTTPException(status_code=404, detail="Image location not found")
+
+    image_location.deleted = False
+    db.commit()
+
+    # Broadcast a generic refresh message. Clients can refetch to see the restored image.
+    if database.main_event_loop:
+        message = {"type": "refresh_images", "reason": "image_restored", "image_id": image_id}
+        asyncio.run_coroutine_threadsafe(manager.broadcast_json(message), database.main_event_loop)
+        print(f"Sent 'image_restored' notification for image ID {image_id}")
+    return
+
+@router.delete("/images/{image_id}/permanent", status_code=status.HTTP_204_NO_CONTENT)
+def permanently_delete_image(
+    image_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """
+    Permanently deletes a single image from the disk and the database.
+    This action is irreversible and restricted to admins.
+    """
+    if not current_user.admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admins can permanently delete images.")
+
+    image_location = db.query(models.ImageLocation).filter(models.ImageLocation.id == image_id).first()
+    if image_location is None:
+        raise HTTPException(status_code=404, detail="Image location not found")
+
+    # Delete the physical file
+    full_path = os.path.join(image_location.path, image_location.filename)
+    try:
+        if os.path.exists(full_path):
+            os.remove(full_path)
+            print(f"Permanently deleted file: {full_path}")
+    except OSError as e:
+        print(f"Error deleting file {full_path}: {e}")
+        # We can choose to continue and delete the DB record anyway, or raise an error.
+        # For now, we'll raise an error to alert the admin.
+        raise HTTPException(status_code=500, detail=f"Failed to delete the physical file: {e}")
+
+    # Delete the database record
+    db.delete(image_location)
+    db.commit()
+
+    # The 'image_deleted' websocket message is already handled by the frontend, so we can reuse it.
+    if database.main_event_loop:
+        message = {"type": "image_deleted", "image_id": image_id}
+        asyncio.run_coroutine_threadsafe(manager.broadcast_json(message), database.main_event_loop)
+        print(f"Sent 'image_deleted' (permanent) notification for image ID {image_id}")
+    return
+
+@router.get("/trash/info", response_model=schemas.TrashInfo)
+def get_trash_info(
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """
+    Returns the number of items currently in the trash.
+    """
+    count = db.query(func.count(models.ImageLocation.id)).filter(models.ImageLocation.deleted == True).scalar()
+    return {"item_count": count}
+
+@router.post("/trash/empty", status_code=status.HTTP_204_NO_CONTENT)
+def empty_trash(
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """
+    Permanently deletes all images that are marked as 'deleted' (soft-deleted).
+    This involves deleting the physical files and the database records.
+    """
+    if not current_user.admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admins can empty the trash.")
+
+    trashed_locations = db.query(models.ImageLocation).filter(models.ImageLocation.deleted == True).all()
+
+    if not trashed_locations:
+        return # Nothing to do
+
+    for location in trashed_locations:
+        full_path = os.path.join(location.path, location.filename)
+        try:
+            if os.path.exists(full_path):
+                os.remove(full_path)
+                print(f"Permanently deleted file: {full_path}")
+        except OSError as e:
+            print(f"Error deleting file {full_path}: {e}")
+            # Decide if you want to stop or continue. For now, we continue.
+        
+        db.delete(location)
+    
     db.commit()
     return
 
