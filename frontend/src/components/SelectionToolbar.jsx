@@ -46,6 +46,7 @@ function SelectionToolbar({
                 </button>
             ))
         ) : (
+            // This part is now effectively a fallback, as customActions will always be provided.
             <>
                 <button onClick={onMove} className="toolbar-button" disabled={selectedCount === 0}>Move</button>
                 <button onClick={onDelete} className="toolbar-button toolbar-button-danger" disabled={selectedCount === 0}>Delete</button>

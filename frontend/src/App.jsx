@@ -34,8 +34,18 @@ function App() {
   const [webSocketMessage, setWebSocketMessage] = useState(null);
   const [currentView, setCurrentView] = useState('grid');
   const [images, setImages] = useState([]);
+  const [trashImages, setTrashImages] = useState([]);
   const [trashCount, setTrashCount] = useState(0);
   const [selectedImages, setSelectedImages] = useState(new Set());
+
+  const handleSetCurrentView = (view) => {
+    // When the view changes, exit select mode and clear the selection
+    if (currentView !== view) {
+        setIsSelectMode(false);
+        setSelectedImages(new Set());
+    }
+    setCurrentView(view);
+  };
 
 
   // Callback to handle incoming WebSocket messages
@@ -127,6 +137,46 @@ function App() {
     alert(`Move action for ${selectedImages.size} images is not yet implemented.`);
   };
 
+  const handleTrashBulkAction = async (action) => {
+    const imageIds = Array.from(selectedImages);
+    if (imageIds.length === 0) return;
+
+    let endpoint = '';
+    let confirmMessage = '';
+
+    if (action === 'restore') {
+        endpoint = '/api/trash/restore';
+        confirmMessage = `Are you sure you want to restore ${imageIds.length} image(s)?`;
+    } else if (action === 'delete_permanent') {
+        endpoint = '/api/trash/delete-permanent';
+        confirmMessage = `Are you sure you want to PERMANENTLY delete ${imageIds.length} selected image(s)? This action cannot be undone.`;
+    }
+
+    if (!window.confirm(confirmMessage)) return;
+
+    try {
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify(imageIds),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || `Failed to ${action} images.`);
+        }
+
+        // The view will update via websocket, just clear selection.
+        setSelectedImages(new Set());
+    } catch (error) {
+        console.error(`Error during bulk ${action}:`, error);
+        alert(`Error: ${error.message}`);
+    }
+  };
+
   if (loading) {
     return (
       <div className="loading-full-page">
@@ -154,12 +204,13 @@ function App() {
               isSelectMode={isSelectMode}
               setIsSelectMode={setIsSelectMode}
               currentView={currentView}
-              setCurrentView={setCurrentView}
+              setCurrentView={handleSetCurrentView}
               selectedImages={selectedImages}
               setSelectedImages={setSelectedImages}
               trashCount={trashCount}
               setTrashCount={setTrashCount}
-              images={images}
+              images={currentView === 'trash' ? trashImages : images}
+              onTrashBulkAction={handleTrashBulkAction}
               handleMoveSelected={handleMoveSelected}
             />
             <ConnectionStatus />
@@ -182,9 +233,11 @@ function App() {
             )}
             {currentView === 'trash' && (
               <TrashView
+                images={trashImages}
+                setImages={setTrashImages}
                 webSocketMessage={webSocketMessage}
                 setTrashCount={setTrashCount}
-                setCurrentView={setCurrentView}
+                setCurrentView={handleSetCurrentView}
                 isSelectMode={isSelectMode}
                 setIsSelectMode={setIsSelectMode}
                 selectedImages={selectedImages}

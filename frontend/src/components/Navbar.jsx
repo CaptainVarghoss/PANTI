@@ -33,6 +33,7 @@ function Navbar({
   trashCount,
   setTrashCount,
   images,
+  onTrashBulkAction,
   handleMoveSelected
 }) {
   const { token, isAuthenticated, user, logout, isAdmin, settings } = useAuth();
@@ -63,29 +64,27 @@ function Navbar({
 
   const handleDeleteSelected = async () => {
     if (selectedImages.size > 0) {
-      if (window.confirm(`Are you sure you want to move ${selectedImages.size} image(s) to the trash?`)) {
-        const imageIds = Array.from(selectedImages);
-        try {
-          const response = await fetch('/api/images/delete-bulk', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`,
-              },
-              body: JSON.stringify(imageIds),
-          });
+      const imageIds = Array.from(selectedImages);
+      try {
+        const response = await fetch('/api/images/delete-bulk', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify(imageIds),
+        });
 
-          if (!response.ok) {
-              const errorData = await response.json();
-              throw new Error(errorData.detail || 'Failed to move images to trash.');
-          }
-
-          // UI updates via websocket, just clear selection
-          setSelectedImages(new Set());
-        } catch (error) {
-          console.error("Error during bulk delete:", error);
-          alert(`Error: ${error.message}`);
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Failed to move images to trash.');
         }
+
+        // UI updates via websocket, just clear selection
+        setSelectedImages(new Set());
+      } catch (error) {
+        console.error("Error during bulk delete:", error);
+        alert(`Error: ${error.message}`);
       }
     }
   };
@@ -169,14 +168,24 @@ function Navbar({
           />
         )}
       </div>
-      {isSelectMode && currentView !== 'trash' && (
+      {isSelectMode && (
         <SelectionToolbar
           selectedCount={selectedImages.size}
           onClearSelection={handleClearSelection}
           onSelectAll={handleSelectAll}
-          onDelete={handleDeleteSelected}
-          onMove={handleMoveSelected}
           onExit={() => setIsSelectMode(false)}
+          // Conditionally render actions based on the current view
+          customActions={
+            currentView === 'trash'
+              ? [
+                  { label: 'Restore Selected', handler: () => onTrashBulkAction('restore'), danger: false },
+                  { label: 'Delete Selected Permanently', handler: () => onTrashBulkAction('delete_permanent'), danger: true },
+                ]
+              : [
+                  { label: 'Move', handler: handleMoveSelected, danger: false },
+                  { label: 'Delete', handler: handleDeleteSelected, danger: true },
+                ]
+          }
         />
       )}
     </nav>

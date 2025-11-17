@@ -197,28 +197,26 @@ function ImageGrid({
         const imageIds = Array.from(selectedImages);
         if (imageIds.length === 0) return;
 
-        if (window.confirm(`Are you sure you want to move ${imageIds.length} image(s) to the trash?`)) {
-          try {
-            const response = await fetch('/api/images/delete-bulk', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-              },
-              body: JSON.stringify(imageIds),
-            });
+        try {
+          const response = await fetch('/api/images/delete-bulk', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(imageIds),
+          });
 
-            if (!response.ok) {
-              const errorData = await response.json();
-              throw new Error(errorData.detail || 'Failed to move images to trash.');
-            }
-
-            // UI updates via websocket, just clear selection
-            setSelectedImages(new Set());
-          } catch (error) {
-            console.error("Error during bulk delete from context menu:", error);
-            alert(`Error: ${error.message}`);
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Failed to move images to trash.');
           }
+
+          // UI updates via websocket, just clear selection
+          setSelectedImages(new Set());
+        } catch (error) {
+          console.error("Error during bulk delete from context menu:", error);
+          alert(`Error: ${error.message}`);
         }
       };
 
@@ -226,19 +224,17 @@ function ImageGrid({
           const imageIds = Array.from(selectedImages);
           if (imageIds.length === 0) return;
 
-          if (window.confirm(`Are you sure you want to restore ${imageIds.length} selected image(s)?`)) {
-              try {
-                  const response = await fetch('/api/trash/restore', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                      body: JSON.stringify(imageIds),
-                  });
-                  if (!response.ok) throw new Error('Failed to restore images.');
-                  setImages(prev => prev.filter(img => !selectedImages.has(img.id)));
-                  setSelectedImages(new Set());
-              } catch (error) {
-                  alert(`Error: ${error.message}`);
-              }
+          try {
+              const response = await fetch('/api/trash/restore', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                  body: JSON.stringify(imageIds),
+              });
+              if (!response.ok) throw new Error('Failed to restore images.');
+              setImages(prev => prev.filter(img => !selectedImages.has(img.id)));
+              setSelectedImages(new Set());
+          } catch (error) {
+              alert(`Error: ${error.message}`);
           }
       };
 
