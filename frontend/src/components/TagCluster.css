@@ -1,0 +1,114 @@
+.tag-cluster-container {
+    background-color: #2d3748; /* bg-gray-800 */
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.tag-cluster-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #4a5568; /* border-gray-600 */
+}
+
+.tag-cluster-title {
+    margin: 0;
+    font-size: 1.125rem; /* text-lg */
+    font-weight: 600; /* font-semibold */
+    color: #e2e8f0; /* text-gray-200 */
+}
+
+.tag-cluster-controls {
+    display: flex;
+    align-items: center;
+}
+
+.tag-cluster-add-button {
+    background-color: transparent;
+    border: 1px solid #4a5568;
+    color: #9ca3af; /* text-gray-400 */
+    border-radius: 50%;
+    width: 2rem;
+    height: 2rem;
+    min-width: 2rem;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.tag-cluster-add-button:hover {
+    background-color: #4a5568;
+    color: #ffffff;
+    border-color: #6b7280;
+}
+
+.tag-cluster {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.tag-cluster-message {
+    color: #9ca3af;
+    width: 100%;
+    text-align: center;
+    padding: 1rem;
+}
+
+.tag-cluster-message.error {
+    color: #f87171; /* text-red-400 */
+}
+
+/* Tag Editor Modal */
+.tag-editor-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1050; /* Higher than image modal */
+}
+
+.tag-editor-modal-content {
+    background-color: var(--color-surface-10);
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.tag-editor-title {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.tag-editor-modal-content .form-group {
+    margin-bottom: 1rem;
+}
+
+.tag-editor-modal-content .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #a0aec0;
+}
+.tag-editor-modal-content .form-group input {
+    width: 100%;
+    box-sizing: border-box;
+}

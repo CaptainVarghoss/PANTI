@@ -1893,6 +1893,178 @@ div.image-card {
     margin-right: 0.75rem; /* mr-3 */
 }
 
+/* --- Tag Styles (used by TagCluster) --- */
+.tag-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  background-color: var(--color-surface-30);
+  color: var(--color-primary);
+  position: relative;
+  overflow: hidden;
+}
+
+.tag-pill:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.tag-pill.active {
+  box-shadow: 0 0 10px 2px var(--color-tertiary);
+}
+
+.tag-name {
+  transition: transform 0.3s ease;
+}
+
+.tag-edit-button {
+  position: absolute;
+  right: -24px; /* Start hidden */
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: rgba(0,0,0,0.4);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: right 0.3s ease;
+  padding: 0;
+  margin: 0;
+}
+
+.tag-pill:hover .tag-edit-button {
+  right: 4px; /* Slide in on hover */
+}
+
+.tag-pill:hover .tag-name {
+  transform: translateX(-12px); /* Move text to make space for button */
+}
+
+.tag-edit-button:hover {
+  background-color: rgba(0,0,0,0.7);
+}
+
+
+
+/* --- TagCluster Styles --- */
+.tag-cluster-container {
+  background-color: var(--color-surface-10);
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.tag-cluster-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--color-surface-tonal-20);
+}
+
+.tag-cluster-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.tag-cluster-controls .tag-cluster-add-button {
+  background-color: var(--color-go);
+  color: var(--color-go-text);
+  border: none;
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  min-width: 2rem;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.tag-cluster-controls .tag-cluster-add-button:hover {
+  background-color: var(--color-go-hover);
+  color: var(--color-go-text-hover);
+}
+
+.tag-cluster {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tag-cluster-message {
+  color: var(--color-primary);
+  font-style: italic;
+}
+
+.tag-cluster-message.error {
+  color: var(--color-error);
+}
+
+/* --- TagEditorModal Styles --- */
+.tag-editor-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 105; /* Higher than settings modal */
+}
+
+.tag-editor-modal-content .form-actions {
+  margin-top: 1.5rem;
+}
+
+.tag-editor-modal-content {
+  background-color: var(--color-surface-20);
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.tag-editor-title {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  color: var(--color-primary);
+}
+
+.tag-editor-modal-content .form-group {
+  margin-bottom: 1rem;
+}
+
+.tag-editor-modal-content .form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--color-primary);
+}
+
+.tag-editor-modal-content .form-group input {
+  width: 100%;
+  box-sizing: border-box;
+  background-color: var(--color-surface-30);
+  color: var(--color-primary);
+}
 
 
 

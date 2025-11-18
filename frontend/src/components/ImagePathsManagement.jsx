@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import Switch from './Switch';
 import Tooltip from './Tooltip';
+import TagCluster from './TagCluster';
 
 /**
  * Manages image paths, allowing all users to view, and admins to add, edit, and delete.
@@ -24,6 +25,7 @@ function ImagePathsManagement({ onBack }) {
   const [currentDescription, setCurrentDescription] = useState('');
   const [currentAdminOnly, setCurrentAdminOnly] = useState(true); // State for admin_only switch
   const [currentIgnore, setCurrentIgnore] = useState(false); // State for ignore switch
+  const [currentTagIds, setCurrentTagIds] = useState(new Set());
 
   const fetchImagePaths = useCallback(async () => {
     setLoading(true);
@@ -67,6 +69,7 @@ function ImagePathsManagement({ onBack }) {
     setCurrentDescription(path.description || '');
     setCurrentAdminOnly(path.admin_only);
     setCurrentIgnore(path.ignore);
+    setCurrentTagIds(new Set(path.tags.map(t => t.id)));
     setShowForm(true);
     setMessage(null);
     setError(null);
@@ -93,6 +96,7 @@ function ImagePathsManagement({ onBack }) {
       description: currentDescription,
       ignore: currentIgnore, // Include ignore field
       admin_only: currentAdminOnly, // Include admin_only field
+      tag_ids: Array.from(currentTagIds),
       basepath: false, // These are typically not changed via UI
       built_in: false, // These are typically not changed via UI
       parent: null, // These are typically not changed via UI
@@ -112,6 +116,7 @@ function ImagePathsManagement({ onBack }) {
       if (currentDescription !== (editingPath.description || '')) updatePayload.description = currentDescription;
       if (currentAdminOnly !== editingPath.admin_only) updatePayload.admin_only = currentAdminOnly;
       if (currentIgnore !== editingPath.ignore) updatePayload.ignore = currentIgnore;
+      updatePayload.tag_ids = Array.from(currentTagIds);
 
       payload = updatePayload;
     }
@@ -283,6 +288,21 @@ function ImagePathsManagement({ onBack }) {
                     disabled={!isAdmin} // Only admin can change; built-in paths are fixed
                 />
             </div>
+            
+            {/* Tag Cluster for editing tags on a path */}
+            {editingPath && (
+              <TagCluster
+                activeTagIds={currentTagIds}
+                onTagToggle={(tag) => {
+                  const tagId = tag.id;
+                  const newTagIds = new Set(currentTagIds);
+                  if (newTagIds.has(tagId)) newTagIds.delete(tagId); // Use tagId here
+                  else newTagIds.add(tagId);
+                  setCurrentTagIds(newTagIds);
+                }}
+                canEdit={isAdmin}
+              />
+            )}
 
             <div className="form-actions">
               <button

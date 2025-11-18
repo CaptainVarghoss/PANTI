@@ -62,8 +62,19 @@ def update_image_path(path_id: int, path: schemas.ImagePathUpdate, db: Session =
     db_image_path = db.query(models.ImagePath).filter(models.ImagePath.id == path_id).first()
     if db_image_path is None:
         raise HTTPException(status_code=404, detail="ImagePath not found")
-    for key, value in path.dict(exclude_unset=True).items():
+    for key, value in path.dict(exclude_unset=True, exclude={'tag_ids'}).items():
         setattr(db_image_path, key, value)
+    
+    if path.tag_ids is not None:
+        db_image_path.tags.clear()
+        for tag_id in path.tag_ids:
+            tag = db.query(models.Tag).filter(models.Tag.id == tag_id).first()
+            if tag:
+                db_image_path.tags.append(tag)
+            else:
+                # Optionally, raise an error if a tag ID is invalid
+                print(f"Warning: Tag with ID {tag_id} not found during ImagePath update.")
+
     db.commit()
     db.refresh(db_image_path)
     return db_image_path

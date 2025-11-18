@@ -3,7 +3,6 @@ import { useAuth } from '../context/AuthContext';
 import ImagePathsManagement from './ImagePathsManagement';
 import DeviceSpecificSettingsForm from './DeviceSpecificSettingsForm';
 import GlobalSettingsForm from './GlobalSettingsForm';
-import TagManager from './TagManager';
 import FilterManager from './FilterManager';
 
 const AccordionItem = ({ title, children, isOpen, onClick }) => (
@@ -62,10 +61,6 @@ function SettingsModal({ isOpen, onClose, filters, setFilters }) {
                     <div className="accordion">
                         <AccordionItem title="Manage Folders (Image Paths)" isOpen={!!openSections['folders']} onClick={() => handleAccordionClick('folders')}>
                             <ImagePathsManagement />
-                        </AccordionItem>
-
-                        <AccordionItem title="Manage Tags" isOpen={!!openSections['tags']} onClick={() => handleAccordionClick('tags')}>
-                            <TagManager allAvailableTags={allAvailableTags} setAllAvailableTags={setAllAvailableTags} />
                         </AccordionItem>
 
                         <AccordionItem title="Manage Filters" isOpen={!!openSections['filters']} onClick={() => handleAccordionClick('filters')}>

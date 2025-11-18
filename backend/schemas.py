@@ -28,10 +28,7 @@ class User(UserBase):
 # --- Tag Schemas ---
 class TagBase(BaseModel):
     name: str
-    color: str = "#333333"
-    icon: str = "tag"
     admin_only: bool = False
-    text_color: str = "#ffffff"
     built_in: bool = False
 
 class TagCreate(TagBase):
@@ -39,10 +36,7 @@ class TagCreate(TagBase):
 
 class TagUpdate(TagBase):
     name: Optional[str] = None
-    color: Optional[str] = None
-    icon: Optional[str] = None
     admin_only: Optional[bool] = None
-    text_color: Optional[str] = None
     built_in: Optional[bool] = None
 
 class Tag(TagBase):

@@ -224,7 +224,7 @@ def read_image(
         **db_image.__dict__
     )
 
-@router.put("/images/{image_id}", response_model=schemas.ImageContent)
+@router.put("/images/{image_id}/tags", response_model=schemas.ImageContent)
 def update_image(image_id: int, image_update: schemas.ImageTagUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
     # Updates an existing image's tags.
     # Requires authentication.

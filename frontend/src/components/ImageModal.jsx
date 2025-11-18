@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { IoChevronBack, IoChevronForward, IoClose } from 'react-icons/io5';
-import { useAuth } from '../context/AuthContext';
-import ModalTagGroup from './ModalTagGroup';
+import { useAuth } from '../context/AuthContext'; // fetchSettings to get updated permissions if needed
+import TagCluster from './TagCluster';
 
 /**
  * Fullscreen modal to display a large image, its metadata, and allow tag management.
@@ -17,7 +17,7 @@ import ModalTagGroup from './ModalTagGroup';
  * @param {function} props.onNavigate - Callback to update the currently displayed image in ImageGrid.
  */
 function ImageModal({ isOpen, onClose, currentImage, images, onNavigate, searchTerm, setSearchTerm }) {
-    const { token, isAuthenticated, settings, currentUser, fetchSettings } = useAuth(); // fetchSettings to get updated permissions if needed
+    const { token, isAuthenticated, settings, isAdmin } = useAuth();
 
     const [blobImageUrl, setBlobImageUrl] = useState(null);
     const [isFetchingOriginal, setIsFetchingOriginal] = useState(false);
@@ -28,6 +28,11 @@ function ImageModal({ isOpen, onClose, currentImage, images, onNavigate, searchT
     const [imageTranslateX, setImageTranslateX] = useState(0);
     const SWIPE_THRESHOLD = 85; // Minimum horizontal distance for a swipe
     const TAP_THRESHOLD = 10; // Maximum distance for a tap to be considered a click
+
+    // State for tags associated with the current image
+    const [imageTagIds, setImageTagIds] = useState(new Set());
+    const [isTagsLoading, setIsTagsLoading] = useState(false);
+    const [tagsError, setTagsError] = useState(null);
 
     const modalContentRef = useRef(null); // Renamed from modalRef to avoid confusion with the overlay click
 
@@ -101,6 +106,92 @@ function ImageModal({ isOpen, onClose, currentImage, images, onNavigate, searchT
             }
         };
     }, [isOpen, currentImage, usePreview, isAuthenticated, token]);
+
+    const canModifyTags = isAdmin || (settings?.allow_tag_add === true);
+
+    const fetchImageTags = useCallback(async () => {
+        if (!currentImage?.id) {
+            setImageTagIds(new Set());
+            return;
+        }
+        setIsTagsLoading(true);
+        setTagsError(null);
+        try {
+            const response = await fetch(`/api/tags/?imageId=${currentImage.id}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) throw new Error('Failed to fetch image tags');
+            const tags = await response.json();
+            setImageTagIds(new Set(tags.map(t => t.id)));
+        } catch (error) {
+            setTagsError(error.message);
+            console.error("Error fetching image tags:", error);
+        } finally {
+            setIsTagsLoading(false);
+        }
+    }, [currentImage, token]);
+
+    useEffect(() => {
+        if (isOpen) {
+            fetchImageTags();
+        }
+    }, [isOpen, fetchImageTags]);
+
+    const updateImageTags = async (newTagIdsSet) => {
+        if (!currentImage?.id || !canModifyTags) return;
+
+        const payload = {
+            tag_ids: Array.from(newTagIdsSet)
+        };
+
+        try {
+            const response = await fetch(`/api/images/${currentImage.id}/tags`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Failed to update tags');
+            }
+            // Success, UI is already updated optimistically
+            console.log("Tags updated successfully");
+        } catch (error) {
+            console.error('Error saving tags:', error);
+            setTagsError(error.message);
+            // Revert optimistic update on failure
+            fetchImageTags();
+        }
+    };
+
+    const handleTagToggle = (tag) => {
+        if (!canModifyTags) {
+            // If user can't edit, clicking a tag should perform a search.
+            // The search term should be exact, so we wrap it in quotes.
+            if (tag && tag.name) {
+                setSearchTerm(`TAG:"${tag.name}"`);
+                onClose(); // Close the modal to see the search results
+            } else {
+                console.error("Cannot perform tag search: tag object is invalid.", tag);
+            }
+            return;
+        }
+
+        // If the user can edit, proceed with toggling the tag for the image.
+        const tagId = tag.id;
+        const newTagIds = new Set(imageTagIds);
+        if (newTagIds.has(tagId)) {
+            newTagIds.delete(tagId);
+        } else {
+            newTagIds.add(tagId);
+        }
+        setImageTagIds(newTagIds); // Optimistic update
+        updateImageTags(newTagIds); // Send update to backend
+    };
 
     // Construct the proper image path is display
     let imageUrlToDisplay;
@@ -305,12 +396,12 @@ function ImageModal({ isOpen, onClose, currentImage, images, onNavigate, searchT
                 {/* Info Section (Metadata & Tags) */}
                 <div className="modal-info-section">
 
-                    {/* Tags Section */}
-                    <ModalTagGroup
-                        currentImage={currentImage}
-                        searchTerm={searchTerm}
-                        setSearchTerm={setSearchTerm}
-                        onClose={onClose}
+                    {/* New TagCluster Component */}
+                    <TagCluster
+                        activeTagIds={imageTagIds}
+                        onTagToggle={handleTagToggle} // Now passes the full tag object
+                        canEdit={canModifyTags}
+                        onTagsUpdated={fetchImageTags} // Refetch image tags if master list changes
                     />
 
                     {/* Metadata Section */}
