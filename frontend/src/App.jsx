@@ -61,8 +61,7 @@ function App() {
 
   
   const ConnectionStatus = () => (
-    <div style={{ position: 'fixed', top: '0.2rem', left: '0', height: '2.5rem', width: '0.1rem', border: '0.1rem solid', borderColor: isConnected ? '#28a745' : '#dc3545', backgroundColor: isConnected ? '#28a745' : '#dc3545', zIndex: 1000}}>
-    </div>
+    <div id="connection" style={{borderColor: isConnected ? 'var(--accent-green)' : 'var(--accent-red)', backgroundColor: isConnected ? 'var(--accent-green)' : 'var(--accent-red)'}}></div>
   );
   
   // States for select mode
@@ -187,10 +186,11 @@ function App() {
 
   return (
     <Router>
-      <div className="app-content">
+      <div className="main-content">
         {isAuthenticated ? (
           <>
-            <Navbar
+            <header>
+              <Navbar
               searchTerm={searchTerm}
               onSearchAndSortChange={handleSearchAndSortChange}
               sortBy={sortBy}
@@ -214,39 +214,44 @@ function App() {
               handleMoveSelected={handleMoveSelected}
             />
             <ConnectionStatus />
-            {currentView === 'grid' && (
-              <ImageGrid
-                images={images}
-                setImages={setImages}
-                searchTerm={searchTerm}
-                sortBy={sortBy}
-                sortOrder={sortOrder}
-                setSearchTerm={setSearchTerm}
-                webSocketMessage={webSocketMessage}
-                filters={filters}
-                isSelectMode={isSelectMode}
-                setIsSelectMode={setIsSelectMode}
-                selectedImages={selectedImages}
-                setSelectedImages={setSelectedImages}
-                handleMoveSelected={handleMoveSelected}
-              />
-            )}
-            {currentView === 'trash' && (
-              <TrashView
-                images={trashImages}
-                setImages={setTrashImages}
-                webSocketMessage={webSocketMessage}
-                setTrashCount={setTrashCount}
-                setCurrentView={handleSetCurrentView}
-                isSelectMode={isSelectMode}
-                setIsSelectMode={setIsSelectMode}
-                selectedImages={selectedImages}
-                setSelectedImages={setSelectedImages}
-              />
-            )}
+            </header>
+            <main>
+              {currentView === 'grid' && (
+                <ImageGrid
+                  images={images}
+                  setImages={setImages}
+                  searchTerm={searchTerm}
+                  sortBy={sortBy}
+                  sortOrder={sortOrder}
+                  setSearchTerm={setSearchTerm}
+                  webSocketMessage={webSocketMessage}
+                  filters={filters}
+                  isSelectMode={isSelectMode}
+                  setIsSelectMode={setIsSelectMode}
+                  selectedImages={selectedImages}
+                  setSelectedImages={setSelectedImages}
+                  handleMoveSelected={handleMoveSelected}
+                />
+              )}
+              {currentView === 'trash' && (
+                <TrashView
+                  images={trashImages}
+                  setImages={setTrashImages}
+                  webSocketMessage={webSocketMessage}
+                  setTrashCount={setTrashCount}
+                  setCurrentView={handleSetCurrentView}
+                  isSelectMode={isSelectMode}
+                  setIsSelectMode={setIsSelectMode}
+                  selectedImages={selectedImages}
+                  setSelectedImages={setSelectedImages}
+                />
+              )}
+            </main>
           </>
         ) : (
-          <UnauthenticatedApp />
+          <main>
+            <UnauthenticatedApp />
+          </main>
         )}
       </div>
     </Router>

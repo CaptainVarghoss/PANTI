@@ -90,11 +90,11 @@ function Navbar({
   };
 
   return (
-    <nav className="navbar">
+    <nav>
       <div className="navbar-main">
         {/* Left Navbar Buttons */}
         {settings.left_enabled && (
-          <div className="navbar-buttons side-left">
+          <ul className="side-left">
             <NavbarButtons
               navOpen={navOpen}
               setNavOpen={setNavOpen}
@@ -102,7 +102,7 @@ function Navbar({
               handleFilterToggle={handleFilterToggle}
               filters={filters}
             />
-          </div>
+          </ul>
         )}
 
         {/* Search Bar (visible when authenticated) */}
@@ -122,7 +122,7 @@ function Navbar({
 
         {/* Right Navbar Buttons */}
         {settings.right_enabled && (
-          <div className="navbar-buttons side-right">
+          <ul className="side-right">
             <NavbarButtons
               navOpen={navOpen}
               setNavOpen={setNavOpen}
@@ -131,7 +131,7 @@ function Navbar({
               filters={filters}
               setFilters={setFilters}
             />
-          </div>
+          </ul>
         )}
       </div>
       <div className={`navbar-menu ${navOpen ? 'open' : 'closed' }`}>
@@ -151,8 +151,6 @@ function Navbar({
             setSortBy={setSortBy}
             sortOrder={sortOrder}
             setSortOrder={setSortOrder}
-            isSelectMode={isSelectMode}
-            setIsSelectMode={setIsSelectMode}
             currentView={currentView}
             setCurrentView={setCurrentView}
             trashCount={trashCount}
@@ -165,6 +163,8 @@ function Navbar({
             side="right"
             trashCount={trashCount}
             setCurrentView={setCurrentView}
+            isSelectMode={isSelectMode}
+            setIsSelectMode={setIsSelectMode}
           />
         )}
       </div>

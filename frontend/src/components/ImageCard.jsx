@@ -50,7 +50,7 @@ const ImageCard = forwardRef(({ image, onClick, onContextMenu, refreshKey, isSel
     <div
       ref={ref}
       key={image.id}
-      className={`image-card ${isSelected ? 'selected' : ''}`}
+      className={`btn-base btn-primary image-card ${isSelected ? 'selected' : ''}`}
       onClick={() => onClick(image)}>
       <div className="image-card-inner">
         {thumbnailUrl && (

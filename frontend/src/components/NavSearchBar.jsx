@@ -59,7 +59,7 @@ function NavSearchBar({
             <input
                 type="text"
                 placeholder="Search images..."
-                className="search-bar"
+                className="form-input-base"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
             />
