@@ -335,7 +335,7 @@ function ImageModal({ isOpen, onClose, currentImage, images, onNavigate, searchT
             {/* Close Button */}
                 <button
                     onClick={(e) => { e.stopPropagation(); onClose(); }}
-                    className="modal-close-button"
+                    className="btn-base btn-primary modal-close-button"
                     title="Close"
                 >
                     <IoClose size={24} />
@@ -394,7 +394,7 @@ function ImageModal({ isOpen, onClose, currentImage, images, onNavigate, searchT
                 </div>
 
                 {/* Info Section (Metadata & Tags) */}
-                <div className="modal-info-section">
+                <section>
 
                     {/* New TagCluster Component */}
                     <TagCluster
@@ -405,9 +405,9 @@ function ImageModal({ isOpen, onClose, currentImage, images, onNavigate, searchT
                     />
 
                     {/* Metadata Section */}
-                    <div className="modal-meta-section">
-                        <h4 className="modal-section-subtitle">Metadata</h4>
-                        <ul className="modal-general-info-list">
+                    <div className="section-container">
+                        <h3 className="section-header">Metadata</h3>
+                        <ul className="section-list">
                             <li><strong className="modal-info-label">Path:</strong> {currentImage.path}</li>
                             <li><strong className="modal-info-label">Filename:</strong> {currentImage.filename}</li>
                             <li><strong className="modal-info-label">ID:</strong> {currentImage.id}</li>
@@ -422,7 +422,7 @@ function ImageModal({ isOpen, onClose, currentImage, images, onNavigate, searchT
                             {renderMetadata(currentImage.exif_data)}
                         </div>
                     </div>
-                </div>
+                </section>
             </div>
         </div>
     );

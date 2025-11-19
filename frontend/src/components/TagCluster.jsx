@@ -83,11 +83,11 @@ function TagCluster({ activeTagIds, onTagToggle, canEdit = true, showUntagged = 
 
   return (
     <>
-      <div className="tag-cluster-container">
-        <div className="tag-cluster-header">
-          <h4 className="tag-cluster-title">Tags</h4>
+      <div className="section-container">
+        <div className="section-header">
+          <h3 className="section-title">Tags</h3>
           {canEdit && (
-            <div className="tag-cluster-controls">
+            <div className="section-controls">
               <button onClick={handleOpenEditorForNew} className="tag-cluster-add-button" title="Add new tag">
                 +
               </button>

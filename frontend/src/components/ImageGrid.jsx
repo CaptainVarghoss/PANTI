@@ -560,7 +560,7 @@ function ImageGrid({
         )}
 
         {!imagesLoading && !isFetchingMore && images.length === 0 && !imagesError && (
-          <p className="text-gray-400 text-center">No images found. Add some to your configured paths and run the scanner!</p>
+          <p className="">No images found. Add some to your configured paths and run the scanner!</p>
         )}
       </div>
 
