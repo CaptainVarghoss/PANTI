@@ -157,13 +157,19 @@ p {
 }
 
 /* --- HEADER/NAVIGATION --- */
-header, main, section {
+header, main, section, .modal-content {
     background-color: var(--bg-header);
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
     border-radius: var(--radius-xl);
     margin-bottom: 0.5rem;
     padding: 0.5rem;
     border: 1px solid var(--border-color);
+}
+
+header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 #connection {
@@ -474,6 +480,7 @@ nav input {
     top: 0;
     left: 0;
     height: 100%;
+    width: 100%;
     background-color: rgba(0, 0, 0, 0.7);
     display: flex;
     justify-content: center;
@@ -496,20 +503,22 @@ nav input {
 
 .modal-content {
     position: relative;
-    border-radius: var(--radius-xl);
     width: min-content;
     min-height: fit-content;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.8);
-    border: 1px solid var(--border-color);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.8);    
     margin:auto;
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     overflow: visible;
-    background: transparent;
+    padding: 0;
+    border: none;
 }
 
 .modal-content section {
-  width: 90%;
   margin: auto;
+}
+
+.modal-content img {
+  height: 100%;
 }
 
 .modal-image-section {
@@ -522,6 +531,7 @@ nav input {
     overflow: hidden;
     height: 100dvh;
     width: 100%;
+    margin-bottom: 2rem;
 }
 
 .modal-main-image {
@@ -564,7 +574,7 @@ nav input {
 }
 
 .section-container {
-    margin-top: 2rem;
+    margin-bottom: 0.75rem;
     padding: 1rem;
     background-color:#374151;
     border-top-left-radius: 1rem;
