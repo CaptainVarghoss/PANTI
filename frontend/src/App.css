@@ -596,6 +596,10 @@ nav input {
     border-bottom-right-radius: 1rem;
 }
 
+.settings-modal-body {
+  min-width: 80vw;
+}
+
 /* --- IMAGE GALLERY STYLING --- */
 
 .image-grid {

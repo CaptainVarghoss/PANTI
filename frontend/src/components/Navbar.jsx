@@ -34,7 +34,8 @@ function Navbar({
   setTrashCount,
   images,
   onTrashBulkAction,
-  handleMoveSelected
+  handleMoveSelected,
+  onSettingsClick
 }) {
   const { token, isAuthenticated, user, logout, isAdmin, settings } = useAuth();
   const [navOpen, setNavOpen] = useState(false);
@@ -129,7 +130,6 @@ function Navbar({
               toggleNavOpen={toggleNavOpen}
               handleFilterToggle={handleFilterToggle}
               filters={filters}
-              setFilters={setFilters}
             />
           </ul>
         )}
@@ -141,6 +141,7 @@ function Navbar({
             side="left"
             trashCount={trashCount}
             setCurrentView={setCurrentView}
+            onSettingsClick={onSettingsClick}
           />
         )}
         {isAuthenticated && (
@@ -165,6 +166,7 @@ function Navbar({
             setCurrentView={setCurrentView}
             isSelectMode={isSelectMode}
             setIsSelectMode={setIsSelectMode}
+            onSettingsClick={onSettingsClick}
           />
         )}
       </div>

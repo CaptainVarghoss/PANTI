@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ImageCard from '../components/ImageCard';
-import ImageModal from '../components/ImageModal';
 import ContextMenu from './ContextMenu';
 import { useAuth } from '../context/AuthContext'; // To get token and settings for authenticated calls
 
@@ -23,7 +22,8 @@ function ImageGrid({
   handleMoveSelected,
   setSelectedImages,
   trash_only = false,
-  contextMenuItems
+  contextMenuItems,
+  openModal
 }) {
   const { token, isAuthenticated, settings } = useAuth();
   const [imagesLoading, setImagesLoading] = useState(true); // For initial load state
@@ -32,9 +32,6 @@ function ImageGrid({
   const [lastSortValue, setLastSortValue] = useState(null);
   const [hasMore, setHasMore] = useState(true); // True if there are more images to load
   const [isFetchingMore, setIsFetchingMore] = useState(false); // Tracks if a fetch for more images is in progress
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedImage, setSelectedImage] = useState(null);
 
   const [contextMenu, setContextMenu] = useState({
       isVisible: false,
@@ -86,21 +83,19 @@ function ImageGrid({
       });
     } else {
       // Normal mode, open modal
-      setSelectedImage(image);
-      setIsModalOpen(true);
+      openModal('image', {
+        currentImage: image,
+        images: images,
+        onNavigate: (nextImage) => openModal('image', { // Re-open modal with new image
+          currentImage: nextImage,
+          images: images,
+          onNavigate: (img) => openModal('image', { currentImage: img, images, onNavigate }),
+          setSearchTerm: setSearchTerm
+        }),
+        setSearchTerm: setSearchTerm
+      });
     }
-  }, [isSelectMode]);
-
-  // Handle navigating to a different image within the modal
-  const handleModalNavigate = useCallback((image) => {
-    setSelectedImage(image);
-  }, []);
-
-  // Handle closing the modal
-  const handleCloseModal = useCallback(() => {
-    setIsModalOpen(false);
-    setSelectedImage(null);
-  }, []);
+  }, [isSelectMode, openModal, images, setSearchTerm]);
 
   // Handle right-click event on a thumbnail
   const handleContextMenu = (event, thumbnail) => {
@@ -564,17 +559,6 @@ function ImageGrid({
         )}
       </div>
 
-      {isModalOpen && selectedImage && (
-        <ImageModal
-          isOpen={isModalOpen}
-          onClose={handleCloseModal}
-          currentImage={selectedImage}
-          images={images} // Pass the entire image list for navigation
-          onNavigate={handleModalNavigate} // Callback for next/prev buttons in modal
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-        />
-      )}
       <ContextMenu
         isOpen={contextMenu.isVisible}
         x={contextMenu.x}

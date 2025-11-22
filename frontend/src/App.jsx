@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { BrowserRouter as Router } from 'react-router-dom'; // Keep for potential future routing needs
 import { useAuth } from './context/AuthContext';
 import ImageGrid from "./components/ImageGrid"; // Assuming ImageGrid is now a page component
+import Modal from './components/Modal';
 import TrashView from './components/TrashView';
 import UnauthenticatedApp from './components/UnauthenticatedApp'; // Import the new component
 import Navbar from './components/Navbar'; // Import Navbar from its own file
@@ -37,6 +38,44 @@ function App() {
   const [trashImages, setTrashImages] = useState([]);
   const [trashCount, setTrashCount] = useState(0);
   const [selectedImages, setSelectedImages] = useState(new Set());
+  
+  // --- Centralized Modal State ---
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalType, setModalType] = useState(null);
+  const [modalProps, setModalProps] = useState({});
+
+  const openModal = (type, newProps) => {
+    setModalType(type);
+
+    // If the modal is for an image, we need to create a stable onNavigate function.
+    if (type === 'image' && newProps.images) {
+      const onNavigate = (nextImage) => {
+        // When navigating, we call openModal again with the new image,
+        // preserving the original image list and creating a new onNavigate
+        // that is aware of the full context.
+        openModal('image', { ...newProps, currentImage: nextImage });
+      };
+      setModalProps({ ...newProps, onNavigate });
+    } else {
+      setModalProps(newProps);
+    }
+
+    setIsModalOpen(true);
+  };
+
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setModalType(null);
+    setModalProps({});
+  };
+
+  const handleSettingsClick = () => {
+    openModal('settings', {
+      filters: filters,
+      setFilters: setFilters,
+    });
+  };
 
   const handleSetCurrentView = (view) => {
     // When the view changes, exit select mode and clear the selection
@@ -211,6 +250,7 @@ function App() {
               setTrashCount={setTrashCount}
               images={currentView === 'trash' ? trashImages : images}
               onTrashBulkAction={handleTrashBulkAction}
+              onSettingsClick={handleSettingsClick}
               handleMoveSelected={handleMoveSelected}
             />
             <ConnectionStatus />
@@ -231,6 +271,7 @@ function App() {
                   selectedImages={selectedImages}
                   setSelectedImages={setSelectedImages}
                   handleMoveSelected={handleMoveSelected}
+                  openModal={openModal}
                 />
               )}
               {currentView === 'trash' && (
@@ -247,6 +288,14 @@ function App() {
                 />
               )}
             </main>
+            {isModalOpen && (
+              <Modal
+                isOpen={isModalOpen}
+                onClose={closeModal}
+                modalType={modalType}
+                modalProps={modalProps}
+              />
+            )}
           </>
         ) : (
           <main>

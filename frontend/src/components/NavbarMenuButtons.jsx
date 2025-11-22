@@ -12,7 +12,8 @@ function NavbarMenuButtons({
     trashCount,
     setCurrentView,
     isSelectMode,
-    setIsSelectMode
+    setIsSelectMode,
+    onSettingsClick
 }) {
     const { isAdmin } = useAuth();
 
@@ -38,7 +39,7 @@ function NavbarMenuButtons({
     return (
         <ul className={`navbar-menu-buttons side-${side}`}>
             <li>
-                <SettingsButton />
+                <SettingsButton onClick={onSettingsClick} />
             </li>
             <li>
                 <NavMenuDropdown
