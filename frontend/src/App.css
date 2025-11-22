@@ -11,13 +11,15 @@
     
     /* ACCENT COLORS */
     --accent-primary: hsl(320, 90%, 65%); /* Bright Fuchsia/Pink (Active Tag Color) */
+    --accent-secondary: hsl(175, 94%, 50%);
     --accent-green: hsl(120, 70%, 50%); /* Success/OK Accent */
     --accent-orange: hsl(30, 90%, 55%); /* Warning/Cancel Accent */
     --accent-red: hsl(0, 80%, 55%);    /* Critical Alert/Danger Accent */
     --accent-yellow: hsl(50, 90%, 55%); /* General Warning/Notice Accent */
     
     /* TINTS for Hover Fill Effect (Used for button fills) */
-    --tint-primary: hsl(320, 20%, 30%); 
+    --tint-primary: hsl(320, 20%, 30%);
+    --tint-secondary: hsl(175, 60%, 30%);
     --tint-green: hsl(120, 20%, 30%); 
     --tint-orange: hsl(30, 20%, 30%); 
     --tint-red: hsl(0, 20%, 30%);      
@@ -211,6 +213,7 @@ nav li {
 }
 
 nav .btn-base {
+  position: relative;
   min-width: 2.5rem;
   height: 2.5rem;
   width: 2.5rem;
@@ -294,9 +297,19 @@ nav input {
 .selection-toolbar {
   display: flex;
   align-items: center;
-  flex-grow:1;
-  width: 100%;
   justify-content: space-between;
+  border-color: var(--accent-secondary);
+  border-width: 0.2rem;
+  border-radius: 0.75rem;
+  background-color: var(--tint-secondary);
+  margin-top: 1rem;
+  padding: 0.5rem;
+}
+
+.selection-toolbar .btn-base {
+  min-width: 5rem;
+  width: unset;
+  padding-inline: 0.4rem;
 }
 
 .sort-toggle-button {
@@ -584,33 +597,29 @@ nav input {
 }
 
 /* --- IMAGE GALLERY STYLING --- */
+
 .image-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 0.5rem;
+    align-items: start;
 }
 
-.btn-base.image-card {
+.btn-base.thumbnail {
   height: unset;
   background: unset;
 }
 
 .image-card {
     display: block;
-    background-color: var(--bg-page);
-    border-radius: var(--radius-xl);
-    border: 1px solid var(--border-color);
     overflow: hidden;
     padding: 0rem;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
-    transition: transform 0.2s, box-shadow 0.2s;
-    cursor: pointer;
-    /* position: relative; Removed absolute positioning */
+    max-width: 200px;
+    height: auto;
 }
 
-.image-card:hover {
-    transform: translateY(-4px);
-    /* Soft glow on hover */
+.image-card img:hover {
+    transform: scale(1.1);
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6), 0 0 10px rgba(255, 255, 255, 0.1); 
     border-color: var(--accent-primary)
 }
@@ -620,9 +629,38 @@ nav input {
   transition: all 0.5s ease;
 }
 
-.image-card img:hover {
-  transform: scale(1.1);
+/* In select mode, all images are dimmed by default */
+.image-grid.select-mode .image-card, nav .select-mode {
+  filter: brightness(0.5);
+  transition: filter 0.3s ease, transform 0.3s ease;
+}
 
+/* The visual selection indicator (border, shadow, scale) should still apply only to selected items */
+.image-grid.select-mode .image-card.selected {
+  border-color: var(--accent-secondary);
+  border-width: 0.2rem;
+}
+
+/* In select mode, selected images are brightened back to normal */
+.image-grid.select-mode .image-card.selected {
+  filter: brightness(1.0);
+}
+
+.trash-view-header {
+    display: flex;
+    flex-flow: column;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 1rem
+}
+
+.trash-view-header .btn-base {
+  background: unset;
+  background-color: var(--accent-red);
+}
+
+.btn-trash {
+  color: var(--accent-orange);
 }
 
 /* Tag Container: Now for stacking elements vertically and controlling tag flow */
@@ -658,4 +696,40 @@ nav input {
     background-color: var(--accent-primary); /* Solid Fuchsia fill */
     color: var(--bg-page); /* Dark text on bright button */
     border-color: var(--accent-primary);
+}
+
+/* Context Menu Styles */
+.context-menu {
+    position: fixed;
+    background-color: var(--bg-card);
+    border-color: var(--accent-primary);
+    border-width: 0.2rem;
+    border-radius: 0.5rem;
+    border-style: solid;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    z-index: 100;
+    min-width: 160px;
+    padding: 0.5rem 0;
+    list-style: none; /* Remove default list styling */
+}
+
+.context-menu-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.context-menu-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+    color: var(--shadow-color);
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.context-menu-item:hover {
+    background-color: var(--accent-primary);
+    color: var(--bg-page);
 }

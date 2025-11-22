@@ -48,11 +48,11 @@ function SettingsModal({ isOpen, onClose, filters, setFilters }) {
     }
 
     return (
-        <div className="settings-modal-overlay" onClick={onClose}>
-            <div className="settings-modal-content" onClick={(e) => e.stopPropagation()}>
-                <div className="settings-modal-header">
-                    <h2 className="settings-modal-title">Settings</h2>
-                    <button onClick={onClose} className="settings-modal-close-button" aria-label="Close settings">
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header">
+                    <h2 className="modal-title">Settings</h2>
+                    <button onClick={onClose} className="modal-close-button" aria-label="Close settings">
                         &times;
                     </button>
                 </div>

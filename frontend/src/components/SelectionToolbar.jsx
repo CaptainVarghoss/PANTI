@@ -24,13 +24,13 @@ function SelectionToolbar({
     <div className="selection-toolbar">
         
         
-        <button onClick={onSelectAll} className="toolbar-button">
+        <button onClick={onSelectAll} className="btn-base btn-primary toolbar-button">
           Select All
         </button>
-        <button onClick={onClearSelection} className="toolbar-button" disabled={selectedCount === 0}>
+        <button onClick={onClearSelection} className="btn-base btn-primary toolbar-button" disabled={selectedCount === 0}>
           Deselect All
         </button>
-        <button onClick={onExit} className="exit-selection-button" title="Exit Select Mode">
+        <button onClick={onExit} className="btn-base btn-primary exit-selection-button" title="Exit Select Mode">
           Close
         </button>
         <span className="selection-count">{selectedCount} selected</span>
@@ -39,7 +39,7 @@ function SelectionToolbar({
                 <button
                     key={index}
                     onClick={action.handler}
-                    className={`toolbar-button ${action.danger ? 'toolbar-button-danger' : ''}`}
+                    className={`btn-base btn-primary toolbar-button ${action.danger ? 'toolbar-button-danger' : ''}`}
                     disabled={selectedCount === 0}
                 >
                     {action.label}

@@ -65,7 +65,7 @@ function TrashView({
                 <p>Images here are marked for deletion. You can restore them or empty the trash to permanently delete them.</p>
                 {isAdmin && (
                     <button 
-                        className="empty-trash-button" 
+                        className="btn-base empty-trash-button" 
                         onClick={handleConfirmEmptyTrash}
                         disabled={images.length === 0}
                     >

@@ -91,7 +91,7 @@ function Navbar({
 
   return (
     <nav>
-      <div className="navbar-main">
+      <div className={`navbar-main ${isSelectMode ? 'select-mode' : ''}`}>
         {/* Left Navbar Buttons */}
         {settings.left_enabled && (
           <ul className="side-left">
@@ -134,7 +134,7 @@ function Navbar({
           </ul>
         )}
       </div>
-      <div className={`navbar-menu ${navOpen ? 'open' : 'closed' }`}>
+      <div className={`navbar-menu ${navOpen ? 'open' : 'closed' } ${isSelectMode ? 'select-mode' : ''}`}>
         {/* Left Settings Button */}
         {settings.left_enabled && (
           <NavbarMenuButtons
