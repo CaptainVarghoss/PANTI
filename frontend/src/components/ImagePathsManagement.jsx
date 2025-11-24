@@ -17,7 +17,6 @@ function ImagePathsManagement({ onBack }) {
   const [isScanning, setIsScanning] = useState(false);
 
   // State for new/edited path form
-  const [showForm, setShowForm] = useState(false);
   const [editingPath, setEditingPath] = useState(null); // null for add, object for edit
   const [currentPath, setCurrentPath] = useState('');
   const [currentShortName, setCurrentShortName] = useState('');
@@ -56,7 +55,6 @@ function ImagePathsManagement({ onBack }) {
     setCurrentDescription('');
     setCurrentAdminOnly(true);
     setCurrentIgnore(false);
-    setShowForm(true);
     setMessage(null);
     setError(null);
   };
@@ -69,7 +67,6 @@ function ImagePathsManagement({ onBack }) {
     setCurrentAdminOnly(path.admin_only);
     setCurrentIgnore(path.ignore);
     setCurrentTagIds(new Set(path.tags.map(t => t.id)));
-    setShowForm(true);
     setMessage(null);
     setError(null);
   };
@@ -132,7 +129,7 @@ function ImagePathsManagement({ onBack }) {
 
       if (response.ok) {
         setMessage(`Image path ${editingPath ? 'updated' : 'added'} successfully!`);
-        setShowForm(false);
+        handleShowAddForm(); // Reset form to "add new" mode
         fetchImagePaths();
       } else {
         const errorData = await response.json();
@@ -221,117 +218,10 @@ function ImagePathsManagement({ onBack }) {
 
   return (
     <>
-
-      {showForm && isAuthenticated && isAdmin && (
-        <div className="section-container">
-          <form onSubmit={handleSubmit} className="path-form">
-            <h3>{editingPath ? 'Edit Folder Path' : 'Add New Folder Path'}</h3>
-            <div>
-              <label htmlFor="path" className="settings-label">
-                Full Path:
-              </label>
-              <input
-                type="text"
-                id="path"
-                value={currentPath}
-                onChange={(e) => setCurrentPath(e.target.value)}
-                className="settings-input"
-                required
-                disabled={editingPath && (editingPath.basepath || editingPath.built_in)} // Disable path edit for base/built-in paths
-              />
-            </div>
-            <div>
-              <label htmlFor="shortName" className="settings-label">
-                Short Name (for menu display, optional, must be unique):
-              </label>
-              <input
-                type="text"
-                id="shortName"
-                value={currentShortName}
-                onChange={(e) => setCurrentShortName(e.target.value)}
-                className="settings-input"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="description" className="settings-label">
-                Description (optional):
-              </label>
-              <textarea
-                id="description"
-                value={currentDescription}
-                onChange={(e) => setCurrentDescription(e.target.value)}
-                rows="2"
-                className="settings-input form-textarea"
-              ></textarea>
-            </div>
-            <div className="checkbox-container">
-                <span className="checkbox-label">
-                    Admin Only
-                    <Tooltip content="If enabled, only admin users can access content from this path. Default for new paths is ON." />
-                </span>
-                <label className="checkbox-label">
-                    <input
-                        type="checkbox"
-                        className="checkbox-base"
-                        checked={currentAdminOnly}
-                        onChange={() => setCurrentAdminOnly(!currentAdminOnly)}
-                        disabled={!isAdmin}
-                    />
-                </label>
-            </div>
-            <div className="checkbox-container">
-                <span className="checkbox-label">
-                    Ignore Path
-                    <Tooltip content="If enabled, this path will be ignored during scans and its content will not be indexed." />
-                </span>
-                <label className="checkbox-label">
-                    <input
-                        type="checkbox"
-                        className="checkbox-base"
-                        checked={currentIgnore}
-                        onChange={() => setCurrentIgnore(!currentIgnore)}
-                        disabled={!isAdmin}
-                    />
-                </label>
-            </div>
-            
-            {/* Tag Cluster for editing tags on a path */}
-            {editingPath && (
-              <TagCluster
-                activeTagIds={currentTagIds}
-                onTagToggle={(tag) => {
-                  const tagId = tag.id;
-                  const newTagIds = new Set(currentTagIds);
-                  if (newTagIds.has(tagId)) newTagIds.delete(tagId); // Use tagId here
-                  else newTagIds.add(tagId);
-                  setCurrentTagIds(newTagIds);
-                }}
-                canEdit={isAdmin}
-              />
-            )}
-
-            <div className="form-actions">
-              <button
-                type="button"
-                onClick={() => setShowForm(false)} // eslint-disable-line no-unused-vars
-                className="btn-base btn-secondary"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit" // eslint-disable-line no-unused-vars
-                className="btn-base btn-primary"
-              >
-                {editingPath ? 'Update Path' : 'Add Path'}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
       <div className="section-container">
-        <h3>Configured Folder Paths</h3>
+        <div className="section-header">
+            <h3>Configured Folder Paths</h3>
+        </div>
         {loading ? (
           <p>Loading folder paths...</p>
         ) : imagePaths.length === 0 ? (
@@ -367,23 +257,124 @@ function ImagePathsManagement({ onBack }) {
           </ul>
         )}
       </div>
-      {/* Conditional rendering for the "Add New Folder Path" button outside the form */}
-      {!showForm && isAuthenticated && isAdmin && (
-        <div className="form-actions">
+
+      {isAuthenticated && isAdmin && (
+        <>
+          <div className="section-container form-section">
+            <form onSubmit={handleSubmit}>
+              <h3>{editingPath ? 'Edit Folder Path' : 'Add New Folder Path'}</h3>
+              <div>
+                <label htmlFor="path" className="settings-label">
+                  Full Path:
+                </label>
+                <input
+                  type="text"
+                  id="path"
+                  value={currentPath}
+                  onChange={(e) => setCurrentPath(e.target.value)}
+                  className="form-input"
+                  required
+                  disabled={editingPath && (editingPath.basepath || editingPath.built_in)} // Disable path edit for base/built-in paths
+                />
+              </div>
+              <div>
+                <label htmlFor="shortName" className="settings-label">
+                  Short Name (for menu display, optional, must be unique):
+                </label>
+                <input
+                  type="text"
+                  id="shortName"
+                  value={currentShortName}
+                  onChange={(e) => setCurrentShortName(e.target.value)}
+                  className="form-input"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="description" className="settings-label">
+                  Description (optional):
+                </label>
+                <textarea
+                  id="description"
+                  value={currentDescription}
+                  onChange={(e) => setCurrentDescription(e.target.value)}
+                  rows="3"
+                  className="form-input"
+                ></textarea>
+              </div>
+              <div className="checkbox-container">
+                  <span className="checkbox-label">
+                      Admin Only
+                      <Tooltip content="If enabled, only admin users can access content from this path. Default for new paths is ON." />
+                  </span>
+                  <label className="checkbox-label">
+                      <input
+                          type="checkbox"
+                          className="checkbox-base"
+                          checked={currentAdminOnly}
+                          onChange={() => setCurrentAdminOnly(!currentAdminOnly)}
+                          disabled={!isAdmin}
+                      />
+                  </label>
+              </div>
+              <div className="checkbox-container">
+                  <span className="checkbox-label">
+                      Ignore Path
+                      <Tooltip content="If enabled, this path will be ignored during scans and its content will not be indexed." />
+                  </span>
+                  <label className="checkbox-label">
+                      <input
+                          type="checkbox"
+                          className="checkbox-base"
+                          checked={currentIgnore}
+                          onChange={() => setCurrentIgnore(!currentIgnore)}
+                          disabled={!isAdmin}
+                      />
+                  </label>
+              </div>
+              
+              {/* Tag Cluster for editing tags on a path */}
+              {editingPath && (
+                <TagCluster
+                  activeTagIds={currentTagIds}
+                  onTagToggle={(tag) => {
+                    const tagId = tag.id;
+                    const newTagIds = new Set(currentTagIds);
+                    if (newTagIds.has(tagId)) newTagIds.delete(tagId); // Use tagId here
+                    else newTagIds.add(tagId);
+                    setCurrentTagIds(newTagIds);
+                  }}
+                  canEdit={isAdmin}
+                />
+              )}
+
+              <div className="form-actions">
+                <button
+                  type="button"
+                  onClick={handleShowAddForm}
+                  className="btn-base btn-secondary"
+                >
+                  {editingPath ? 'Cancel Edit' : 'Clear'}
+                </button>
+                <button
+                  type="submit"
+                  className="btn-base btn-primary"
+                >
+                  {editingPath ? 'Update Path' : 'Add Path'}
+                </button>
+              </div>
+            </form>
+          </div>
+          <div className="section-container">
             <button
-            onClick={handleShowAddForm}
-            className="btn-base btn-primary"
-            >
-            Add New Folder Path
-            </button>
-            <button
-            onClick={handleManualScan}
-            className="btn-base btn-secondary"
-            >
-            Run Manual Folder Scan
-            </button>
-        </div>
-      )}
+                  onClick={handleManualScan}
+                  className="btn-base btn-yellow"
+                  disabled={isScanning || !isAdmin}>
+                  {isScanning ? 'Scanning...' : 'Run Manual Scan'}
+              </button>
+          </div>
+        </>
+       )}      
     </>
   );
 }
