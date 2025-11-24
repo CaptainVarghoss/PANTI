@@ -30,7 +30,7 @@ const ContextMenu = ({ x, y, isOpen, onClose, thumbnailData, onMenuItemClick, me
 
   const defaultMenuItems = [
     { label: "Select", action: "select" },
-    // { label: "Move", action: "move" }, // Move will be in the selection toolbar
+    { label: "Move", action: "move" },
     { label: "Delete", action: "delete" },
   ];
 

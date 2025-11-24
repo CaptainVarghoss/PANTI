@@ -78,13 +78,13 @@ const MoveFilesForm = ({ filesToMove, onMoveSuccess, onClose }) => {
             <div className="folder-list-container">
                 {folders.length > 0 ? (
                     <ul className="folder-list">
-                        {folders.map((path) => (
+                        {folders.map((folder) => (
                             <li
-                                key={path}
-                                className={`folder-list-item ${selectedFolder === path ? 'active' : ''}`}
-                                onClick={() => setSelectedFolder(path)}
+                                key={folder.path}
+                                className={`folder-list-item ${selectedFolder === folder.path ? 'active' : ''}`}
+                                onClick={() => setSelectedFolder(folder.path)}
                             >
-                                {path}
+                                {folder.path}
                             </li>
                         ))}
                     </ul>

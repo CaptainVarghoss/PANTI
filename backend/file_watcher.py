@@ -115,6 +115,26 @@ class ImageChangeEventHandler(FileSystemEventHandler):
                     location_to_move.path = new_dir
                     location_to_move.filename = new_filename
                     db.commit()
+                    
+                    # Determine who to notify based on folder visibility.
+                    source_path_entry = db.query(models.ImagePath).filter_by(path=os.path.dirname(event.src_path)).first()
+                    dest_path_entry = db.query(models.ImagePath).filter_by(path=new_dir).first()
+                    
+                    # If either the source or destination is public, notify everyone.
+                    # Otherwise, if both are admin-only, only notify admins.
+                    is_source_admin = source_path_entry.admin_only if source_path_entry else True
+                    is_dest_admin = dest_path_entry.admin_only if dest_path_entry else True
+                    
+                    message = {"type": "refresh_images", "reason": "images_moved"}
+                    
+                    if not is_source_admin or not is_dest_admin:
+                        # If either path is public, broadcast to all.
+                        asyncio.run_coroutine_threadsafe(manager.broadcast_json(message), self.loop)
+                        print(f"File Watcher: Sent 'refresh_images' (moved) notification to all users.")
+                    else:
+                        # If both are admin-only, broadcast only to admins.
+                        asyncio.run_coroutine_threadsafe(manager.broadcast_to_admins_json(message), self.loop)
+                        print(f"File Watcher: Sent 'refresh_images' (moved) notification to admins only.")
             except Exception as e:
                 print(f"File Watcher: Error processing moved file {event.src_path}: {e}")
                 db.rollback()
