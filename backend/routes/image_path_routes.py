@@ -49,10 +49,15 @@ def read_image_paths(skip: int = 0, limit: int = 100, db: Session = Depends(data
 
 @router.get("/folders/", response_model=schemas.FolderList)
 def read_folders_for_move(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_user)):
-    # Retrieves a list of all unique, non-ignored directory paths from ImagePath.
-    # This provides the frontend with the full, absolute paths needed for display and searching.
-    # It should return ImagePath objects to provide full context (path, short_name, basepath).
-    all_image_paths = db.query(models.ImagePath).filter(models.ImagePath.ignore == False).all()
+    """
+    Retrieves a list of all unique, non-ignored directory paths from ImagePath,
+    respecting user permissions. Non-admin users will not see folders marked as admin_only.
+    """
+    query = db.query(models.ImagePath).filter(models.ImagePath.ignore == False)
+    if not current_user.admin:
+        query = query.filter(models.ImagePath.admin_only == False)
+    
+    all_image_paths = query.all()
     # Sort by path for consistent tree building
     return {"folders": sorted(all_image_paths, key=lambda ip: ip.path)}
 
