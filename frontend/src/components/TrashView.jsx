@@ -12,6 +12,7 @@ function TrashView({
     images,
     setImages,
     webSocketMessage,
+    setWebSocketMessage,
     setTrashCount,
     setCurrentView,
     isSelectMode,
@@ -82,6 +83,7 @@ function TrashView({
                 sortOrder={sortOrder}
                 filters={filters} // Pass stable empty array
                 webSocketMessage={webSocketMessage}
+                setWebSocketMessage={setWebSocketMessage}
                 isSelectMode={isSelectMode}
                 setIsSelectMode={setIsSelectMode}
                 selectedImages={selectedImages}

@@ -62,12 +62,25 @@ const buildFolderTree = (imagePaths) => {
     return { tree: rootNodes, parentPaths: allParentPaths };
 };
 
-const FolderTree = ({ onSelectFolder, selectedFolderPath }) => {
+const FolderTree = ({ onSelectFolder, selectedFolderPath, webSocketMessage, setWebSocketMessage }) => {
     const { token } = useAuth();
     const [folderTree, setFolderTree] = useState([]); // Initialize as an empty array
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [expandedFolders, setExpandedFolders] = useState(new Set()); // Stores paths of expanded folders
+
+    // Effect to handle WebSocket messages
+    useEffect(() => {
+        if (!webSocketMessage) return;
+
+        const { type } = webSocketMessage;
+
+        if (type === 'refresh_images' || type === 'image_deleted' || type === 'images_deleted') {
+            // When in folder view, a file change might affect the folder structure.
+            fetchFolders();
+        }
+        setWebSocketMessage(null);
+    }, [webSocketMessage, setWebSocketMessage]);
 
     const fetchFolders = useCallback(async () => {
         setLoading(true);

@@ -16,6 +16,7 @@ function ImageGrid({
   sortOrder,
   filters,
   webSocketMessage,
+  setWebSocketMessage,
   isSelectMode,
   setIsSelectMode,
   selectedImages,
@@ -464,6 +465,9 @@ function ImageGrid({
       const idsToRemove = new Set(image_ids);
       setImages(prevImages => prevImages.filter(img => !idsToRemove.has(img.id)));
     }
+
+    // Clear the message after processing to prevent re-triggering
+    setWebSocketMessage(null);
   }, [webSocketMessage, searchTerm, sortBy, sortOrder, fetchImages]);
 
   // Effect for initial page load and when search/sort parameters change (now from props)

@@ -305,6 +305,7 @@ function App() {
                   sortOrder={sortOrder}
                   setSearchTerm={setSearchTerm}
                   webSocketMessage={webSocketMessage}
+                  setWebSocketMessage={setWebSocketMessage}
                   filters={filters}
                   isSelectMode={isSelectMode}
                   setIsSelectMode={setIsSelectMode}
@@ -320,6 +321,7 @@ function App() {
                   images={trashImages}
                   setImages={setTrashImages}
                   webSocketMessage={webSocketMessage}
+                  setWebSocketMessage={setWebSocketMessage}
                   setTrashCount={setTrashCount}
                   setCurrentView={handleSetCurrentView}
                   isSelectMode={isSelectMode}
@@ -333,7 +335,8 @@ function App() {
                   <div className="folder-tree-panel">
                     <FolderTree
                       onSelectFolder={handleFolderSelect} // This was missing
-                      // selectedFolderPath is now managed via folderViewSearchTerm
+                      webSocketMessage={webSocketMessage}
+                      setWebSocketMessage={setWebSocketMessage}
                     />
                   </div>
                   <div className="image-grid-panel">
@@ -344,6 +347,7 @@ function App() {
                       sortBy={sortBy}
                       sortOrder={sortOrder}
                       webSocketMessage={webSocketMessage}
+                      setWebSocketMessage={setWebSocketMessage}
                       filters={filters}
                       isSelectMode={isSelectMode}
                       setIsSelectMode={setIsSelectMode}
