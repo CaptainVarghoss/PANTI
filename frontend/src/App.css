@@ -296,6 +296,7 @@ nav input {
 
 .selection-toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   border-color: var(--accent-secondary);
@@ -516,7 +517,7 @@ nav input {
 
 .modal-content {
     position: relative;
-    width: min-content;
+    width: 100%;
     min-height: fit-content;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.8);    
     margin:auto;
@@ -528,6 +529,7 @@ nav input {
 
 .modal-content section {
   margin: auto;
+  width: 100%;
 }
 
 .modal-content img {
