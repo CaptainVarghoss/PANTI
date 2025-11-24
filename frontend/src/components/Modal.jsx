@@ -330,30 +330,30 @@ function Modal({ isOpen, onClose, modalType, modalProps = {} }) { // eslint-disa
 
     const renderSettingsModalContent = () => (
         <div ref={modalContentRef} className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-                <h2 className="modal-title">Settings</h2>
-            </div>
-            <div className="settings-modal-body">
-                <div className="accordion">
-                    <AccordionItem title="Manage Folders (Image Paths)" isOpen={!!openSections['folders']} onClick={() => handleAccordionClick('folders')}>
+            <section>
+                <div className="modal-header">
+                    <h2 className="modal-title">Settings</h2>
+                </div>
+                <div className="settings-modal-body">
+                    <div className="section-container">
                         <ImagePathsManagement />
-                    </AccordionItem>
-                    <AccordionItem title="Manage Filters" isOpen={!!openSections['filters']} onClick={() => handleAccordionClick('filters')}>
+                    </div>
+                    <div className="section-container">
                         <FilterManager filters={filters} setFilters={setFilters} />
-                    </AccordionItem>
-                    <AccordionItem title="Device Settings" isOpen={!!openSections['device']} onClick={() => handleAccordionClick('device')}>
+                    </div>
+                    <div className="section-container">
                         <DeviceSpecificSettingsForm />
-                    </AccordionItem>
+                    </div>
                     {isAdmin && (
-                        <AccordionItem title="Global Server Settings (Admin)" isOpen={!!openSections['global']} onClick={() => handleAccordionClick('global')}>
+                        <div className="section-container">
                             <GlobalSettingsForm />
-                        </AccordionItem>
+                        </div>
                     )}
                 </div>
-            </div>
-            <div className="settings-modal-footer">
-                <button onClick={handleLogout} className="settings-logout-button">Logout</button>
-            </div>
+                <div className="section-container">
+                    <button onClick={handleLogout} className="btn-base btn-red settings-logout-button">Logout</button>
+                </div>
+            </section>
         </div>
     );
 

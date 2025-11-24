@@ -517,7 +517,7 @@ nav input {
 
 .modal-content {
     position: relative;
-    width: 100%;
+    width: min-content;
     min-height: fit-content;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.8);    
     margin:auto;
@@ -530,6 +530,7 @@ nav input {
 .modal-content section {
   margin: auto;
   width: 100%;
+  max-width: -webkit-fill-available;
 }
 
 .modal-content img {
