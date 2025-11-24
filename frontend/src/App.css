@@ -739,3 +739,136 @@ nav input {
     background-color: var(--accent-primary);
     color: var(--bg-page);
 }
+
+/* --- MOVE MODAL FOLDER LIST --- */
+.folder-list-container {
+    max-height: 30vh; /* Limit height and make it scrollable */
+    overflow-y: auto;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    background-color: var(--color-primary);
+    padding: 0.5rem;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+.folder-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.folder-list-item {
+    padding: 0.75rem 1rem;
+    color: var(--shadow-color);
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
+    font-weight: 500;
+    border: 1px solid transparent;
+}
+
+.folder-list-item:hover {
+    background-color: hsl(240, 10%, 35%);
+    border-color: var(--border-color);
+}
+
+.folder-list-item.active {
+    background-color: var(--accent-primary);
+    color: var(--bg-page);
+    font-weight: 700;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 8px var(--accent-primary);
+}
+
+/* --- FOLDER LAYOUT STYLES --- */
+.folder-layout-container {
+    display: flex;
+    /* Adjust based on your navbar height. Assuming navbar is ~4rem (64px) + some padding */
+    height: calc(100vh - 4.5rem); 
+    gap: 0.5rem;
+    padding: 0.5rem;
+}
+
+.folder-tree-panel {
+    flex: 0 0 250px; /* Fixed width for the folder tree */
+    background-color: var(--bg-card);
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border-color);
+    padding: 0.5rem;
+    overflow-y: auto;
+}
+
+.image-grid-panel {
+    flex: 1; /* Takes up remaining space */
+    overflow-y: auto;
+}
+
+.folder-tree-container {
+    padding: 0.5rem;
+}
+
+.folder-tree-root {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.folder-tree-item {
+    margin-bottom: 0.25rem;
+}
+
+.folder-tree-node {
+    display: flex;
+    align-items: center;
+    /* --indent-level is set via inline style in the component */
+    padding: 0.5rem 0.75rem 0.5rem calc(0.75rem + var(--indent-level, 0) * 1.5rem);
+    cursor: pointer;
+    border-radius: 0.5rem;
+    transition: background-color 0.15s ease-in-out;
+    color: var(--shadow-color);
+    --indent-level: 0; /* Default value */
+}
+
+.folder-tree-node:hover {
+    background-color: hsl(240, 10%, 35%);
+}
+
+.folder-tree-item.active > .folder-tree-node {
+    background-color: var(--accent-primary);
+    color: var(--bg-page);
+    font-weight: 700;
+}
+
+.folder-toggle-placeholder {
+    /* This should match the width of the toggle icon to ensure alignment */
+    width: 24px; /* Default size of IoChevron icons */
+    flex-shrink: 0; /* Prevent it from shrinking */
+}
+
+.folder-toggle-icon, .folder-icon {
+    margin-right: 0.5rem;
+    display: flex;
+    align-items: center;
+}
+
+.folder-name {
+    flex-grow: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.folder-tree-children {
+    list-style: none;
+    padding-left: 0; /* Indentation is now handled by the node's padding */
+    margin: 0;
+}
+
+.folder-tree-loading,
+.folder-tree-error,
+.folder-tree-empty {
+    padding: 1rem;
+    color: var(--text-muted);
+    text-align: center;
+}

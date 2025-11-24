@@ -71,7 +71,6 @@ class ImageChangeEventHandler(FileSystemEventHandler):
 
     def on_deleted(self, event: FileSystemEvent):
         if not event.is_directory:
-            print(f"File Watcher: Deleted {event.src_path}")
             db = self._get_db()
             try:
                 # We are deleting an ImageLocation, not the content itself.
@@ -101,7 +100,7 @@ class ImageChangeEventHandler(FileSystemEventHandler):
 
     def on_moved(self, event: FileSystemEvent):
         if not event.is_directory and self._is_supported_media(event.dest_path):
-            print(f"File Watcher: Moved/Renamed {event.src_path} to {event.dest_path}")
+            print(f"File Watcher: Moved {event.src_path} to {event.dest_path}")
             db = self._get_db()
             try:
                 # Find the ImageLocation entry for the source path
@@ -116,11 +115,6 @@ class ImageChangeEventHandler(FileSystemEventHandler):
                     location_to_move.path = new_dir
                     location_to_move.filename = new_filename
                     db.commit()
-                    # A 'moved' event could be complex on the frontend. For now, we can treat it
-                    # as a deletion of the old and creation of a new one, or just refetch.
-                    # A simple approach is to just notify clients that something changed.
-                    # A more advanced implementation would send both old and new data.
-                    # For now, we will not broadcast a specific message for 'moved'. The frontend will catch up on refresh.
             except Exception as e:
                 print(f"File Watcher: Error processing moved file {event.src_path}: {e}")
                 db.rollback()

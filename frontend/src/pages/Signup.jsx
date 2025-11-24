@@ -52,49 +52,49 @@ function Signup({ onSwitchToLogin }) {
   };
 
   return (
-    <div className="login-container">
-      <div className="login-form-container">
+    <>
+      <div className="section-container">
         <div className="login-header">
           <h2 className="login-header-title">Sign Up</h2>
         </div>
         <div className="login-body">
-          <form onSubmit={handleSubmit} className="login-form login-body-inner">
-            <div className="login-username-group">
-              <label htmlFor="username" className="login-username-label">
+          <form onSubmit={handleSubmit} className="form-grid">
+            <div className="form-group">
+              <label htmlFor="username" className="form-label">
                 Username
               </label>
               <input
                 type="text"
                 id="username"
-                className="login-username-input"
+                className="form-input-base"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
                 aria-label="Username"
               />
             </div>
-            <div className="login-password-group">
-              <label htmlFor="password" className="login-password-label">
+            <div className="form-group">
+              <label htmlFor="password" className="form-label">
                 Password
               </label>
               <input
                 type="password"
                 id="password"
-                className="login-password-input"
+                className="form-input-base"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 aria-label="Password"
               />
             </div>
-            <div className="login-password-group">
-              <label htmlFor="confirmPassword" className="login-password-label">
+            <div className="form-group">
+              <label htmlFor="confirmPassword" className="form-label">
                 Confirm Password
               </label>
               <input
                 type="password"
                 id="confirmPassword"
-                className="login-password-input"
+                className="form-input-base"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
@@ -115,26 +115,26 @@ function Signup({ onSwitchToLogin }) {
             )}
             <button
               type="submit"
-              className="login-submit-button"
+              className="btn-base btn-primary"
             >
               Sign Up
             </button>
           </form>
         </div>
-
+      </div>
+      <div className="section-container">
         <div className="login-body"> 
           <div className="login-body-inner">
             <p className="login-link">
               Already have an account?{' '}
-              <button onClick={onSwitchToLogin} className="link-button">
+              <button onClick={onSwitchToLogin} className="btn-base btn-primary link-button">
                 Log in here
               </button>
             </p>
           </div>
         </div>
-
       </div>
-    </div>
+    </>
   );
 }
 

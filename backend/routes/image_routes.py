@@ -72,7 +72,7 @@ def read_images(
     db: Session = Depends(database.get_db),
     filter: List[int] = Query(None),
     trash_only: bool = Query(False, description="If true, only returns images marked as deleted."),
-    current_user: models.User = Depends(auth.get_current_user)
+    current_user: models.User = Depends(auth.get_current_user),
 ):
     """
     Retrieves a list of images with support for searching, sorting, and cursor-based pagination.
@@ -93,7 +93,6 @@ def read_images(
         query = query.filter(models.ImageLocation.deleted == False)
         # Apply search filter if provided
         query = query.filter(generate_image_search_filter(search_terms=search_query, admin=current_user.admin, filters=filter, db=db))
-
 
     # Apply cursor-based pagination (Keyset Pagination)
     if last_id is not None and last_sort_value is not None:
@@ -302,6 +301,56 @@ def mark_images_as_deleted_bulk(
         asyncio.run_coroutine_threadsafe(manager.broadcast_json(message), database.main_event_loop)
         print(f"Sent 'images_deleted' notification for {len(image_ids)} images.")
     return
+
+@router.post("/images/move", status_code=status.HTTP_200_OK)
+async def move_images_bulk(
+    move_request: schemas.ImageMoveRequest,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """
+    Moves a list of images to a new directory.
+    This involves moving the physical file and updating the ImageLocation record in the DB.
+    """
+    image_ids = move_request.imageIds
+    destination_path = move_request.destinationPath
+
+    if not image_ids:
+        raise HTTPException(status_code=400, detail="No image IDs provided.")
+    
+    # Validate that the destination path is a registered ImagePath
+    is_valid_destination = db.query(models.ImagePath).filter(models.ImagePath.path == destination_path).first()
+    if not is_valid_destination:
+        raise HTTPException(status_code=400, detail="Destination path is not a valid or registered image path.")
+
+    locations_to_move = db.query(models.ImageLocation).filter(models.ImageLocation.id.in_(image_ids)).all()
+
+    if len(locations_to_move) != len(image_ids):
+        raise HTTPException(status_code=404, detail="One or more images not found.")
+
+    for location in locations_to_move:
+        if location.path == destination_path:
+            # Skip if already in the destination
+            continue
+
+        source_full_path = os.path.join(location.path, location.filename)
+        dest_full_path = os.path.join(destination_path, location.filename)
+
+        try:
+            # Move the physical file
+            os.rename(source_full_path, dest_full_path)
+            
+            # Update the database record
+            location.path = destination_path
+        except OSError as e:
+            # If a file move fails, we should probably stop and report the error.
+            # Rolling back previous moves could be complex, so for now we stop at the first error.
+            db.rollback()
+            raise HTTPException(status_code=500, detail=f"Failed to move file '{location.filename}': {e}")
+
+    db.commit()
+    await manager.broadcast_json({"type": "refresh_images", "reason": "images_moved"})
+    return {"message": f"Successfully moved {len(locations_to_move)} images."}
 
 @router.post("/images/{image_id}/restore", status_code=status.HTTP_204_NO_CONTENT)
 def restore_image(

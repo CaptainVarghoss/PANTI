@@ -34,7 +34,7 @@ const AccordionItem = ({ title, children, isOpen, onClick }) => (
  *    For 'image': { currentImage, images, onNavigate, searchTerm, setSearchTerm }
  *    For 'settings': { filters, setFilters }
  */
-function Modal({ isOpen, onClose, modalType, modalProps = {} }) {
+function Modal({ isOpen, onClose, modalType, modalProps = {} }) { // eslint-disable-line no-unused-vars
     const { token, isAuthenticated, settings, isAdmin, logout } = useAuth();
     const modalContentRef = useRef(null);
 
@@ -357,6 +357,21 @@ function Modal({ isOpen, onClose, modalType, modalProps = {} }) {
         </div>
     );
 
+    const renderGenericModalContent = () => {
+        const { ContentComponent, ...restProps } = modalProps;
+        if (!ContentComponent) return null;
+
+        // Pass down relevant props to the content component
+        const contentProps = {
+            ...restProps,
+            onClose: onClose, // Provide the onClose handler to the inner component
+        };
+
+        return (
+            <div ref={modalContentRef} className="modal-content" onClick={(e) => e.stopPropagation()}><ContentComponent {...contentProps} /></div>
+        );
+    };
+
     return (
         <div className="modal-overlay" onClick={onClose}>
             <button onClick={(e) => { e.stopPropagation(); onClose(); }} className="btn-base btn-primary modal-close-button" title="Close">
@@ -365,6 +380,7 @@ function Modal({ isOpen, onClose, modalType, modalProps = {} }) {
 
             {modalType === 'image' && currentImage && renderImageModalContent()}
             {modalType === 'settings' && renderSettingsModalContent()}
+            {modalProps.ContentComponent && renderGenericModalContent()}
         </div>
     );
 }

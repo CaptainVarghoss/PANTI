@@ -20,10 +20,11 @@ function ImageGrid({
   setIsSelectMode,
   selectedImages,
   handleMoveSelected,
+  handleMoveSingleImage,
   setSelectedImages,
   trash_only = false,
   contextMenuItems,
-  openModal
+  openModal,
 }) {
   const { token, isAuthenticated, settings } = useAuth();
   const [imagesLoading, setImagesLoading] = useState(true); // For initial load state
@@ -271,6 +272,9 @@ function ImageGrid({
         case 'delete_selected':
             deleteSelectedImages();
             break;
+        case 'move':
+            if (handleMoveSingleImage) handleMoveSingleImage(data.id);
+            break;
         case 'move_selected':
             if (handleMoveSelected) handleMoveSelected();
             break;
@@ -304,7 +308,11 @@ function ImageGrid({
     if (contextMenuItems) { // If custom items are passed (like in TrashView)
         activeContextMenuItems = [{ label: "Select", action: "select" }, ...contextMenuItems];
     } else { // Default for main grid
-        activeContextMenuItems = [ { label: "Select", action: "select" }, { label: "Delete", action: "delete" } ];
+        activeContextMenuItems = [
+            { label: "Select", action: "select" },
+            { label: "Move", action: "move" },
+            { label: "Delete", action: "delete" }
+        ];
     }
   }
 
@@ -320,7 +328,7 @@ function ImageGrid({
     currentLastId,
     currentLastSortValue,
     currentSearchTerm,
-    currentSortBy,
+    currentSortBy, 
     currentSortOrder
   ) => {
     if (isFetchingMore && currentLastId !== null) {
@@ -410,7 +418,7 @@ function ImageGrid({
       setImagesError('Failed to load images. Ensure backend scanner has run and images exist, and you are logged in if required.');
       setHasMore(false); // Stop trying to fetch more if there's an error
     } finally {
-      setImagesLoading(false);
+      setImagesLoading(false); 
       setIsFetchingMore(false);
     }
   }, [token, imagesPerPage, filters]);
@@ -461,7 +469,14 @@ function ImageGrid({
   // Effect for initial page load and when search/sort parameters change (now from props)
   useEffect(() => {
     // Only fetch if authenticated and imagesPerPage is valid
-    if (isAuthenticated && imagesPerPage > 0) {
+    // When the search term is null, it's a signal not to fetch, but to clear.
+    if (searchTerm === null) {
+      setImages([]);
+      setImagesLoading(false);
+      return;
+    }
+    // Also, ensure searchTerm is not null, which is used to prevent fetching.
+    if (isAuthenticated && imagesPerPage > 0 && searchTerm !== null) {
       // Reset pagination state when search, sort, or sort order changes (received via props)
       setImages([]);
       setLastId(null);
@@ -480,7 +495,7 @@ function ImageGrid({
       setLastId(null);
       setLastSortValue(null);
       setImagesError("Please log in to view images.");
-    }
+    } 
   }, [isAuthenticated, imagesPerPage, searchTerm, sortBy, sortOrder, fetchImages, filters, trash_only]);
   
   // Ref for the element to observe for infinite scrolling
@@ -500,7 +515,7 @@ function ImageGrid({
     observer.current = new IntersectionObserver(entries => {
       // If the target element is intersecting (visible) and we have more data, and not already fetching
       if (entries[0].isIntersecting && hasMore && !isFetchingMore) {
-        // Directly call fetchImages to load the next page using the current lastId
+        // Directly call fetchImages to load the next page using the current lastId 
         // This is the trigger for subsequent pages.
         fetchImages(lastIdRef.current, lastSortValueRef.current, searchTerm, sortBy, sortOrder);
       }
@@ -508,7 +523,7 @@ function ImageGrid({
       root: null, // Use the viewport as the root element
       rootMargin: '100px', // When the target element is 100px from the bottom of the viewport, trigger the callback
       threshold: 0.1 // Trigger when 10% of the target element is visible
-    });
+    }); 
 
     // Start observing the provided DOM node if it exists
     if (node) observer.current.observe(node);

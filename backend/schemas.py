@@ -90,6 +90,10 @@ class ImageUpdate(ImageBase):
 class ImageTagUpdate(BaseModel):
     tag_ids: List[int] = []
 
+class ImageMoveRequest(BaseModel):
+    imageIds: List[int]
+    destinationPath: str
+
 class ImageLocationSchema(BaseModel):
     id: int
     path: str
@@ -218,6 +222,9 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     username: Optional[str] = None
+
+class FolderList(BaseModel):
+    folders: List[ImagePath]
 
 # --- Trash Schema ---
 class TrashInfo(BaseModel):

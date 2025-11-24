@@ -2,7 +2,9 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { BrowserRouter as Router } from 'react-router-dom'; // Keep for potential future routing needs
 import { useAuth } from './context/AuthContext';
 import ImageGrid from "./components/ImageGrid"; // Assuming ImageGrid is now a page component
+import FolderTree from './components/FolderTree'; // NEW IMPORT
 import Modal from './components/Modal';
+import MoveFilesForm from './components/MoveFilesForm'; // Import the new move form
 import TrashView from './components/TrashView';
 import UnauthenticatedApp from './components/UnauthenticatedApp'; // Import the new component
 import Navbar from './components/Navbar'; // Import Navbar from its own file
@@ -38,6 +40,7 @@ function App() {
   const [trashImages, setTrashImages] = useState([]);
   const [trashCount, setTrashCount] = useState(0);
   const [selectedImages, setSelectedImages] = useState(new Set());
+  const [folderViewSearchTerm, setFolderViewSearchTerm] = useState(null);
   
   // --- Centralized Modal State ---
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -55,7 +58,12 @@ function App() {
         // that is aware of the full context.
         openModal('image', { ...newProps, currentImage: nextImage });
       };
-      setModalProps({ ...newProps, onNavigate });
+      setModalProps({ ...newProps, onNavigate }); // Pass the newly created onNavigate
+    } else if (type === 'moveFiles') {
+      setModalProps({
+        ...newProps,
+        ContentComponent: MoveFilesForm,
+      });
     } else {
       setModalProps(newProps);
     }
@@ -82,10 +90,23 @@ function App() {
     if (currentView !== view) {
         setIsSelectMode(false);
         setSelectedImages(new Set());
+        // When switching to folder view, clear the images and reset the folder search term
+        if (view === 'folders') {
+          setImages([]);
+          setFolderViewSearchTerm(null);
+        }
     }
     setCurrentView(view);
   };
 
+  // Handler for when a folder is selected in the folder view
+  const handleFolderSelect = (folderPath) => {
+    if (folderPath) {
+      setFolderViewSearchTerm(`Folder:"${folderPath}"`);
+    } else {
+      setFolderViewSearchTerm(null); // Set to null to show no images
+    }
+  };
 
   // Callback to handle incoming WebSocket messages
   const handleWebSocketMessage = useCallback((message) => {
@@ -171,8 +192,27 @@ function App() {
   }, [isAuthenticated, token, webSocketMessage, debouncedSearchTerm]); // Also refetch on search change
 
   const handleMoveSelected = () => {
-    // Placeholder for move functionality
-    alert(`Move action for ${selectedImages.size} images is not yet implemented.`);
+    if (selectedImages.size > 0) {
+      openModal('moveFiles', {
+        filesToMove: Array.from(selectedImages),
+        onMoveSuccess: () => {
+          setIsSelectMode(false); // Turn off select mode
+          closeModal();
+          setSelectedImages(new Set()); // Clear selection after move
+        },
+      });
+    }
+  };
+
+  const handleMoveSingleImage = (imageId) => {
+    if (!imageId) return;
+    openModal('moveFiles', {
+      filesToMove: [imageId],
+      onMoveSuccess: () => {
+        closeModal();
+        // No selection state to clear as this is from a single-item context menu
+      },
+    });
   };
 
   const handleTrashBulkAction = async (action) => {
@@ -271,6 +311,7 @@ function App() {
                   selectedImages={selectedImages}
                   setSelectedImages={setSelectedImages}
                   handleMoveSelected={handleMoveSelected}
+                  handleMoveSingleImage={handleMoveSingleImage}
                   openModal={openModal}
                 />
               )}
@@ -286,6 +327,34 @@ function App() {
                   selectedImages={selectedImages}
                   setSelectedImages={setSelectedImages}
                 />
+              )}
+              {currentView === 'folders' && ( // NEW FOLDER VIEW
+                <div className="folder-layout-container">
+                  <div className="folder-tree-panel">
+                    <FolderTree
+                      onSelectFolder={handleFolderSelect} // This was missing
+                      // selectedFolderPath is now managed via folderViewSearchTerm
+                    />
+                  </div>
+                  <div className="image-grid-panel">
+                    <ImageGrid
+                      images={images}
+                      setImages={setImages}
+                      searchTerm={folderViewSearchTerm} // Use the dedicated search term for this view
+                      sortBy={sortBy}
+                      sortOrder={sortOrder}
+                      webSocketMessage={webSocketMessage}
+                      filters={filters}
+                      isSelectMode={isSelectMode}
+                      setIsSelectMode={setIsSelectMode}
+                      selectedImages={selectedImages}
+                      setSelectedImages={setSelectedImages}
+                      handleMoveSelected={handleMoveSelected}
+                      handleMoveSingleImage={handleMoveSingleImage}
+                      openModal={openModal}
+                    />
+                  </div>
+                </div>
               )}
             </main>
             {isModalOpen && (
