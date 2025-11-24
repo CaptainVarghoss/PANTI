@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import Switch from './Switch';
 import Tooltip from './Tooltip';
 import useSettingsFormLogic from '../hooks/useSettingsFormLogic';
 
@@ -46,21 +45,24 @@ function DeviceSpecificSettingsForm({ onBack, onClose }) {
   }
 
   return (
-    <div className="settings-container">
+    <>
 
       {/* Toggle for "Use Device Specific Settings" */}
-      <div className="settings-group">
-        <div className="settings-item">
-          <div className="switch-container">
-              <span className="switch-label">
+      <div className="section-container">
+        <div className="form-group">
+          <div className="checkbox-container">
+              <span className="checkbox-label">
                 <h4 className="settings-group-title">Use Device Specific Settings -- (ID: {deviceId ? deviceId.substring(0, 8) + '...' : 'N/A'})</h4>
                 <Tooltip content="When enabled, these settings will override global defaults for this specific device. When disabled, this device will use global settings." />
               </span>
-              <Switch
-                isOn={useDeviceSettings}
-                handleToggle={handleUseDeviceSettingsOverrideToggle}
-                label=""
-              />
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  className="checkbox-base"
+                  checked={useDeviceSettings}
+                  onChange={handleUseDeviceSettingsOverrideToggle}
+                />
+              </label>
           </div>
         </div>
       </div>
@@ -72,11 +74,11 @@ function DeviceSpecificSettingsForm({ onBack, onClose }) {
       </p>
 
         {Object.entries(groupedSettings).map(([groupName, settingsInGroup]) => (
-          <div key={groupName} className="settings-group">
+          <div key={groupName} className="section-container">
             <h4 className="settings-group-title">{groupName}</h4>
             {settingsInGroup.map((setting) => (
-              <div key={setting.id} className="settings-item">
-                {(() => {
+              <div key={setting.id} className="form-group">
+                {(() => { // eslint-disable-line no-unused-vars
                   const isDisabled = !useDeviceSettings || setting.admin_only;
                   const commonProps = {
                     label: setting.display_name || setting.name.replace(/_/g, ' '),
@@ -87,16 +89,23 @@ function DeviceSpecificSettingsForm({ onBack, onClose }) {
                   switch (setting.input_type) {
                     case 'switch':
                       return (
-                        <Switch
-                          isOn={switchStates[setting.name] || false}
-                          handleToggle={handleBooleanToggle(setting.name)}
-                          {...commonProps}
-                        />
+                        <div className="checkbox-container">
+                            <span className="checkbox-label">
+                                {commonProps.label}
+                                {commonProps.description && <Tooltip content={commonProps.description} />}
+                            </span>
+                            <label className="checkbox-label">
+                                <input type="checkbox"
+                                    className='checkbox-base'
+                                    checked={switchStates[setting.name] || false}
+                                    onChange={handleBooleanToggle(setting.name)} />
+                            </label>
+                        </div>
                       );
                     case 'number':
                       return (
                         <>
-                          <label htmlFor={`device-${setting.name}`} className="settings-label">
+                          <label htmlFor={`device-${setting.name}`} className="form-label">
                             {commonProps.label}
                             {commonProps.description && (
                               <Tooltip content={commonProps.description} />
@@ -109,7 +118,7 @@ function DeviceSpecificSettingsForm({ onBack, onClose }) {
                             value={numberInputStates[setting.name] || ''}
                             onChange={handleNumberInputChange(setting.name)}
                             onBlur={handleNumberInputBlur(setting.name)}
-                            className="settings-input"
+                            className="form-input-base"
                             disabled={commonProps.disabled}
                           />
                         </>
@@ -118,7 +127,7 @@ function DeviceSpecificSettingsForm({ onBack, onClose }) {
                     default:
                       return (
                         <>
-                          <label htmlFor={`device-${setting.name}`} className="settings-label">
+                          <label htmlFor={`device-${setting.name}`} className="form-label">
                             {commonProps.label}
                             {commonProps.description && (
                               <Tooltip content={commonProps.description} />
@@ -130,7 +139,7 @@ function DeviceSpecificSettingsForm({ onBack, onClose }) {
                             value={textInputStates[setting.name] || ''}
                             onChange={handleTextInputChange(setting.name)}
                             onBlur={handleTextInputBlur(setting.name)}
-                            className="settings-input"
+                            className="form-input-base"
                             disabled={commonProps.disabled}
                           />
                         </>
@@ -141,7 +150,7 @@ function DeviceSpecificSettingsForm({ onBack, onClose }) {
             ))}
           </div>
         ))}
-    </div>
+    </>
   );
 }
 

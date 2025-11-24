@@ -7,21 +7,6 @@ import DeviceSpecificSettingsForm from './DeviceSpecificSettingsForm';
 import GlobalSettingsForm from './GlobalSettingsForm';
 import FilterManager from './FilterManager';
 
-const AccordionItem = ({ title, children, isOpen, onClick }) => (
-    <div className="accordion-item">
-        <button className={`accordion-title ${isOpen ? 'open' : ''}`} onClick={onClick}>
-            <span>{title}</span>
-            <span className={`accordion-icon ${isOpen ? 'open' : ''}`}>{'>'}</span>
-        </button>
-        <div className={`accordion-content ${isOpen ? 'open' : ''}`}>
-            <div className="accordion-content-inner">
-                {children}
-            </div>
-        </div>
-    </div>
-);
-
-
 /**
  * A unified modal component for displaying either an image with details or application settings.
  * The behavior and content are determined by the `modalType` prop.
@@ -349,8 +334,6 @@ function Modal({ isOpen, onClose, modalType, modalProps = {} }) { // eslint-disa
                             <GlobalSettingsForm />
                         </div>
                     )}
-                </div>
-                <div className="section-container">
                     <button onClick={handleLogout} className="btn-base btn-red settings-logout-button">Logout</button>
                 </div>
             </section>

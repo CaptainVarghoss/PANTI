@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
-import Switch from './Switch';
 import Tooltip from './Tooltip';
 import TagCluster from './TagCluster';
 
@@ -221,14 +220,12 @@ function ImagePathsManagement({ onBack }) {
   };
 
   return (
-    <div className="settings-container">
+    <>
 
       {showForm && isAuthenticated && isAdmin && (
-        <div className="settings-group">
-          <h4 className="settings-group-title">
-            {editingPath ? 'Edit Folder Path' : 'Add New Folder Path'}
-          </h4>
+        <div className="section-container">
           <form onSubmit={handleSubmit} className="path-form">
+            <h3>{editingPath ? 'Edit Folder Path' : 'Add New Folder Path'}</h3>
             <div>
               <label htmlFor="path" className="settings-label">
                 Full Path:
@@ -268,25 +265,35 @@ function ImagePathsManagement({ onBack }) {
                 className="settings-input form-textarea"
               ></textarea>
             </div>
-            {/* Admin Only Switch */}
-            <div className="sidebar-switch-group">
-                <Switch
-                    isOn={currentAdminOnly}
-                    handleToggle={() => setCurrentAdminOnly(!currentAdminOnly)}
-                    label="Admin Only"
-                    description="If enabled, only admin users can access content from this path. Default for new paths is ON."
-                    disabled={!isAdmin} // Only admin can change; built-in paths are fixed
-                />
+            <div className="checkbox-container">
+                <span className="checkbox-label">
+                    Admin Only
+                    <Tooltip content="If enabled, only admin users can access content from this path. Default for new paths is ON." />
+                </span>
+                <label className="checkbox-label">
+                    <input
+                        type="checkbox"
+                        className="checkbox-base"
+                        checked={currentAdminOnly}
+                        onChange={() => setCurrentAdminOnly(!currentAdminOnly)}
+                        disabled={!isAdmin}
+                    />
+                </label>
             </div>
-            {/* Ignore Switch */}
-            <div className="sidebar-switch-group">
-                <Switch
-                    isOn={currentIgnore}
-                    handleToggle={() => setCurrentIgnore(!currentIgnore)}
-                    label="Ignore Path"
-                    description="If enabled, this path will be ignored during scans and its content will not be indexed."
-                    disabled={!isAdmin} // Only admin can change; built-in paths are fixed
-                />
+            <div className="checkbox-container">
+                <span className="checkbox-label">
+                    Ignore Path
+                    <Tooltip content="If enabled, this path will be ignored during scans and its content will not be indexed." />
+                </span>
+                <label className="checkbox-label">
+                    <input
+                        type="checkbox"
+                        className="checkbox-base"
+                        checked={currentIgnore}
+                        onChange={() => setCurrentIgnore(!currentIgnore)}
+                        disabled={!isAdmin}
+                    />
+                </label>
             </div>
             
             {/* Tag Cluster for editing tags on a path */}
@@ -307,14 +314,14 @@ function ImagePathsManagement({ onBack }) {
             <div className="form-actions">
               <button
                 type="button"
-                onClick={() => setShowForm(false)}
-                className="settings-cancel-button"
+                onClick={() => setShowForm(false)} // eslint-disable-line no-unused-vars
+                className="btn-base btn-secondary"
               >
                 Cancel
               </button>
               <button
-                type="submit"
-                className="settings-submit-button"
+                type="submit" // eslint-disable-line no-unused-vars
+                className="btn-base btn-primary"
               >
                 {editingPath ? 'Update Path' : 'Add Path'}
               </button>
@@ -323,9 +330,10 @@ function ImagePathsManagement({ onBack }) {
         </div>
       )}
 
-      <div className="settings-group">
+      <div className="section-container">
+        <h3>Configured Folder Paths</h3>
         {loading ? (
-          <p className="status-text">Loading folder paths...</p>
+          <p>Loading folder paths...</p>
         ) : imagePaths.length === 0 ? (
           <p className="status-text">No folder paths configured yet.</p>
         ) : (
@@ -341,13 +349,13 @@ function ImagePathsManagement({ onBack }) {
                   <div className="path-actions">
                     <button
                       onClick={() => handleShowEditForm(path)}
-                      className="edit-button"
+                      className="btn-base btn-secondary btn-small"
                     >
                       Edit
                     </button>
                     <button
                       onClick={() => handleDelete(path.id)}
-                      className="delete-button"
+                      className="btn-base btn-red btn-small"
                     >
                       Delete
                     </button>
@@ -361,22 +369,22 @@ function ImagePathsManagement({ onBack }) {
       </div>
       {/* Conditional rendering for the "Add New Folder Path" button outside the form */}
       {!showForm && isAuthenticated && isAdmin && (
-        <div className="settings-group">
+        <div className="form-actions">
             <button
             onClick={handleShowAddForm}
-            className="add-path-button"
+            className="btn-base btn-primary"
             >
             Add New Folder Path
             </button>
             <button
             onClick={handleManualScan}
-            className="manual-scan-button"
+            className="btn-base btn-secondary"
             >
             Run Manual Folder Scan
             </button>
         </div>
       )}
-    </div>
+    </>
   );
 }
 

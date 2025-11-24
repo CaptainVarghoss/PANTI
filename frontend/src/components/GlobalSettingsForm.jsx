@@ -1,5 +1,4 @@
 import React from 'react';
-import Switch from './Switch';
 import Tooltip from './Tooltip';
 import useSettingsFormLogic from '../hooks/useSettingsFormLogic'; // Import the new hook
 
@@ -45,12 +44,12 @@ function GlobalSettingsForm() {
   }
 
   return (
-    <div className="settings-container">
+    <>
       {Object.entries(groupedSettings).map(([groupName, settingsInGroup]) => (
-        <div key={groupName} className="settings-group">
+        <div key={groupName} className="section-container">
           <h4 className="settings-group-title">{groupName}</h4>
           {settingsInGroup.map((setting) => (
-            <div key={setting.id} className="settings-item">
+            <div key={setting.id} className="form-group">
               {(() => {
                 const commonProps = {
                   label: `${setting.display_name || setting.name.replace(/_/g, ' ')}`,
@@ -61,16 +60,23 @@ function GlobalSettingsForm() {
                 switch (setting.input_type) {
                   case 'switch':
                     return (
-                      <Switch
-                        isOn={switchStates[setting.name] || false}
-                        handleToggle={handleBooleanToggle(setting.name)}
-                        {...commonProps}
-                      />
+                      <div className="checkbox-container">
+                        <span className="checkbox-label">
+                            {commonProps.label}
+                            {commonProps.description && <Tooltip content={commonProps.description} />}
+                        </span>
+                        <label className="checkbox-label">
+                            <input type="checkbox"
+                                className='checkbox-base'
+                                checked={switchStates[setting.name] || false}
+                                onChange={handleBooleanToggle(setting.name)} />
+                        </label>
+                      </div>
                     );
                   case 'number':
                     return (
                       <>
-                        <label htmlFor={`global-${setting.name}`} className="settings-label">
+                        <label htmlFor={`global-${setting.name}`} className="form-label">
                           {commonProps.label}
                           {commonProps.description && (
                             <Tooltip content={commonProps.description} />
@@ -83,7 +89,7 @@ function GlobalSettingsForm() {
                           value={numberInputStates[setting.name] || ''}
                           onChange={handleNumberInputChange(setting.name)}
                           onBlur={handleNumberInputBlur(setting.name)}
-                          className="settings-input"
+                          className="form-input-base"
                           disabled={commonProps.disabled}
                         />
                       </>
@@ -92,7 +98,7 @@ function GlobalSettingsForm() {
                   default:
                     return (
                       <>
-                        <label htmlFor={`global-${setting.name}`} className="settings-label">
+                        <label htmlFor={`global-${setting.name}`} className="form-label">
                           {commonProps.label}
                           {commonProps.description && (
                             <Tooltip content={commonProps.description} />
@@ -104,7 +110,7 @@ function GlobalSettingsForm() {
                           value={textInputStates[setting.name] || ''}
                           onChange={handleTextInputChange(setting.name)}
                           onBlur={handleTextInputBlur(setting.name)}
-                          className="settings-input"
+                          className="form-input-base"
                           disabled={commonProps.disabled}
                         />
                       </>
@@ -115,7 +121,7 @@ function GlobalSettingsForm() {
           ))}
         </div>
       ))}
-    </div>
+    </>
   );
 }
 

@@ -233,34 +233,35 @@ function FilterManager({filters, setFilters}) {
                             </div>
                         </div>
                         <div className="checkbox-container">
-                            <input
-                            type="checkbox"
-                            id={`edit-admin_only-${filter.id}`}
-                            name="admin_only"
-                            checked={currentEditFilter.admin_only || false}
-                            onChange={handleEditChange}
-                            className="checkbox-input"
-                            />
-                            <label htmlFor={`edit-admin_only-${filter.id}`} className="checkbox-label">Admin Only</label>
+                            <span className="checkbox-label">Admin Only</span>
+                            <label className="checkbox-label">
+                                <input
+                                    type="checkbox"
+                                    name="admin_only"
+                                    className="checkbox-base"
+                                    checked={currentEditFilter.admin_only || false}
+                                    onChange={handleEditChange}
+                                />
+                            </label>
                         </div>
                         <div className="form-actions">
                             <button
                             type='button'
-                            onClick={() => handleDeleteClick(filter.id)}
-                            className='button button-delete'
+                            onClick={() => handleDeleteClick(filter.id)} // eslint-disable-line no-unused-vars
+                            className='btn-base btn-red'
                             >
                             Delete
                             </button>
                             <button
                             type="button"
                             onClick={handleCancelEdit}
-                            className="button button-cancel"
+                            className="btn-base btn-secondary"
                             >
                             Cancel
                             </button>
                             <button
                             type="submit"
-                            className="button button-save"
+                            className="btn-base btn-primary"
                             >
                             Save
                             </button>
@@ -282,7 +283,7 @@ function FilterManager({filters, setFilters}) {
                         </div>
                         <button
                             onClick={() => handleEditClick(filter)}
-                            className="button button-edit"
+                            className="btn-base btn-secondary"
                         >
                             <MdEdit /> Edit
                         </button>
@@ -301,7 +302,7 @@ function FilterManager({filters, setFilters}) {
                     setNewFilterMode(true);
                     setEditingFilterId(null);
                 }}
-                className="button-add-new"
+                className="btn-base btn-primary"
                 >
                 <FaCirclePlus /> Add New Filter
                 </button>
@@ -349,27 +350,28 @@ function FilterManager({filters, setFilters}) {
                     </div>
                 </div>
                 <div className="checkbox-container">
-                    <input
-                    type="checkbox"
-                    id="new-admin_only"
-                    name="admin_only"
-                    checked={newFilter.admin_only}
-                    onChange={handleNewFilterChange}
-                    className="checkbox-input new-filter"
-                    />
-                    <label htmlFor="new-admin_only" className="checkbox-label">Admin Only</label>
+                    <span className="checkbox-label">Admin Only</span>
+                    <label className="checkbox-label">
+                        <input
+                            type="checkbox"
+                            name="admin_only"
+                            className="checkbox-base"
+                            checked={newFilter.admin_only}
+                            onChange={handleNewFilterChange}
+                        />
+                    </label>
                 </div>
                 <div className="form-actions">
                     <button
                     type="button"
-                    onClick={() => setNewFilterMode(false)}
-                    className="button button-cancel"
+                    onClick={() => setNewFilterMode(false)} // eslint-disable-line no-unused-vars
+                    className="btn-base btn-secondary"
                     >
                     Cancel
                     </button>
                     <button
-                    type="submit"
-                    className="button button-add-new"
+                    type="submit" // eslint-disable-line no-unused-vars
+                    className="btn-base btn-primary"
                     >
                     Add Filter
                     </button>
