@@ -39,12 +39,8 @@ export const AuthProvider = ({ children }) => {
   // This will control if device overrides are active or if global settings are read-only.
   const [useDeviceSettings, setUseDeviceSettings] = useState(() => {
     // Initialize from localStorage
-    const storedDeviceEnabled = localStorage.getItem('use_device_settings_override');
-    if (storedDeviceEnabled) {
-      return storedDeviceEnabled;
-    }
-    localStorage.setItem('use_device_settings_override', false);
-    return false;
+    const storedValue = localStorage.getItem('use_device_settings_override');
+    return storedValue === 'true';
   });
 
   // State to hold all tiered settings with metadata
@@ -72,14 +68,12 @@ export const AuthProvider = ({ children }) => {
       setRawSettingsList([]);
       return;
     }
-    let endpoint = `/api/settings/`;
     try {
-      // Pass device_id as a query parameter for tiered settings
-      if (useDeviceSettings === true) {
-        endpoint = `/api/settings/?device_id=${deviceId}`;
-      } else {
-        endpoint = `/api/settings/`;
-      }
+      // The endpoint now correctly depends on the `useDeviceSettings` state.
+      const endpoint = useDeviceSettings
+        ? `/api/settings/?device_id=${deviceId}`
+        : `/api/settings/`;
+
       const response = await fetch(endpoint, {
         headers: {
           'Authorization': `Bearer ${authToken}` // Use provided token for this fetch
@@ -106,7 +100,20 @@ export const AuthProvider = ({ children }) => {
       console.error("Network error fetching settings:", err);
       setError("Network error fetching settings.");
     }
-  }, [deviceId, parseSettingValue]); // Dependencies for useCallback: deviceId, parseSettingValue
+  }, [deviceId, parseSettingValue, useDeviceSettings]); // Add useDeviceSettings to dependencies
+
+  // This new effect will specifically listen for changes in `useDeviceSettings`
+  // and trigger a settings refresh. This is the key to making the toggle work globally.
+  useEffect(() => {
+    // We only want to refetch if the user is already authenticated.
+    // On initial load, the main checkAuthStatus effect handles the first fetch.
+    const currentToken = localStorage.getItem('token');
+    if (currentToken) {
+      fetchSettings(currentToken);
+    }
+  }, [useDeviceSettings, fetchSettings]); // Re-run when useDeviceSettings changes
+
+
 
   // The main login function - now handles the API calls
   const login = useCallback(async (username, password) => {
@@ -245,10 +252,18 @@ export const AuthProvider = ({ children }) => {
     logout,
     fetchSettings, // Expose fetchSettings for manual refresh if needed
     useDeviceSettings,
+    setUseDeviceSettings, // Expose the setter function
   }), [token, user, isAuthenticated, isAdmin, loading, error, deviceId, settings, rawSettingsList, login, logout, fetchSettings, useDeviceSettings]);
 
   return (
-    <AuthContext.Provider value={contextValue}>
+    <AuthContext.Provider value={{
+      ...contextValue,
+      // Create a new handler that updates both state and localStorage
+      handleUseDeviceSettingsToggle: (newValue) => {
+        localStorage.setItem('use_device_settings_override', newValue);
+        setUseDeviceSettings(newValue);
+      }
+    }}>
       {children}
     </AuthContext.Provider>
   );

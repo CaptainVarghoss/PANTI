@@ -18,6 +18,9 @@ function useSettingsFormLogic(formType, deviceId = null, useDeviceSettings) {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
+  // This state was missing. It tracks the user's choice to override global settings with device-specific ones.
+  const [useDeviceSettingsOverrideEnabled, setUseDeviceSettingsOverrideEnabled] = useState(useDeviceSettings);
+
   // States for individual boolean/custom switches, dynamically updated
   const [switchStates, setSwitchStates] = useState({});
   const [textInputStates, setTextInputStates] = useState({});
@@ -30,6 +33,11 @@ function useSettingsFormLogic(formType, deviceId = null, useDeviceSettings) {
     const num = parseFloat(value);
     return isNaN(num) ? '' : num;
   }, []);
+
+  // Sync local state if the prop changes
+  useEffect(() => {
+    setUseDeviceSettingsOverrideEnabled(useDeviceSettings);
+  }, [useDeviceSettings]);
 
   // Main fetch function, dynamic based on formType
   const fetchCurrentSettings = useCallback(async () => {
@@ -246,14 +254,14 @@ function useSettingsFormLogic(formType, deviceId = null, useDeviceSettings) {
     setMessage('');
     setError('');
 
-    const newValue = !useDeviceSettings;
+    const newValue = !useDeviceSettingsOverrideEnabled;
     localStorage.setItem('use_device_settings_override', newValue ? 'true' : 'false');
     setUseDeviceSettingsOverrideEnabled(newValue);
     setMessage(`'Use Device Specific Settings' set to ${newValue ? 'Enabled' : 'Disabled'}.`);
 
     await fetchSettings(token);
     await fetchCurrentSettings();
-  }, [useDeviceSettings, fetchCurrentSettings, fetchSettings]);
+  }, [useDeviceSettingsOverrideEnabled, fetchCurrentSettings, fetchSettings, token]);
 
   // Generic toggle handler for single boolean switches
   const handleBooleanToggle = useCallback((settingName) => () => {
@@ -317,7 +325,7 @@ function useSettingsFormLogic(formType, deviceId = null, useDeviceSettings) {
     switchStates,
     textInputStates,
     numberInputStates,
-    useDeviceSettings, // Export the new state
+    useDeviceSettings: useDeviceSettingsOverrideEnabled, // Export the new state
     handleBooleanToggle,
     handleTextInputChange,
     handleTextInputBlur,

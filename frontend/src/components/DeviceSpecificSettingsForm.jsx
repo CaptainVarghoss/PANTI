@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import Tooltip from './Tooltip';
+import { useAuth } from '../context/AuthContext';
 import useSettingsFormLogic from '../hooks/useSettingsFormLogic';
 
 /**
@@ -12,30 +13,52 @@ import useSettingsFormLogic from '../hooks/useSettingsFormLogic';
  * @param {function} props.onClose - Callback to close the parent sidebar.
  */
 function DeviceSpecificSettingsForm({ onBack, onClose }) {
-  // Device ID should be managed by AuthContext or a higher-level provider
-  // This component will simply read it from localStorage.
-  const [deviceId] = useState(() => {
-    return localStorage.getItem('deviceId');
-  });
+  const { deviceId, useDeviceSettings, handleUseDeviceSettingsToggle } = useAuth();
+
+  // Read the initial state for the device settings override from localStorage.
+  // This value must be passed to the hook to avoid conditional hook errors.
+  const initialUseDeviceSettings = useDeviceSettings;
 
   const {
     loadingLocal,
     message,
     error,
     groupedSettings,
-    switchStates,
     textInputStates,
     numberInputStates,
-    useDeviceSettings,
+    switchStates,
     handleBooleanToggle,
     handleTextInputChange,
     handleTextInputBlur,
     handleNumberInputChange,
     handleNumberInputBlur,
-    handleUseDeviceSettingsOverrideToggle,
-    isAuthenticated
-  } = useSettingsFormLogic('device', deviceId);
+    isAuthenticated,
+  } = useSettingsFormLogic('device', deviceId, initialUseDeviceSettings);
 
+  /**
+   * Custom handler for navigation toggles to ensure at least one is always enabled.
+   * If turning one off would result in both being off, it enables the other one.
+   * Defaults to enabling 'right_enabled' if both are off.
+   * @param {string} settingName - The name of the setting being toggled ('left_enabled' or 'right_enabled').
+   */
+  const handleNavToggle = (settingName) => (event) => {
+    const isDisabling = !event.target.checked;
+
+    // Call the original handler from the hook to update the state
+    handleBooleanToggle(settingName)(event);
+
+    if (isDisabling) {
+      if (settingName === 'left_enabled' && !switchStates['right_enabled']) {
+        // User is turning off left_enabled while right_enabled is already off.
+        // Force right_enabled back on.
+        handleBooleanToggle('right_enabled')({ target: { checked: true } });
+      } else if (settingName === 'right_enabled' && !switchStates['left_enabled']) {
+        // User is turning off right_enabled while left_enabled is already off.
+        // Force left_enabled back on.
+        handleBooleanToggle('left_enabled')({ target: { checked: true } });
+      }
+    }
+  };
   if (loadingLocal) {
     return (
       <div className="settings-panel-content">
@@ -52,26 +75,26 @@ function DeviceSpecificSettingsForm({ onBack, onClose }) {
         <div className="form-group">
           <div className="checkbox-container">
               <span className="checkbox-label">
+                <p className="section-help">
+                  {useDeviceSettings
+                    ? "Device-specific settings are active. Changes made here will override global settings."
+                    : "Device-specific settings are currently disabled. This device is using global settings (read-only mode). Enable this to allow customization of settings for this device."}
+                </p>
                 <h4 className="settings-group-title">Use Device Specific Settings -- (ID: {deviceId ? deviceId.substring(0, 8) + '...' : 'N/A'})</h4>
-                <Tooltip content="When enabled, these settings will override global defaults for this specific device. When disabled, this device will use global settings." />
               </span>
               <label className="checkbox-label">
                 <input
                   type="checkbox"
                   className="checkbox-base"
                   checked={useDeviceSettings}
-                  onChange={handleUseDeviceSettingsOverrideToggle}
+                  onChange={(e) => handleUseDeviceSettingsToggle(e.target.checked)}
                 />
               </label>
           </div>
         </div>
       </div>
 
-      <p className="device-settings-info-text">
-        {useDeviceSettings
-          ? "Device-specific settings are active. Changes made here will override global settings."
-          : "Device-specific settings are currently disabled. This device is using global settings (read-only mode). Toggle the switch above to enable editing."}
-      </p>
+      
 
         {Object.entries(groupedSettings).map(([groupName, settingsInGroup]) => (
           <div key={groupName} className="section-container">
@@ -82,8 +105,7 @@ function DeviceSpecificSettingsForm({ onBack, onClose }) {
                   const isDisabled = !useDeviceSettings || setting.admin_only;
                   const commonProps = {
                     label: setting.display_name || setting.name.replace(/_/g, ' '),
-                    disabled: isDisabled,
-                    description: setting.description,
+                    disabled: isDisabled
                   };
 
                   switch (setting.input_type) {
@@ -92,13 +114,17 @@ function DeviceSpecificSettingsForm({ onBack, onClose }) {
                         <div className="checkbox-container">
                             <span className="checkbox-label">
                                 {commonProps.label}
-                                {commonProps.description && <Tooltip content={commonProps.description} />}
                             </span>
                             <label className="checkbox-label">
                                 <input type="checkbox"
                                     className='checkbox-base'
                                     checked={switchStates[setting.name] || false}
-                                    onChange={handleBooleanToggle(setting.name)} />
+                                    disabled={commonProps.disabled}
+                                    onChange={
+                                      setting.name === 'left_enabled' || setting.name === 'right_enabled'
+                                        ? handleNavToggle(setting.name)
+                                        : handleBooleanToggle(setting.name)
+                                    } />
                             </label>
                         </div>
                       );
@@ -107,9 +133,6 @@ function DeviceSpecificSettingsForm({ onBack, onClose }) {
                         <>
                           <label htmlFor={`device-${setting.name}`} className="form-label">
                             {commonProps.label}
-                            {commonProps.description && (
-                              <Tooltip content={commonProps.description} />
-                            )}
                           </label>
                           <input
                             type="text"
@@ -129,9 +152,6 @@ function DeviceSpecificSettingsForm({ onBack, onClose }) {
                         <>
                           <label htmlFor={`device-${setting.name}`} className="form-label">
                             {commonProps.label}
-                            {commonProps.description && (
-                              <Tooltip content={commonProps.description} />
-                            )}
                           </label>
                           <input
                             type="text"

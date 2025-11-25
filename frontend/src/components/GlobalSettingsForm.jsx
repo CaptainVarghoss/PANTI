@@ -27,6 +27,30 @@ function GlobalSettingsForm() {
     isAdmin
   } = useSettingsFormLogic('global'); // Specify 'global' form type
 
+  /**
+   * Custom handler for navigation toggles to ensure at least one is always enabled.
+   * If turning one off would result in both being off, it enables the other one.
+   * Defaults to enabling 'right_enabled' if both are off.
+   * @param {string} settingName - The name of the setting being toggled ('left_enabled' or 'right_enabled').
+   */
+  const handleNavToggle = (settingName) => (event) => {
+    const isDisabling = !event.target.checked;
+
+    // Call the original handler from the hook to update the state
+    handleBooleanToggle(settingName)(event);
+
+    if (isDisabling) {
+      if (settingName === 'left_enabled' && !switchStates['right_enabled']) {
+        // User is turning off left_enabled while right_enabled is already off.
+        // Force right_enabled back on.
+        handleBooleanToggle('right_enabled')({ target: { checked: true } });
+      } else if (settingName === 'right_enabled' && !switchStates['left_enabled']) {
+        // User is turning off right_enabled while left_enabled is already off.
+        // Force left_enabled back on.
+        handleBooleanToggle('left_enabled')({ target: { checked: true } });
+      }
+    }
+  };
   if (loadingLocal) {
     return (
       <div className="settings-panel-content">
@@ -69,7 +93,11 @@ function GlobalSettingsForm() {
                             <input type="checkbox"
                                 className='checkbox-base'
                                 checked={switchStates[setting.name] || false}
-                                onChange={handleBooleanToggle(setting.name)} />
+                                onChange={
+                                  setting.name === 'left_enabled' || setting.name === 'right_enabled'
+                                    ? handleNavToggle(setting.name)
+                                    : handleBooleanToggle(setting.name)
+                                } />
                         </label>
                       </div>
                     );
