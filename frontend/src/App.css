@@ -1,13 +1,14 @@
 /* --- CORE DARK THEME VARIABLES --- */
 :root {
     --color-primary: hsl(240, 10%, 28%); /* Dark gray base for input/buttons/inactive tag */
+    --color-secondary: hsl(240, 10%, 12%);
     --shadow-color: hsl(0, 0%, 90%); /* Light text/shadow color (Text color) */
     --text-muted: hsl(240, 10%, 65%); /* For labels and subtle text */
 
     /* Layering: Darkest to Lightest */
-    --bg-page: hsl(240, 10%, 10%); /* EVEN DARKER: Very dark base */
-    --bg-header: hsl(240, 10%, 14%); /* NEW: Header layer */
-    --bg-card: hsl(240, 10%, 18%); /* NEW: Main content card layer */
+    --bg-page: hsl(240, 10%, 10%);
+    --bg-header: hsl(240, 10%, 14%);
+    --bg-card: hsl(240, 10%, 18%);
     
     /* ACCENT COLORS */
     --accent-primary: hsl(320, 90%, 65%); /* Bright Fuchsia/Pink (Active Tag Color) */
@@ -429,6 +430,11 @@ nav input {
         0 0 0 1px var(--accent-primary); 
 }
 
+input:disabled {
+    background-color: var(--color-secondary);
+    color: var(--text-muted);
+}
+
 /* Dropdown/Select styling */
 .dropdown-base {
     -webkit-appearance: none; /* Hide default arrow (for Safari) */
@@ -480,6 +486,11 @@ nav input {
     background-position: center;
     background-repeat: no-repeat;
     box-shadow: 0 0 5px var(--accent-primary); /* Remove inset shadow when checked */
+}
+
+.checkbox-base:disabled:checked {
+    background-color: var(--tint-primary);
+    border-color: var(--color-secondary);
 }
 
 .form-footer {
@@ -677,6 +688,10 @@ nav input {
     border-top-right-radius: 1rem;
     border-bottom-left-radius: 1rem;
     border-bottom-right-radius: 1rem;
+}
+
+.section-help {
+  font-style: italic;
 }
 
 /* --- IMAGE GALLERY STYLING --- */
@@ -948,4 +963,8 @@ nav input {
     padding: 1rem;
     color: var(--text-muted);
     text-align: center;
+}
+
+#settings input[type="text"] {
+  width: 10rem;
 }
