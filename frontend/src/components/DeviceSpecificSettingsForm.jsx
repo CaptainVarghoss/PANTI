@@ -1,5 +1,4 @@
 import React from 'react';
-import Tooltip from './Tooltip';
 import { useAuth } from '../context/AuthContext';
 import useSettingsFormLogic from '../hooks/useSettingsFormLogic';
 

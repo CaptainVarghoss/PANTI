@@ -247,7 +247,7 @@ function FilterManager({filters, setFilters}) {
                         <div className="form-actions">
                             <button
                             type='button'
-                            onClick={() => handleDeleteClick(filter.id)} // eslint-disable-line no-unused-vars
+                            onClick={() => handleDeleteClick(filter.id)}
                             className='btn-base btn-red'
                             >
                             Delete
@@ -364,13 +364,13 @@ function FilterManager({filters, setFilters}) {
                 <div className="form-actions">
                     <button
                     type="button"
-                    onClick={() => setNewFilterMode(false)} // eslint-disable-line no-unused-vars
+                    onClick={() => setNewFilterMode(false)}
                     className="btn-base btn-secondary"
                     >
                     Cancel
                     </button>
                     <button
-                    type="submit" // eslint-disable-line no-unused-vars
+                    type="submit"
                     className="btn-base btn-primary"
                     >
                     Add Filter
@@ -387,7 +387,7 @@ function FilterManager({filters, setFilters}) {
                 }}
                 onConfirm={() => {
                     handleDeleteFilter();
-                    setShowConfirmDialog(false); // Close dialog after confirmation
+                    setShowConfirmDialog(false);
                 }}
                 title="Delete Filter"
                 message="Are you sure you want to delete this filter? This action cannot be undone."

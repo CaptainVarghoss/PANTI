@@ -1,5 +1,4 @@
 import React from 'react';
-import Tooltip from './Tooltip';
 import useSettingsFormLogic from '../hooks/useSettingsFormLogic'; // Import the new hook
 
 /**
@@ -87,7 +86,6 @@ function GlobalSettingsForm() {
                       <div className="checkbox-container">
                         <span className="checkbox-label">
                             {commonProps.label}
-                            {commonProps.description && <Tooltip content={commonProps.description} />}
                         </span>
                         <label className="checkbox-label">
                             <input type="checkbox"
@@ -106,9 +104,6 @@ function GlobalSettingsForm() {
                       <>
                         <label htmlFor={`global-${setting.name}`} className="form-label">
                           {commonProps.label}
-                          {commonProps.description && (
-                            <Tooltip content={commonProps.description} />
-                          )}
                         </label>
                         <input
                           type="text"
@@ -128,9 +123,6 @@ function GlobalSettingsForm() {
                       <>
                         <label htmlFor={`global-${setting.name}`} className="form-label">
                           {commonProps.label}
-                          {commonProps.description && (
-                            <Tooltip content={commonProps.description} />
-                          )}
                         </label>
                         <input
                           type="text"

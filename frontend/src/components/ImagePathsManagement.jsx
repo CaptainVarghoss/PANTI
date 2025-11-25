@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
-import Tooltip from './Tooltip';
 import TagCluster from './TagCluster';
 
 /**
@@ -233,7 +232,6 @@ function ImagePathsManagement({ onBack }) {
                 <div className="path-details">
                   <span className="path-name">
                     {path.short_name}
-                    <Tooltip content={path.path} position='top' />
                   </span>
                   {isAdmin && (
                   <div className="path-actions">
@@ -274,7 +272,7 @@ function ImagePathsManagement({ onBack }) {
                   onChange={(e) => setCurrentPath(e.target.value)}
                   className="form-input"
                   required
-                  disabled={editingPath && (editingPath.basepath || editingPath.built_in)} // Disable path edit for base/built-in paths
+                  disabled={editingPath && (editingPath.basepath || editingPath.built_in)}
                 />
               </div>
               <div>
@@ -305,7 +303,6 @@ function ImagePathsManagement({ onBack }) {
               <div className="checkbox-container">
                   <span className="checkbox-label">
                       Admin Only
-                      <Tooltip content="If enabled, only admin users can access content from this path. Default for new paths is ON." />
                   </span>
                   <label className="checkbox-label">
                       <input
@@ -320,7 +317,6 @@ function ImagePathsManagement({ onBack }) {
               <div className="checkbox-container">
                   <span className="checkbox-label">
                       Ignore Path
-                      <Tooltip content="If enabled, this path will be ignored during scans and its content will not be indexed." />
                   </span>
                   <label className="checkbox-label">
                       <input

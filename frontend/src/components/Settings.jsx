@@ -15,7 +15,7 @@ import GlobalSettingsForm from './GlobalSettingsForm';
  */
 function Settings({ filters, setFilters, onLogout }) {
     const { isAdmin } = useAuth();
-    const [activeTab, setActiveTab] = useState('device');
+    const [activeTab, setActiveTab] = useState(isAdmin ? 'global' : 'device');
 
     const renderContent = () => {
         switch (activeTab) {
@@ -36,14 +36,14 @@ function Settings({ filters, setFilters, onLogout }) {
         <section className="modal-body" id="settings">
             <div className="section-container modal-header">
                 <div className="tab-container">
-                    <button className={`tab-item ${activeTab === 'device' ? 'active' : ''}`} onClick={() => setActiveTab('device')}>Device</button>
                     {isAdmin && (
                         <>
+                            <button className={`tab-item ${activeTab === 'global' ? 'active' : ''}`} onClick={() => setActiveTab('global')}>Global</button>
                             <button className={`tab-item ${activeTab === 'paths' ? 'active' : ''}`} onClick={() => setActiveTab('paths')}>Folders</button>
                             <button className={`tab-item ${activeTab === 'filters' ? 'active' : ''}`} onClick={() => setActiveTab('filters')}>Filters</button>
-                            <button className={`tab-item ${activeTab === 'global' ? 'active' : ''}`} onClick={() => setActiveTab('global')}>Global</button>
                         </>
                     )}
+                    <button className={`tab-item ${activeTab === 'device' ? 'active' : ''}`} onClick={() => setActiveTab('device')}>Device</button>
                 </div>
             </div>
 
