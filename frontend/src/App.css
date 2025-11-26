@@ -1045,6 +1045,11 @@ form .section-list .section-item .section-fields:nth-child(3) {
 
 /* --- ICON PICKER STYLES --- */
 
+.icon-picker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 .icon-picker-search {
     margin-bottom: 1rem;
 }

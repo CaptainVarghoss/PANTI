@@ -30,45 +30,34 @@ function IconPicker({ onSelectIcon, onClose }) {
     };
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-content" onClick={e => e.stopPropagation()}>
-                <div className="modal-header">
-                    <h3>Choose an Icon</h3>
-                    <button onClick={onClose} className="btn-base btn-red modal-close-button" title="Close">
-                        <IoClose size={24} />
-                    </button>
-                </div>
-                <section className="modal-body" id="settings">
-                    <div className="section-container">
-                        <div className="icon-picker-search">
-                            <input
-                                type="text"
-                                placeholder="Search for an icon..."
-                                className="form-input-base"
-                                value={searchTerm}
-                                onChange={e => setSearchTerm(e.target.value)}
-                                autoFocus
-                            />
-                        </div>
-                        <div className="icon-picker-grid">
-                            {filteredIcons.length > 0 ? filteredIcons.map(iconName => {
-                                const IconComponent = MdIcons[iconName];
-                                return (
-                                    <button
-                                        key={iconName}
-                                        className="btn-base icon-picker-item"
-                                        onClick={() => handleIconClick(iconName)}
-                                        title={iconName}
-                                    >
-                                        <IconComponent size={28} />
-                                    </button>
-                                );
-                            }) : (
-                                <p>No icons found.</p>
-                            )}
-                        </div>
-                    </div>
-                </section>
+        <div className="icon-picker-container">
+            <div className="icon-picker-header">
+                <h3>Choose an Icon</h3>
+                <button onClick={onClose} className="btn-base btn-red icon-picker-close-button" title="Close">
+                    <IoClose size={20} />
+                </button>
+            </div>
+            <div className="icon-picker-search">
+                <input
+                    type="text"
+                    placeholder="Search for an icon..."
+                    className="form-input-base"
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    autoFocus
+                />
+            </div>
+            <div className="icon-picker-grid">
+                {filteredIcons.length > 0 ? filteredIcons.map(iconName => {
+                    const IconComponent = MdIcons[iconName];
+                    return (
+                        <button key={iconName} className="btn-base icon-picker-item" onClick={() => handleIconClick(iconName)} title={iconName}>
+                            <IconComponent size={28} />
+                        </button>
+                    );
+                }) : (
+                    <p>No icons found.</p>
+                )}
             </div>
         </div>
     );

@@ -89,7 +89,7 @@ const FilterStageEditor = ({
                 <button
                     type="button"
                     className="btn-base"
-                    onClick={() => onIconPickerOpen(filter.id, `${stage}_stage_icon`)}
+                    onClick={() => onIconPickerOpen(filter.id || 'new', `${stage}_stage_icon`)}
                     disabled={!isAdmin}
                 >
                     {IconComponent ? <IconComponent size={20} /> : 'Choose Icon'}
@@ -346,214 +346,227 @@ function FilterManager({filters, setFilters}) {
 
     return (
         <>
-            <div className="section-container">
-                <div className="section-header">
-                    <h3>Configured Filters</h3>
+            {isIconPickerOpen && (
+                <div className="section-container">
+                    <IconPicker
+                        onSelectIcon={handleIconSelect}
+                        onClose={closeIconPicker}
+                    />
                 </div>
-                {editableFilters.length === 0 ? (
-                    <p className="status-text">No filters configured yet.</p>
-                ) : (
-                    <div className="section-list">
-                        {editableFilters.map(filter => (
-                            <div key={filter.id} className="section-item">
-                                <div className="section-row">
-                                    <div className="section-fields">
-                                        <div className="form-group">
-                                            <label>Name</label>
-                                            <input
-                                                type="text"
-                                                value={filter.name || ''}
-                                                onChange={(e) => handleInputChange(filter.id, 'name', e.target.value)}
-                                                className="form-input-base"
-                                                disabled={!isAdmin}
-                                            />
+            )}
+            {!isIconPickerOpen && (
+                <>
+                    <div className="section-container">
+                        <div className="section-header">
+                            <h3>Configured Filters</h3>
+                        </div>
+                        {editableFilters.length === 0 ? (
+                            <p className="status-text">No filters configured yet.</p>
+                        ) : (
+                            <div className="section-list">
+                                {editableFilters.map(filter => (
+                                    <div key={filter.id} className="section-item">
+                                        <div className="section-row">
+                                            <div className="section-fields">
+                                                <div className="form-group">
+                                                    <label>Name</label>
+                                                    <input
+                                                        type="text"
+                                                        value={filter.name || ''}
+                                                        onChange={(e) => handleInputChange(filter.id, 'name', e.target.value)}
+                                                        className="form-input-base"
+                                                        disabled={!isAdmin}
+                                                    />
+                                                </div>
+                                                <div className="form-group form-group-full">
+                                                    <label>Search Terms</label>
+                                                    <input
+                                                        type="text"
+                                                        value={filter.search_terms || ''}
+                                                        onChange={(e) => handleInputChange(filter.id, 'search_terms', e.target.value)}
+                                                        className="form-input-base"
+                                                        disabled={!isAdmin}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="section-fields section-fields-toggles">
+                                                <div className="checkbox-container">
+                                                    <span className="checkbox-label">Admin Only</span>
+                                                    <label className="checkbox-label">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="checkbox-base"
+                                                            checked={filter.admin_only || false}
+                                                            onChange={(e) => handleInputChange(filter.id, 'admin_only', e.target.checked)}
+                                                            disabled={!isAdmin}
+                                                        />
+                                                    </label>
+                                                </div>
+                                                <div className="checkbox-container">
+                                                    <span className="checkbox-label">Enabled</span>
+                                                    <label className="checkbox-label">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="checkbox-base"
+                                                            checked={filter.enabled || false}
+                                                            onChange={(e) => handleInputChange(filter.id, 'enabled', e.target.checked)}
+                                                            disabled={!isAdmin}
+                                                        />
+                                                    </label>
+                                                </div>
+                                                <div className="checkbox-container">
+                                                    <span className="checkbox-label">Show in Header</span>
+                                                    <label className="checkbox-label">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="checkbox-base"
+                                                            checked={filter.header_display || false}
+                                                            onChange={(e) => handleInputChange(filter.id, 'header_display', e.target.checked)}
+                                                            disabled={!isAdmin}
+                                                        />
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div className="section-fields">
+                                                {isAdmin && (
+                                                    <button onClick={() => handleDeleteClick(filter.id)} className="btn-base btn-red icon-button" title="Delete Filter">
+                                                        <MdDelete size={18} />
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="form-group form-group-full">
-                                            <label>Search Terms</label>
-                                            <input
-                                                type="text"
-                                                value={filter.search_terms || ''}
-                                                onChange={(e) => handleInputChange(filter.id, 'search_terms', e.target.value)}
-                                                className="form-input-base"
-                                                disabled={!isAdmin}
-                                            />
+                                        <div className="section-row">
+                                            {['main', 'second', 'third'].map(stage => (
+                                                <FilterStageEditor
+                                                    key={`${filter.id}-${stage}`}
+                                                    stage={stage}
+                                                    filter={filter}
+                                                    handleInputChange={handleInputChange}
+                                                    isAdmin={isAdmin}
+                                                    baseStageOptions={baseStageOptions}
+                                                    thirdStageOptions={thirdStageOptions}
+                                                    themeColors={themeColors}
+                                                    onIconPickerOpen={openIconPicker}
+                                                />
+                                            ))}
                                         </div>
                                     </div>
-                                    <div className="section-fields section-fields-toggles">
-                                        <div className="checkbox-container">
-                                            <span className="checkbox-label">Admin Only</span>
-                                            <label className="checkbox-label">
-                                                <input
-                                                    type="checkbox"
-                                                    className="checkbox-base"
-                                                    checked={filter.admin_only || false}
-                                                    onChange={(e) => handleInputChange(filter.id, 'admin_only', e.target.checked)}
-                                                    disabled={!isAdmin}
-                                                />
-                                            </label>
-                                        </div>
-                                        <div className="checkbox-container">
-                                            <span className="checkbox-label">Enabled</span>
-                                            <label className="checkbox-label">
-                                                <input
-                                                    type="checkbox"
-                                                    className="checkbox-base"
-                                                    checked={filter.enabled || false}
-                                                    onChange={(e) => handleInputChange(filter.id, 'enabled', e.target.checked)}
-                                                    disabled={!isAdmin}
-                                                />
-                                            </label>
-                                        </div>
-                                        <div className="checkbox-container">
-                                            <span className="checkbox-label">Show in Header</span>
-                                            <label className="checkbox-label">
-                                                <input
-                                                    type="checkbox"
-                                                    className="checkbox-base"
-                                                    checked={filter.header_display || false}
-                                                    onChange={(e) => handleInputChange(filter.id, 'header_display', e.target.checked)}
-                                                    disabled={!isAdmin}
-                                                />
-                                            </label>
-                                        </div>
-                                    </div>
-                                    <div className="section-fields">
-                                        {isAdmin && (
-                                            <button onClick={() => handleDeleteClick(filter.id)} className="btn-base btn-red icon-button" title="Delete Filter">
-                                                <MdDelete size={18} />
-                                            </button>
+                                ))}
+                                {isAdmin && (
+                                    <div className="section-footer">
+                                        {hasUnsavedChanges && (
+                                            <>
+                                                <button onClick={handleDiscardChanges} className="btn-base btn-orange" disabled={isSaving}>
+                                                    Discard Changes
+                                                </button>
+                                                <button onClick={handleSaveChanges} className="btn-base btn-green" disabled={isSaving || !hasUnsavedChanges}>
+                                                    {isSaving ? 'Saving...' : 'Apply Changes'}
+                                                </button>
+                                            </>
                                         )}
                                     </div>
-                                </div>
-                                <div className="section-row">
-                                    {['main', 'second', 'third'].map(stage => (
-                                        <FilterStageEditor
-                                            key={`${filter.id}-${stage}`}
-                                            stage={stage}
-                                            filter={filter}
-                                            handleInputChange={handleInputChange}
-                                            isAdmin={isAdmin}
-                                            baseStageOptions={baseStageOptions}
-                                            thirdStageOptions={thirdStageOptions}
-                                            themeColors={themeColors}
-                                            onIconPickerOpen={openIconPicker}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                        ))}
-                        {isAdmin && (
-                            <div className="section-footer">
-                                {hasUnsavedChanges && (
-                                    <>
-                                        <button onClick={handleDiscardChanges} className="btn-base btn-orange" disabled={isSaving}>
-                                            Discard Changes
-                                        </button>
-                                        <button onClick={handleSaveChanges} className="btn-base btn-green" disabled={isSaving || !hasUnsavedChanges}>
-                                            {isSaving ? 'Saving...' : 'Apply Changes'}
-                                        </button>
-                                    </>
                                 )}
                             </div>
                         )}
                     </div>
-                )}
-            </div>
 
-            {isAdmin && (
-                <div className="section-container">
-                    <form onSubmit={handleAddNewFilter}>
-                        <div className="section-header">
-                            <h3>Add New Filter</h3>
-                        </div>
-                        <div className="section-list">
-                            <div className="section-item">
-                                <div className="section-row">
+                    {isAdmin && (
+                        <div className="section-container">
+                            <form onSubmit={handleAddNewFilter}>
+                                <div className="section-header">
+                                    <h3>Add New Filter</h3>
+                                </div>
+                                <div className="section-list">
+                                    <div className="section-item">
+                                        <div className="section-row">
 
-                                    <div className="section-fields">
-                                        <div className="form-group">
-                                            <label>Name</label>
-                                            <input
-                                                type="text"
-                                                value={newFilter.name}
-                                                onChange={(e) => handleNewFilterChange('name', e.target.value)}
-                                                className="form-input-base"
-                                                required
-                                            />
+                                            <div className="section-fields">
+                                                <div className="form-group">
+                                                    <label>Name</label>
+                                                    <input
+                                                        type="text"
+                                                        value={newFilter.name}
+                                                        onChange={(e) => handleNewFilterChange('name', e.target.value)}
+                                                        className="form-input-base"
+                                                        required
+                                                    />
+                                                </div>
+                                                <div className="form-group form-group-full">
+                                                    <label>Search Terms</label>
+                                                    <input
+                                                        type="text"
+                                                        value={newFilter.search_terms}
+                                                        onChange={(e) => handleNewFilterChange('search_terms', e.target.value)}
+                                                        className="form-input-base"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="section-fields section-fields-toggles">
+                                                <div className="checkbox-container">
+                                                    <span className="checkbox-label">Admin Only</span>
+                                                    <label className="checkbox-label">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="checkbox-base"
+                                                            checked={newFilter.admin_only || false}
+                                                            onChange={(e) => handleNewFilterChange('admin_only', e.target.checked)}
+                                                        />
+                                                    </label>
+                                                </div>
+                                                <div className="checkbox-container">
+                                                    <span className="checkbox-label">Enabled</span>
+                                                    <label className="checkbox-label">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="checkbox-base"
+                                                            checked={newFilter.enabled || false}
+                                                            onChange={(e) => handleNewFilterChange('enabled', e.target.checked)}
+                                                        />
+                                                    </label>
+                                                </div>
+                                                <div className="checkbox-container">
+                                                    <span className="checkbox-label">Show in Header</span>
+                                                    <label className="checkbox-label">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="checkbox-base"
+                                                            checked={newFilter.header_display || false}
+                                                            onChange={(e) => handleNewFilterChange('header_display', e.target.checked)}
+                                                        />
+                                                    </label>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="form-group form-group-full">
-                                            <label>Search Terms</label>
-                                            <input
-                                                type="text"
-                                                value={newFilter.search_terms}
-                                                onChange={(e) => handleNewFilterChange('search_terms', e.target.value)}
-                                                className="form-input-base"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="section-fields section-fields-toggles">
-                                        <div className="checkbox-container">
-                                            <span className="checkbox-label">Admin Only</span>
-                                            <label className="checkbox-label">
-                                                <input
-                                                    type="checkbox"
-                                                    className="checkbox-base"
-                                                    checked={newFilter.admin_only || false}
-                                                    onChange={(e) => handleNewFilterChange('admin_only', e.target.checked)}
+
+                                        <div className="section-row">
+                                            {['main', 'second', 'third'].map(stage => (
+                                                <FilterStageEditor
+                                                    key={`new-${stage}`}
+                                                    stage={stage}
+                                                    filter={newFilter}
+                                                    // For the new filter form, we adapt the handlers
+                                                    handleInputChange={(id, field, value) => handleNewFilterChange(field, value)}
+                                                    isAdmin={true} // Form is only visible to admins
+                                                    baseStageOptions={baseStageOptions}
+                                                    thirdStageOptions={thirdStageOptions}                                            
+                                                    themeColors={themeColors}
+                                            onIconPickerOpen={openIconPicker}
                                                 />
-                                            </label>
-                                        </div>
-                                        <div className="checkbox-container">
-                                            <span className="checkbox-label">Enabled</span>
-                                            <label className="checkbox-label">
-                                                <input
-                                                    type="checkbox"
-                                                    className="checkbox-base"
-                                                    checked={newFilter.enabled || false}
-                                                    onChange={(e) => handleNewFilterChange('enabled', e.target.checked)}
-                                                />
-                                            </label>
-                                        </div>
-                                        <div className="checkbox-container">
-                                            <span className="checkbox-label">Show in Header</span>
-                                            <label className="checkbox-label">
-                                                <input
-                                                    type="checkbox"
-                                                    className="checkbox-base"
-                                                    checked={newFilter.header_display || false}
-                                                    onChange={(e) => handleNewFilterChange('header_display', e.target.checked)}
-                                                />
-                                            </label>
+                                            ))}
                                         </div>
                                     </div>
                                 </div>
-
-                                <div className="section-row">
-                                    {['main', 'second', 'third'].map(stage => (
-                                        <FilterStageEditor
-                                            key={`new-${stage}`}
-                                            stage={stage}
-                                            filter={newFilter}
-                                            // For the new filter form, we adapt the handlers
-                                            handleInputChange={(id, field, value) => handleNewFilterChange(field, value)}
-                                            isAdmin={true} // Form is only visible to admins
-                                            baseStageOptions={baseStageOptions}
-                                            thirdStageOptions={thirdStageOptions}                                            
-                                            themeColors={themeColors}
-                                        />
-                                    ))}
+                                
+                                
+                                <div className="section-footer">
+                                    <button type="submit" className="btn-base btn-primary" disabled={isSaving}>
+                                        {isSaving ? 'Adding...' : 'Add Filter'}
+                                    </button>
                                 </div>
-                            </div>
+                            </form>
                         </div>
-                        
-                        
-                        <div className="section-footer">
-                            <button type="submit" className="btn-base btn-primary" disabled={isSaving}>
-                                {isSaving ? 'Adding...' : 'Add Filter'}
-                            </button>
-                        </div>
-                    </form>
-                </div>
+                    )}
+                </>
             )}
             
             <ConfirmationDialog
@@ -570,12 +583,6 @@ function FilterManager({filters, setFilters}) {
                 confirmButtonColor="#dc2626"
             />
 
-            {isIconPickerOpen && (
-                <IconPicker
-                    onSelectIcon={handleIconSelect}
-                    onClose={closeIconPicker}
-                />
-            )}
         </>
     );
 };
