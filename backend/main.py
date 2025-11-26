@@ -126,15 +126,15 @@ async def lifespan(app: FastAPI):
                 header_display=True,
                 enabled=True,
                 main_stage="hide",
-                main_stage_color="",
-                main_stage_icon="",
+                main_stage_color="btn-primary",
+                main_stage_icon="MdOutlineExplicit",
                 second_stage="show",
-                second_stage_color="",
-                second_stage_icon="",
+                second_stage_color="btn-orange",
+                second_stage_icon="MdOutlineExplicit",
                 third_stage="show_only",
-                third_stage_color="",
-                third_stage_icon="",
-                search_terms='NOT (nude|penis|pussy|cock|handjob|fellatio|"anal"|vaginal|"ass"|blowjob|deepthroat)'
+                third_stage_color="btn-red",
+                third_stage_icon="MdOutlineExplicit",
+                search_terms='nude|penis|pussy|cock|handjob|fellatio|"anal"|vagina|"ass"|blowjob|deepthroat'
             ))
             db.commit() # Commit filter first to get its ID
 
