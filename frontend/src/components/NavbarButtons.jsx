@@ -17,17 +17,29 @@ function NavbarButtons({
                 </button>
             </li>
             <li>
-                {filters.map(filter => (
-                    filter.header_display === true && (
-                    <button 
-                        key={filter.id} 
-                        className={`btn-base btn-red filter-menu-button ${filter.isSelected ? 'active' : ''}`}
-                        onClick={() => handleFilterToggle(filter.id)}
-                        dangerouslySetInnerHTML={{ __html: filter.icon }}
+                {filters.map(filter => {
+                    if (!filter.header_display) return null;
+
+                    const isActive = filter.activeStageIndex !== -1;
+                    const stageNames = ['main', 'second', 'third'];
+                    const activeStageName = isActive ? stageNames[filter.activeStageIndex] : 'main'; // Default to main if inactive
+
+                    const activeColor = filter[`${activeStageName}_stage_color`] || 'var(--accent-red)'; // Fallback color
+                    const activeIcon = filter[`${activeStageName}_stage_icon`]; // Icon for the active stage
+
+                    return (
+                        <button 
+                            key={filter.id} 
+                            className={`btn-base filter-menu-button ${isActive ? 'active' : ''}`}
+                            onClick={() => handleFilterToggle(filter.id)}
+                            style={{ backgroundColor: isActive ? activeColor : 'var(--color-secondary)' }} // Use active color or a default inactive color
+                            // Use dangerouslySetInnerHTML only if you trust the icon source (e.g., it's sanitized SVG from your DB)
+                            dangerouslySetInnerHTML={{ __html: activeIcon || '' }}
+                            title={filter.name}
                         >
-                    </button>
-                    )
-                ))}
+                        </button>
+                    );
+                })}
             </li>            
         </>
     );

@@ -161,8 +161,10 @@ function App() {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const fetchedFilters = await response.json();
-            // Initialize each filter with isSelected: false
-            const initializedFilters = fetchedFilters.map(f => ({ ...f, isSelected: f.enabled || false }));
+            // Initialize each filter with an activeStageIndex.
+            // If the filter is enabled, its initial state is main_stage (index 0).
+            // If disabled, it has no active stage (index -1).
+            const initializedFilters = fetchedFilters.map(f => ({ ...f, activeStageIndex: f.enabled ? 0 : -1 }));
             setFilters(initializedFilters);
         } catch (error) {
             console.error(`Error fetching filters:`, error);
