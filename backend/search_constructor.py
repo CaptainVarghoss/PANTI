@@ -411,6 +411,7 @@ def generate_image_search_filter(
     # Initialize a clause for combined programmatic filters
     combined_db_filters_clause = expression.true()
 
+    # This will hold search terms from all active filters
     filter_search_terms = None
 
     # Fetch filters from the database
@@ -421,23 +422,11 @@ def generate_image_search_filter(
         if f.admin_only and not admin:
             continue # Skip this filter if it's admin-only and the user is not an admin
 
-        # Determine if this filter should be applied based on the 'filters' ID list and 'reverse' status
-        should_apply_filter = False
-        if filters:
-            # Specific filter IDs provided
-            if not f.reverse:
-                # Non-reversed filters: Apply ONLY if ID is in the list
-                if f.id in filters:
-                    should_apply_filter = True
-            else:
-                # Reversed filters: Apply UNLESS ID is in the list
-                if f.id not in filters:
-                    should_apply_filter = True
-        else:
-            if f.reverse:
-                should_apply_filter= True
+        # Determine if this filter is active based on the 'filters' ID list from the query
+        is_filter_active = f.id in filters if filters else False
 
-        if not should_apply_filter:
+        # If the filter is not enabled and not active via query params, skip it.
+        if not f.enabled and not is_filter_active:
             continue # Skip to the next filter if it's not meant to be applied
 
         # --- Build the core filter clause for this Filter entry ---
@@ -445,10 +434,7 @@ def generate_image_search_filter(
 
         # Handle f.keywords (string field, still needs tokenization/parsing)
         if f.search_terms:
-            if not filter_search_terms:
-                filter_search_terms = f.search_terms
-            else:
-                filter_search_terms += f' {f.search_terms}'
+            filter_search_terms = (filter_search_terms or "") + " " + f.search_terms
 
         # Tags
         if f.tags:
@@ -477,14 +463,18 @@ def generate_image_search_filter(
         # An image must match the positive criteria AND not match any negative tags
         final_current_filter_clause = and_(current_filter_clause_positive, negative_tags_clause)
 
-        # --- Apply Reverse Logic for the entire filter to the combined_db_filters_clause ---
-        if f.reverse:
-            # If reverse is true, then this filter removes matches from the rest of the query
-            # So, we apply NOT to the combined positive and negative clause of this filter
+        # Determine the stage to use: if the filter is activated by the user, use the second stage.
+        # Otherwise, use the main (default) stage.
+        active_stage = f.second_stage if is_filter_active else f.main_stage
+
+        if active_stage == "hide":
+            # HIDE: The results must NOT match this filter's criteria.
             combined_db_filters_clause = and_(combined_db_filters_clause, not_(final_current_filter_clause))
-        else:
-            # If reverse is false, then results must match this filter
+        elif active_stage == "show":
+            # SHOW: The results MUST match this filter's criteria.
             combined_db_filters_clause = and_(combined_db_filters_clause, final_current_filter_clause)
+        # "show_only" and "disabled" stages don't add to the search filter here,
+        # as their logic is primarily for UI display and what gets returned, not for filtering the query itself.
 
     # Apply global admin_only filters for ImagePath and Tags if `admin` is False
     global_admin_filter = expression.true() # Starts as true
@@ -500,12 +490,8 @@ def generate_image_search_filter(
         global_admin_filter = and_(global_admin_filter,
                                    not_(ImageContent.tags.any(Tag.admin_only == True)))
 
-    if search_terms:
-        if filter_search_terms:
-            search_terms += f' {filter_search_terms}'
-    else:
-        if filter_search_terms:
-            search_terms = filter_search_terms
+    if filter_search_terms:
+        search_terms = (search_terms or "") + " " + filter_search_terms
 
     if search_terms:
 

@@ -19,13 +19,17 @@ def create_filter(filter_in: schemas.FilterCreate, db: Session = Depends(databas
         name=filter_in.name,
         enabled=filter_in.enabled,
         search_terms=filter_in.search_terms,
-        color=filter_in.color,
-        text_color=filter_in.text_color,
-        icon=filter_in.icon,
         header_display=filter_in.header_display,
-        header_side=filter_in.header_side,
-        built_in=filter_in.built_in,
-        admin_only=filter_in.admin_only
+        admin_only=filter_in.admin_only,
+        main_stage=filter_in.main_stage,
+        main_stage_color=filter_in.main_stage_color,
+        main_stage_icon=filter_in.main_stage_icon,
+        second_stage=filter_in.second_stage,
+        second_stage_color=filter_in.second_stage_color,
+        second_stage_icon=filter_in.second_stage_icon,
+        third_stage=filter_in.third_stage,
+        third_stage_color=filter_in.third_stage_color,
+        third_stage_icon=filter_in.third_stage_icon,
     )
     for tag_id in filter_in.tag_ids:
         tag = db.query(models.Tag).filter(models.Tag.id == tag_id).first()

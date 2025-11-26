@@ -165,13 +165,17 @@ class FilterBase(BaseModel):
     name: str
     enabled: bool = False
     search_terms: Optional[str] = None
-    color: str = "#333333"
-    text_color: str = "#ffffff"
-    icon: str = "filter"
     header_display: bool = False
-    header_side: str = "Right"
-    built_in: bool = False
     admin_only: bool = False
+    main_stage: str = "hide"
+    main_stage_color: Optional[str] = None
+    main_stage_icon: Optional[str] = None
+    second_stage: str = "show"
+    second_stage_color: Optional[str] = None
+    second_stage_icon: Optional[str] = None
+    third_stage: str = "disabled"
+    third_stage_color: Optional[str] = None
+    third_stage_icon: Optional[str] = None
 
 class FilterCreate(FilterBase):
     tag_ids: List[int] = [] # List of tag IDs for positive matches
@@ -181,13 +185,17 @@ class FilterUpdate(FilterBase):
     name: Optional[str] = None
     enabled: Optional[bool] = None
     search_terms: Optional[str] = None
-    color: Optional[str] = None
-    text_color: Optional[str] = None
-    icon: Optional[str] = None
     header_display: Optional[bool] = None
-    header_side: Optional[str] = None
-    built_in: Optional[bool] = None
     admin_only: Optional[bool] = None
+    main_stage: Optional[str] = None
+    main_stage_color: Optional[str] = None
+    main_stage_icon: Optional[str] = None
+    second_stage: Optional[str] = None
+    second_stage_color: Optional[str] = None
+    second_stage_icon: Optional[str] = None
+    third_stage: Optional[str] = None
+    third_stage_color: Optional[str] = None
+    third_stage_icon: Optional[str] = None
     tag_ids: Optional[List[int]] = None # Optional list of tag IDs for update
     neg_tag_ids: Optional[List[int]] = None # Optional list of negative tag IDs for update
 

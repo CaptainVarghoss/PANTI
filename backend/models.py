@@ -133,25 +133,17 @@ class Filter(Base):
     name = Column(String, unique=True, index=True, nullable=False)
     enabled = Column(Boolean, default=False)
     search_terms = Column(Text)
-    color = Column(String, default="#333333")
-    text_color = Column(String, default="#ffffff")
-    icon = Column(String, default="filter")
     header_display = Column(Boolean, default=False)
-    header_side = Column(String, default="Right")
-    built_in = Column(Boolean, default=False)
     admin_only = Column(Boolean, default=False)
-    reverse = Column(Boolean, default=False)
-    internal = Column(Boolean, default=False)
+    main_stage = Column(String, default="hide")
+    main_stage_color = Column(String)
+    main_stage_icon = Column(String)
+    second_stage = Column(String, default="show")
+    second_stage_color = Column(String)
+    second_stage_icon = Column(String)
+    third_stage = Column(String, default="disabled")
+    third_stage_color = Column(String)
+    third_stage_icon = Column(String)
 
     tags = relationship("Tag", secondary=filter_tags, back_populates="filters_positive")
     neg_tags = relationship("Tag", secondary=filter_neg_tags, back_populates="filters_negative")
-
-
-class UserFilter(Base):
-    __tablename__ = "user_filters"
-    id = Column(Integer, primary_key=True, index=True)
-    filter_id = Column(Integer, ForeignKey("filters.id"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    enabled = Column(Boolean, default=False)
-
-    __table_args__ = (UniqueConstraint('filter_id', 'user_id', name='_user_filter_uc'),)
