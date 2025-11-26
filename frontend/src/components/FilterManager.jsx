@@ -4,12 +4,77 @@ import { getStyles } from '../helpers/color_helper';
 import { useAuth } from '../context/AuthContext';
 import { MdDelete } from "react-icons/md";
 
+/**
+ * A helper component to render the editor for a single filter stage (main, second, third).
+ * It contains the logic to disable options that are already in use by other stages.
+ */
+const FilterStageEditor = ({
+    stage,
+    filter,
+    handleInputChange,
+    isAdmin,
+    baseStageOptions,
+    thirdStageOptions,
+    colorOptions
+}) => {
+    const otherStageValues = ['main', 'second', 'third']
+        .filter(s => s !== stage)
+        .map(s => filter[`${s}_stage`]);
+
+    const availableOptions = stage === 'third' ? thirdStageOptions : baseStageOptions;
+
+    return (
+        <div key={`${filter.id || 'new'}-${stage}`} className="section-fields">
+            <h5 className="stage-title">{stage.charAt(0).toUpperCase() + stage.slice(1)} Stage</h5>
+            <div className="form-group">
+                <select
+                    value={filter[`${stage}_stage`] || ''}
+                    onChange={(e) => handleInputChange(filter.id, `${stage}_stage`, e.target.value)}
+                    className="form-input"
+                    disabled={!isAdmin}
+                >
+                    {availableOptions.map(opt => (
+                        <option
+                            key={opt}
+                            value={opt}>
+                            {opt}
+                        </option>
+                    ))}
+                </select>
+            </div>
+            <div className="form-group">
+                <select
+                    value={filter[`${stage}_stage_color`] || ''}
+                    onChange={(e) => handleInputChange(filter.id, `${stage}_stage_color`, e.target.value)}
+                    className="form-input"
+                    disabled={!isAdmin}
+                    style={{ backgroundColor: filter[`${stage}_stage_color`] || 'transparent', color: 'white' }}
+                >
+                    <option value="" disabled>Color</option>
+                    {colorOptions.map(opt => <option key={opt.value} value={opt.value} style={{ backgroundColor: opt.value, color: 'white' }}>{opt.name}</option>)}
+                </select>
+            </div>
+            <div className="form-group">
+                <label>Icon</label>
+                <input
+                    type="text"
+                    placeholder="Icon name..."
+                    value={filter[`${stage}_stage_icon`] || ''}
+                    onChange={(e) => handleInputChange(filter.id, `${stage}_stage_icon`, e.target.value)}
+                    className="form-input"
+                    disabled={!isAdmin}
+                />
+            </div>
+        </div>
+    );
+};
 
 function FilterManager({filters, setFilters}) {
     const { token, isAdmin } = useAuth();
 
-    // Define options for stage dropdowns
-    const stageOptions = ['show', 'hide', 'show_only', 'disabled'];
+    // Define options for stage dropdowns based on new rules
+    const baseStageOptions = ['show', 'hide', 'show_only'];
+    const thirdStageOptions = ['show', 'hide', 'show_only', 'disabled'];
 
     // Define accent colors from CSS for color dropdowns
     const colorOptions = [
@@ -24,12 +89,13 @@ function FilterManager({filters, setFilters}) {
         { name: 'Purple', value: 'var(--accent-purple)' },
     ];
 
-    const [editableFilters, setEditableFilters] = useState([]);
+    // Initialize state directly from the prop to ensure it has data on the first render.
+    const [editableFilters, setEditableFilters] = useState(() => JSON.parse(JSON.stringify(filters)));
     const [newFilter, setNewFilter] = useState({
         name: '', search_terms: '', enabled: false, header_display: false, admin_only: false,
-        main_stage: 'hide', main_stage_color: '', main_stage_icon: '',
-        second_stage: 'show', second_stage_color: '', second_stage_icon: '',
-        third_stage: 'disabled', third_stage_color: '', third_stage_icon: '',
+        main_stage: 'hide', main_stage_color: '', main_stage_icon: '', // Default unique values
+        second_stage: 'show', second_stage_color: '', second_stage_icon: '', // Default unique values
+        third_stage: 'disabled', third_stage_color: '', third_stage_icon: '', // Default unique values
         tag_ids: [], neg_tag_ids: []
     });
     const [isSaving, setIsSaving] = useState(false);
@@ -38,21 +104,67 @@ function FilterManager({filters, setFilters}) {
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
     const [filterToDelete, setFilterToDelete] = useState('');
 
+    const handleInputChange = (id, field, value) => {
+        setEditableFilters(prev => prev.map(filter => {
+            if (filter.id !== id) return filter;
+    
+            // Create a mutable copy for this filter
+            const updatedFilter = { ...filter, [field]: value };
+    
+            // Only apply cascading logic if a stage dropdown was changed
+            if (field.endsWith('_stage')) {
+                const stages = ['main_stage', 'second_stage', 'third_stage'];
+                const changedStage = field;
+    
+                // Find which other stage (if any) now has a conflicting value
+                const conflictStage = stages.find(s => s !== changedStage && updatedFilter[s] === value);
+    
+                if (conflictStage) {
+                    // A conflict exists. Find a new, unused value for the conflicting stage.
+                    const allOptions = ['show', 'hide', 'show_only', 'disabled'];
+                    const usedValues = stages.map(s => updatedFilter[s]);
+                    
+                    // Find the first available option that isn't currently used by any stage
+                    const newValueForConflict = allOptions.find(opt => !usedValues.includes(opt));
+    
+                    // Assign the new value to the conflicting stage
+                    if (newValueForConflict) {
+                        updatedFilter[conflictStage] = newValueForConflict;
+                    }
+                }
+            }
+    
+            return updatedFilter;
+        }));
+    };
+
     useEffect(() => {
-        // Deep copy filters to create a mutable version for editing
+        // This effect now correctly handles *updates* to the filters prop after the initial render.
         setEditableFilters(JSON.parse(JSON.stringify(filters)));
     }, [filters]);
 
-    const handleInputChange = (id, field, value) => {
-        setEditableFilters(prev =>
-            prev.map(filter =>
-                filter.id === id ? { ...filter, [field]: value } : filter
-            )
-        );
-    };
-
     const handleNewFilterChange = (field, value) => {
-        setNewFilter(prev => ({ ...prev, [field]: value }));
+        setNewFilter(prevFilter => {
+            const updatedFilter = { ...prevFilter, [field]: value };
+    
+            if (field.endsWith('_stage')) {
+                const stages = ['main_stage', 'second_stage', 'third_stage'];
+                const changedStage = field;
+                const conflictStage = stages.find(s => s !== changedStage && updatedFilter[s] === value);
+    
+                if (conflictStage) {
+                    const allOptions = ['show', 'hide', 'show_only', 'disabled'];
+                    const usedValues = stages.map(s => updatedFilter[s]);
+                    const newValueForConflict = allOptions.find(opt => !usedValues.includes(opt));
+    
+                    if (newValueForConflict) {
+                        updatedFilter[conflictStage] = newValueForConflict;
+                    }
+                }
+            }
+    
+            return updatedFilter;
+        });
     };
 
     const handleDiscardChanges = () => {
@@ -265,43 +377,16 @@ function FilterManager({filters, setFilters}) {
                                 </div>
                                 <div className="section-row">
                                     {['main', 'second', 'third'].map(stage => (
-                                        <div key={`${filter.id}-${stage}`} className="section-fields">
-                                            <h5 className="stage-title">{stage.charAt(0).toUpperCase() + stage.slice(1)} Stage</h5>
-                                            <div className="form-group">
-                                                <select
-                                                    value={filter[`${stage}_stage`] || ''}
-                                                    onChange={(e) => handleInputChange(filter.id, `${stage}_stage`, e.target.value)}
-                                                    className="form-input"
-                                                    disabled={!isAdmin}
-                                                >
-                                                    <option value="" disabled>Behavior</option>
-                                                    {stageOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                                                </select>
-                                            </div>
-                                            <div className="form-group">
-                                                <select
-                                                    value={filter[`${stage}_stage_color`] || ''}
-                                                    onChange={(e) => handleInputChange(filter.id, `${stage}_stage_color`, e.target.value)}
-                                                    className="form-input"
-                                                    disabled={!isAdmin}
-                                                    style={{ backgroundColor: filter[`${stage}_stage_color`] || 'transparent', color: 'white' }}
-                                                >
-                                                    <option value="" disabled>Color</option>
-                                                    {colorOptions.map(opt => <option key={opt.value} value={opt.value} style={{ backgroundColor: opt.value, color: 'white' }}>{opt.name}</option>)}
-                                                </select>
-                                            </div>
-                                            <div className="form-group">
-                                                <label>Icon</label>
-                                                <input
-                                                    type="text"
-                                                    placeholder="Icon name..."
-                                                    value={filter[`${stage}_stage_icon`] || ''}
-                                                    onChange={(e) => handleInputChange(filter.id, `${stage}_stage_icon`, e.target.value)}
-                                                    className="form-input"
-                                                    disabled={!isAdmin}
-                                                />
-                                            </div>
-                                        </div>
+                                        <FilterStageEditor
+                                            key={`${filter.id}-${stage}`}
+                                            stage={stage}
+                                            filter={filter}
+                                            handleInputChange={handleInputChange}
+                                            isAdmin={isAdmin}
+                                            baseStageOptions={baseStageOptions}
+                                            thirdStageOptions={thirdStageOptions}
+                                            colorOptions={colorOptions}
+                                        />
                                     ))}
                                 </div>
                             </div>
@@ -394,30 +479,17 @@ function FilterManager({filters, setFilters}) {
 
                                 <div className="section-row">
                                     {['main', 'second', 'third'].map(stage => (
-                                        <div key={`new-${stage}`} className="section-fields">
-                                            <h5 className="stage-title">{stage.charAt(0).toUpperCase() + stage.slice(1)} Stage</h5>
-                                            <div className="form-group">
-                                                <select value={newFilter[`${stage}_stage`]} onChange={(e) => handleNewFilterChange(`${stage}_stage`, e.target.value)} className="form-input">
-                                                    <option value="" disabled>Behavior</option>
-                                                    {stageOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                                                </select>
-                                            </div>
-                                            <div className="form-group">
-                                                <select value={newFilter[`${stage}_stage_color`]} onChange={(e) => handleNewFilterChange(`${stage}_stage_color`, e.target.value)} className="form-input" style={{ backgroundColor: newFilter[`${stage}_stage_color`] || 'transparent', color: 'white' }}>
-                                                    <option value="" disabled>Color</option>
-                                                    {colorOptions.map(opt => <option key={opt.value} value={opt.value} style={{ backgroundColor: opt.value, color: 'white' }}>{opt.name}</option>)}
-                                                </select>
-                                            </div>
-                                            <div className="form-group">
-                                                <input
-                                                    type="text"
-                                                    placeholder="Icon name..."
-                                                    value={newFilter[`${stage}_stage_icon`]}
-                                                    onChange={(e) => handleNewFilterChange(`${stage}_stage_icon`, e.target.value)}
-                                                    className="form-input"
-                                                />
-                                            </div>
-                                        </div>
+                                        <FilterStageEditor
+                                            key={`new-${stage}`}
+                                            stage={stage}
+                                            filter={newFilter}
+                                            // For the new filter form, we adapt the handlers
+                                            handleInputChange={(id, field, value) => handleNewFilterChange(field, value)}
+                                            isAdmin={true} // Form is only visible to admins
+                                            baseStageOptions={baseStageOptions}
+                                            thirdStageOptions={thirdStageOptions}
+                                            colorOptions={colorOptions}
+                                        />
                                     ))}
                                 </div>
                             </div>
