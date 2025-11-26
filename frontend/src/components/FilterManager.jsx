@@ -3,6 +3,8 @@ import ConfirmationDialog from './ConfirmDialog';
 import { getStyles } from '../helpers/color_helper';
 import { useAuth } from '../context/AuthContext';
 import { MdDelete } from "react-icons/md";
+import IconPicker from './IconPicker'; // Import the new component
+import * as MdIcons from 'react-icons/md'; // Import all icons to render them
 
 /**
  * Reads the --theme-color-list CSS custom property from the root element,
@@ -33,13 +35,16 @@ const FilterStageEditor = ({
     isAdmin,
     baseStageOptions,
     thirdStageOptions,
-    themeColors
+    themeColors,
+    onIconPickerOpen
 }) => {
     const otherStageValues = ['main', 'second', 'third']
         .filter(s => s !== stage)
         .map(s => filter[`${s}_stage`]);
 
     const availableOptions = stage === 'third' ? thirdStageOptions : baseStageOptions;
+
+    const IconComponent = filter[`${stage}_stage_icon`] ? MdIcons[filter[`${stage}_stage_icon`]] : null;
 
     return (
         <div key={`${filter.id || 'new'}-${stage}`} className="section-fields">
@@ -80,15 +85,15 @@ const FilterStageEditor = ({
                 </select>
             </div>
             <div className="form-group">
-                <label>Icon</label>
-                <input
-                    type="text"
-                    placeholder="Icon name..."
-                    value={filter[`${stage}_stage_icon`] || ''}
-                    onChange={(e) => handleInputChange(filter.id, `${stage}_stage_icon`, e.target.value)}
-                    className="form-input"
+                <label>Icon</label>                
+                <button
+                    type="button"
+                    className="btn-base"
+                    onClick={() => onIconPickerOpen(filter.id, `${stage}_stage_icon`)}
                     disabled={!isAdmin}
-                />
+                >
+                    {IconComponent ? <IconComponent size={20} /> : 'Choose Icon'}
+                </button>
             </div>
         </div>
     );
@@ -117,6 +122,19 @@ function FilterManager({filters, setFilters}) {
     const [message, setMessage] = useState(null);
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
     const [filterToDelete, setFilterToDelete] = useState('');
+
+    // State for the Icon Picker
+    const [isIconPickerOpen, setIsIconPickerOpen] = useState(false);
+    const [iconTarget, setIconTarget] = useState({ filterId: null, field: null });
+
+    const openIconPicker = (filterId, field) => {
+        setIconTarget({ filterId, field });
+        setIsIconPickerOpen(true);
+    };
+
+    const closeIconPicker = () => {
+        setIsIconPickerOpen(false);
+    };
 
     // Fetch theme colors from CSS on component mount
     useEffect(() => {
@@ -157,6 +175,15 @@ function FilterManager({filters, setFilters}) {
         }));
     };
 
+    const handleIconSelect = (iconName) => {
+        const { filterId, field } = iconTarget;
+        if (filterId === 'new') {
+            handleNewFilterChange(field, iconName);
+        } else {
+            handleInputChange(filterId, field, iconName);
+        }
+        closeIconPicker();
+    };
     useEffect(() => {
         // This effect now correctly handles *updates* to the filters prop after the initial render.
         setEditableFilters(JSON.parse(JSON.stringify(filters)));
@@ -405,6 +432,7 @@ function FilterManager({filters, setFilters}) {
                                             baseStageOptions={baseStageOptions}
                                             thirdStageOptions={thirdStageOptions}
                                             themeColors={themeColors}
+                                            onIconPickerOpen={openIconPicker}
                                         />
                                     ))}
                                 </div>
@@ -506,7 +534,7 @@ function FilterManager({filters, setFilters}) {
                                             handleInputChange={(id, field, value) => handleNewFilterChange(field, value)}
                                             isAdmin={true} // Form is only visible to admins
                                             baseStageOptions={baseStageOptions}
-                                            thirdStageOptions={thirdStageOptions}
+                                            thirdStageOptions={thirdStageOptions}                                            
                                             themeColors={themeColors}
                                         />
                                     ))}
@@ -537,6 +565,13 @@ function FilterManager({filters, setFilters}) {
                 cancelText="Keep"
                 confirmButtonColor="#dc2626"
             />
+
+            {isIconPickerOpen && (
+                <IconPicker
+                    onSelectIcon={handleIconSelect}
+                    onClose={closeIconPicker}
+                />
+            )}
         </>
     );
 };
