@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { MdEdit } from "react-icons/md";
-import { getStyles } from '../helpers/color_helper';
 
 /**
  * A generalized component to display groups of items (like tags or filters).

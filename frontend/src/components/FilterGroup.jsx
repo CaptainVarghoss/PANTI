@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { MdEdit } from "react-icons/md";
-import {getStyles} from '../helpers/color_helper';
 
 function FilterGroup({ setSubPanel, activeFilters, setActiveFilters, allAvailableFilters }) {
     const { token, isAuthenticated, settings, isAdmin } = useAuth();

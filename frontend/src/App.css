@@ -837,26 +837,25 @@ form .section-list .section-item .section-fields:nth-child(3) {
 
 /* Tag Container: Now for stacking elements vertically and controlling tag flow */
 .tag-container {
-    /* REMOVED absolute positioning properties */
     display: flex;
-    flex-wrap: wrap; /* Tags will wrap to the next line */
+    flex-wrap: wrap;
     gap: 0.5rem;
 }
 
 .tag-badge {
     font-size: 0.75rem;
-    padding: 0.15rem 0.6rem; /* Slimmer padding */
+    padding: 0.15rem 0.6rem;
     line-height: 1;
-    border-radius: 1rem; /* Pill shape for tags */
+    border-radius: 1rem;
     font-weight: 500;
     white-space: nowrap;
     cursor: default;
     transition: all 0.15s;
     
     /* NEUTRAL/OFF STATE (Muted Gray) */
-    background-color: var(--color-primary); /* Dark gray background */
-    color: var(--text-muted); /* Muted text */
-    border: 1px solid var(--border-color);
+    background-color: var(--bg-card);
+    color: var(--accent-primary);
+    border: 1px solid var(--tint-primary);
 }
 
 .tag-badge.small-text {
@@ -865,9 +864,9 @@ form .section-list .section-item .section-fields:nth-child(3) {
 
 /* ACTIVE/ON STATE (Primary Fuchsia) */
 .tag-badge.active {
-    background-color: var(--accent-primary); /* Solid Fuchsia fill */
-    color: var(--bg-page); /* Dark text on bright button */
-    border-color: var(--accent-primary);
+    background-color: var(--bg-card);
+    color: var(--accent-secondary);
+    border-color: var(--tint-secondary);
 }
 
 /* Context Menu Styles */
@@ -945,6 +944,30 @@ form .section-list .section-item .section-fields:nth-child(3) {
     font-weight: 700;
     border-color: var(--accent-primary);
     box-shadow: 0 0 8px var(--accent-primary);
+}
+
+/* --- TAG CLUSTER POPUP --- */
+.tag-cluster-popup {
+    position: absolute;
+    top: 3.5rem; /* Position below the button with a small gap */
+    right: 1rem;
+    z-index: 30;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    padding: 0.75rem;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    width: 15rem;
+}
+
+/* When a tag inside the popup is active, give it a distinct style */
+.tag-cluster-popup .tag-badge.active {
+    background-color: var(--accent-secondary);
+    color: var(--bg-card);
+    border-color: var(--accent-secondary);
 }
 
 /* --- FOLDER LAYOUT STYLES --- */
