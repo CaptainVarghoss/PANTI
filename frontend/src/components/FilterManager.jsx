@@ -8,8 +8,30 @@ import { MdDelete } from "react-icons/md";
 function FilterManager({filters, setFilters}) {
     const { token, isAdmin } = useAuth();
 
+    // Define options for stage dropdowns
+    const stageOptions = ['show', 'hide', 'show_only', 'disabled'];
+
+    // Define accent colors from CSS for color dropdowns
+    const colorOptions = [
+        { name: 'Default', value: '' },
+        { name: 'Primary', value: 'var(--accent-primary)' },
+        { name: 'Secondary', value: 'var(--accent-secondary)' },
+        { name: 'Red', value: 'var(--accent-red)' },
+        { name: 'Orange', value: 'var(--accent-orange)' },
+        { name: 'Yellow', value: 'var(--accent-yellow)' },
+        { name: 'Green', value: 'var(--accent-green)' },
+        { name: 'Blue', value: 'var(--accent-blue)' },
+        { name: 'Purple', value: 'var(--accent-purple)' },
+    ];
+
     const [editableFilters, setEditableFilters] = useState([]);
-    const [newFilter, setNewFilter] = useState({ name: '', color: '#000000', icon: '', admin_only: false });
+    const [newFilter, setNewFilter] = useState({
+        name: '', search_terms: '', enabled: false, header_display: false, admin_only: false,
+        main_stage: 'hide', main_stage_color: '', main_stage_icon: '',
+        second_stage: 'show', second_stage_color: '', second_stage_icon: '',
+        third_stage: 'disabled', third_stage_color: '', third_stage_icon: '',
+        tag_ids: [], neg_tag_ids: []
+    });
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState(null);
     const [message, setMessage] = useState(null);
@@ -105,7 +127,13 @@ function FilterManager({filters, setFilters}) {
             }
 
             setMessage('New filter added successfully!');
-            setNewFilter({ name: '', color: '#000000', icon: '', admin_only: false }); // Reset form
+            setNewFilter({ // Reset form to default values
+                name: '', search_terms: '', enabled: false, header_display: false, admin_only: false,
+                main_stage: 'hide', main_stage_color: '', main_stage_icon: '',
+                second_stage: 'show', second_stage_color: '', second_stage_icon: '',
+                third_stage: 'disabled', third_stage_color: '', third_stage_icon: '',
+                tag_ids: [], neg_tag_ids: []
+            });
 
             // Refetch all filters to update list
             const refetchResponse = await fetch('/api/filters/', { headers: { 'Authorization': `Bearer ${token}` } });
@@ -166,61 +194,130 @@ function FilterManager({filters, setFilters}) {
                     <div className="section-list">
                         {editableFilters.map(filter => (
                             <div key={filter.id} className="section-item">
-                                <div className="section-fields">
-                                    <div className="form-group">
-                                        <label>Name</label>
-                                        <input
-                                            type="text"
-                                            value={filter.name || ''}
-                                            onChange={(e) => handleInputChange(filter.id, 'name', e.target.value)}
-                                            className="form-input"
-                                            disabled={!isAdmin}
-                                        />
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Color</label>
-                                        <input
-                                            type="color"
-                                            value={filter.color || '#000000'}
-                                            onChange={(e) => handleInputChange(filter.id, 'color', e.target.value)}
-                                            className="form-input color-input"
-                                            disabled={!isAdmin}
-                                        />
-                                    </div>
-                                </div>
-                                <div className="section-fields">
-                                    <div className="checkbox-container">
-                                        <span className="checkbox-label">Admin Only</span>
-                                        <label className="checkbox-label">
+                                <div className="section-row">
+                                    <div className="section-fields">
+                                        <div className="form-group">
+                                            <label>Name</label>
                                             <input
-                                                type="checkbox"
-                                                className="checkbox-base"
-                                                checked={filter.admin_only}
-                                                onChange={(e) => handleInputChange(filter.id, 'admin_only', e.target.checked)}
+                                                type="text"
+                                                value={filter.name || ''}
+                                                onChange={(e) => handleInputChange(filter.id, 'name', e.target.value)}
+                                                className="form-input"
                                                 disabled={!isAdmin}
                                             />
-                                        </label>
+                                        </div>
+                                        <div className="form-group form-group-full">
+                                            <label>Search Terms</label>
+                                            <input
+                                                type="text"
+                                                value={filter.search_terms || ''}
+                                                onChange={(e) => handleInputChange(filter.id, 'search_terms', e.target.value)}
+                                                className="form-input"
+                                                disabled={!isAdmin}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="section-fields section-fields-toggles">
+                                        <div className="checkbox-container">
+                                            <span className="checkbox-label">Admin Only</span>
+                                            <label className="checkbox-label">
+                                                <input
+                                                    type="checkbox"
+                                                    className="checkbox-base"
+                                                    checked={filter.admin_only || false}
+                                                    onChange={(e) => handleInputChange(filter.id, 'admin_only', e.target.checked)}
+                                                    disabled={!isAdmin}
+                                                />
+                                            </label>
+                                        </div>
+                                        <div className="checkbox-container">
+                                            <span className="checkbox-label">Enabled</span>
+                                            <label className="checkbox-label">
+                                                <input
+                                                    type="checkbox"
+                                                    className="checkbox-base"
+                                                    checked={filter.enabled || false}
+                                                    onChange={(e) => handleInputChange(filter.id, 'enabled', e.target.checked)}
+                                                    disabled={!isAdmin}
+                                                />
+                                            </label>
+                                        </div>
+                                        <div className="checkbox-container">
+                                            <span className="checkbox-label">Show in Header</span>
+                                            <label className="checkbox-label">
+                                                <input
+                                                    type="checkbox"
+                                                    className="checkbox-base"
+                                                    checked={filter.header_display || false}
+                                                    onChange={(e) => handleInputChange(filter.id, 'header_display', e.target.checked)}
+                                                    disabled={!isAdmin}
+                                                />
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div className="section-fields">
+                                        {isAdmin && (
+                                            <button onClick={() => handleDeleteClick(filter.id)} className="btn-base btn-red icon-button" title="Delete Filter">
+                                                <MdDelete size={18} />
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
-                                {isAdmin && (
-                                    <div className="section-fields">
-                                        <button onClick={() => handleDeleteClick(filter.id)} className="btn-base btn-red icon-button" title="Delete Filter">
-                                            <MdDelete size={18} />
-                                        </button>
-                                    </div>
-                                )}
+                                <div className="section-row">
+                                    {['main', 'second', 'third'].map(stage => (
+                                        <div key={`${filter.id}-${stage}`} className="section-fields">
+                                            <h5 className="stage-title">{stage.charAt(0).toUpperCase() + stage.slice(1)} Stage</h5>
+                                            <div className="form-group">
+                                                <select
+                                                    value={filter[`${stage}_stage`] || ''}
+                                                    onChange={(e) => handleInputChange(filter.id, `${stage}_stage`, e.target.value)}
+                                                    className="form-input"
+                                                    disabled={!isAdmin}
+                                                >
+                                                    <option value="" disabled>Behavior</option>
+                                                    {stageOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="form-group">
+                                                <select
+                                                    value={filter[`${stage}_stage_color`] || ''}
+                                                    onChange={(e) => handleInputChange(filter.id, `${stage}_stage_color`, e.target.value)}
+                                                    className="form-input"
+                                                    disabled={!isAdmin}
+                                                    style={{ backgroundColor: filter[`${stage}_stage_color`] || 'transparent', color: 'white' }}
+                                                >
+                                                    <option value="" disabled>Color</option>
+                                                    {colorOptions.map(opt => <option key={opt.value} value={opt.value} style={{ backgroundColor: opt.value, color: 'white' }}>{opt.name}</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="form-group">
+                                                <label>Icon</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Icon name..."
+                                                    value={filter[`${stage}_stage_icon`] || ''}
+                                                    onChange={(e) => handleInputChange(filter.id, `${stage}_stage_icon`, e.target.value)}
+                                                    className="form-input"
+                                                    disabled={!isAdmin}
+                                                />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         ))}
                         {isAdmin && (
                             <div className="section-footer">
                                 {hasUnsavedChanges && (
-                                    <button onClick={handleDiscardChanges} className="btn-base btn-orange" disabled={isSaving}>
-                                        Discard Changes
-                                    </button>
+                                    <>
+                                        <button onClick={handleDiscardChanges} className="btn-base btn-orange" disabled={isSaving}>
+                                            Discard Changes
+                                        </button>
+                                        <button onClick={handleSaveChanges} className="btn-base btn-green" disabled={isSaving || !hasUnsavedChanges}>
+                                            {isSaving ? 'Saving...' : 'Apply Changes'}
+                                        </button>
+                                    </>
                                 )}
-                                <button onClick={handleSaveChanges} className="btn-base btn-green" disabled={isSaving || !hasUnsavedChanges}>
-                                    {isSaving ? 'Saving...' : 'Apply Changes'}
-                                </button>
                             </div>
                         )}
                     </div>
@@ -235,41 +332,94 @@ function FilterManager({filters, setFilters}) {
                         </div>
                         <div className="section-list">
                             <div className="section-item">
-                                <div className="section-fields">
-                                    <div className="form-group">
-                                        <label>Name</label>
-                                        <input
-                                            type="text"
-                                            value={newFilter.name}
-                                            onChange={(e) => handleNewFilterChange('name', e.target.value)}
-                                            className="form-input"
-                                            required
-                                        />
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Color</label>
-                                        <input
-                                            type="color"
-                                            value={newFilter.color}
-                                            onChange={(e) => handleNewFilterChange('color', e.target.value)}
-                                            className="form-input color-input"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="section-fields">
-                                    <div className="checkbox-container">
-                                        <span className="checkbox-label">Admin Only</span>
-                                        <label className="checkbox-label">
+                                <div className="section-row">
+
+                                    <div className="section-fields">
+                                        <div className="form-group">
+                                            <label>Name</label>
                                             <input
-                                                type="checkbox"
-                                                className="checkbox-base"
-                                                checked={newFilter.admin_only}
-                                                onChange={(e) => handleNewFilterChange('admin_only', e.target.checked)}
+                                                type="text"
+                                                value={newFilter.name}
+                                                onChange={(e) => handleNewFilterChange('name', e.target.value)}
+                                                className="form-input"
+                                                required
                                             />
-                                        </label>
+                                        </div>
+                                        <div className="form-group form-group-full">
+                                            <label>Search Terms</label>
+                                            <input
+                                                type="text"
+                                                value={newFilter.search_terms}
+                                                onChange={(e) => handleNewFilterChange('search_terms', e.target.value)}
+                                                className="form-input"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="section-fields section-fields-toggles">
+                                        <div className="checkbox-container">
+                                            <span className="checkbox-label">Admin Only</span>
+                                            <label className="checkbox-label">
+                                                <input
+                                                    type="checkbox"
+                                                    className="checkbox-base"
+                                                    checked={newFilter.admin_only || false}
+                                                    onChange={(e) => handleNewFilterChange('admin_only', e.target.checked)}
+                                                />
+                                            </label>
+                                        </div>
+                                        <div className="checkbox-container">
+                                            <span className="checkbox-label">Enabled</span>
+                                            <label className="checkbox-label">
+                                                <input
+                                                    type="checkbox"
+                                                    className="checkbox-base"
+                                                    checked={newFilter.enabled || false}
+                                                    onChange={(e) => handleNewFilterChange('enabled', e.target.checked)}
+                                                />
+                                            </label>
+                                        </div>
+                                        <div className="checkbox-container">
+                                            <span className="checkbox-label">Show in Header</span>
+                                            <label className="checkbox-label">
+                                                <input
+                                                    type="checkbox"
+                                                    className="checkbox-base"
+                                                    checked={newFilter.header_display || false}
+                                                    onChange={(e) => handleNewFilterChange('header_display', e.target.checked)}
+                                                />
+                                            </label>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="section-fields"></div>
+
+                                <div className="section-row">
+                                    {['main', 'second', 'third'].map(stage => (
+                                        <div key={`new-${stage}`} className="section-fields">
+                                            <h5 className="stage-title">{stage.charAt(0).toUpperCase() + stage.slice(1)} Stage</h5>
+                                            <div className="form-group">
+                                                <select value={newFilter[`${stage}_stage`]} onChange={(e) => handleNewFilterChange(`${stage}_stage`, e.target.value)} className="form-input">
+                                                    <option value="" disabled>Behavior</option>
+                                                    {stageOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="form-group">
+                                                <select value={newFilter[`${stage}_stage_color`]} onChange={(e) => handleNewFilterChange(`${stage}_stage_color`, e.target.value)} className="form-input" style={{ backgroundColor: newFilter[`${stage}_stage_color`] || 'transparent', color: 'white' }}>
+                                                    <option value="" disabled>Color</option>
+                                                    {colorOptions.map(opt => <option key={opt.value} value={opt.value} style={{ backgroundColor: opt.value, color: 'white' }}>{opt.name}</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="form-group">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Icon name..."
+                                                    value={newFilter[`${stage}_stage_icon`]}
+                                                    onChange={(e) => handleNewFilterChange(`${stage}_stage_icon`, e.target.value)}
+                                                    className="form-input"
+                                                />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                         

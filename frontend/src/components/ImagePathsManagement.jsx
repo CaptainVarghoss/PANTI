@@ -230,63 +230,65 @@ function ImagePathsManagement({ onBack }) {
           <div className="section-list">
             {editablePaths.map((path) => (
               <div key={path.id} className="section-item">
-                <div className="section-fields">
-                  <div className="form-group">
-                    <label>Full Path:</label>
-                    <input
-                      type="text"
-                      value={path.path}
-                      onChange={(e) => handleInputChange(path.id, 'path', e.target.value)}
-                      className="form-input"
-                      disabled={!isAdmin}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Short Name:</label>
-                    <input
-                      type="text"
-                      value={path.short_name || ''}
-                      onChange={(e) => handleInputChange(path.id, 'short_name', e.target.value)}
-                      className="form-input"
-                      disabled={!isAdmin}
-                    />
-                  </div>
-                </div>
-                <div className="section-fields">
-                  <div className="path-edit-toggles">
-                    <div className="checkbox-container">
-                      <span className="checkbox-label">Admin Only</span>
-                      <label className="checkbox-label">
-                        <input
-                          type="checkbox"
-                          className="checkbox-base"
-                          checked={path.admin_only}
-                          onChange={(e) => handleInputChange(path.id, 'admin_only', e.target.checked)}
-                          disabled={!isAdmin}
-                        />
-                      </label>
-                    </div>
-                    <div className="checkbox-container">
-                      <span className="checkbox-label">Ignore</span>
-                      <label className="checkbox-label">
-                        <input
-                          type="checkbox"
-                          className="checkbox-base"
-                          checked={path.ignore}
-                          onChange={(e) => handleInputChange(path.id, 'ignore', e.target.checked)}
-                          disabled={!isAdmin}
-                        />
-                      </label>
-                    </div>
-                  </div>
-                </div>
-                {isAdmin && (
+                <div className="section-row">
                   <div className="section-fields">
-                    <button onClick={() => handleDelete(path.id)} className="btn-base btn-red icon-button" title="Delete Path">
-                      <MdDelete size={18} />
-                    </button>
+                    <div className="form-group">
+                      <label>Full Path:</label>
+                      <input
+                        type="text"
+                        value={path.path}
+                        onChange={(e) => handleInputChange(path.id, 'path', e.target.value)}
+                        className="form-input"
+                        disabled={!isAdmin}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Short Name:</label>
+                      <input
+                        type="text"
+                        value={path.short_name || ''}
+                        onChange={(e) => handleInputChange(path.id, 'short_name', e.target.value)}
+                        className="form-input"
+                        disabled={!isAdmin}
+                      />
+                    </div>
                   </div>
-                )}
+                  <div className="section-fields">
+                    <div className="path-edit-toggles">
+                      <div className="checkbox-container">
+                        <span className="checkbox-label">Admin Only</span>
+                        <label className="checkbox-label">
+                          <input
+                            type="checkbox"
+                            className="checkbox-base"
+                            checked={path.admin_only}
+                            onChange={(e) => handleInputChange(path.id, 'admin_only', e.target.checked)}
+                            disabled={!isAdmin}
+                          />
+                        </label>
+                      </div>
+                      <div className="checkbox-container">
+                        <span className="checkbox-label">Ignore</span>
+                        <label className="checkbox-label">
+                          <input
+                            type="checkbox"
+                            className="checkbox-base"
+                            checked={path.ignore}
+                            onChange={(e) => handleInputChange(path.id, 'ignore', e.target.checked)}
+                            disabled={!isAdmin}
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                  {isAdmin && (
+                    <div className="section-fields">
+                      <button onClick={() => handleDelete(path.id)} className="btn-base btn-red icon-button" title="Delete Path">
+                        <MdDelete size={18} />
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             ))}
             {isAdmin && (
@@ -316,57 +318,59 @@ function ImagePathsManagement({ onBack }) {
               </div>
               <div className="section-list">
                 <div className="section-item">
-                  <div className="section-fields">
-                    <div className="form-group">
-                      <label htmlFor="path" className="settings-label">
-                        Full Path:
-                      </label>
-                      <input
-                        type="text"
-                        value={newPath.path}
-                        onChange={(e) => handleNewPathChange('path', e.target.value)}
-                        className="form-input"
-                        required
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label htmlFor="shortName" className="settings-label">
-                        Short Name:
-                      </label>
-                      <input
-                        type="text"
-                        value={newPath.short_name}
-                        onChange={(e) => handleNewPathChange('short_name', e.target.value)}
-                        className="form-input"
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="section-fields">
-                    <div className="checkbox-container">
-                      <span className="checkbox-label">Admin Only</span>
-                      <label className="checkbox-label">
+                  <div className="section-row">
+                    <div className="section-fields">
+                      <div className="form-group">
+                        <label htmlFor="path" className="settings-label">
+                          Full Path:
+                        </label>
                         <input
-                          type="checkbox"
-                          className="checkbox-base"
-                          checked={newPath.admin_only}
-                          onChange={(e) => handleNewPathChange('admin_only', e.target.checked)}
+                          type="text"
+                          value={newPath.path}
+                          onChange={(e) => handleNewPathChange('path', e.target.value)}
+                          className="form-input"
+                          required
                         />
-                      </label>
-                    </div>
-                    <div className="checkbox-container">
-                      <span className="checkbox-label">Ignore Path</span>
-                      <label className="checkbox-label">
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="shortName" className="settings-label">
+                          Short Name:
+                        </label>
                         <input
-                          type="checkbox"
-                          className="checkbox-base"
-                          checked={newPath.ignore}
-                          onChange={(e) => handleNewPathChange('ignore', e.target.checked)}
+                          type="text"
+                          value={newPath.short_name}
+                          onChange={(e) => handleNewPathChange('short_name', e.target.value)}
+                          className="form-input"
+                          required
                         />
-                      </label>
+                      </div>
                     </div>
+                    <div className="section-fields">
+                      <div className="checkbox-container">
+                        <span className="checkbox-label">Admin Only</span>
+                        <label className="checkbox-label">
+                          <input
+                            type="checkbox"
+                            className="checkbox-base"
+                            checked={newPath.admin_only}
+                            onChange={(e) => handleNewPathChange('admin_only', e.target.checked)}
+                          />
+                        </label>
+                      </div>
+                      <div className="checkbox-container">
+                        <span className="checkbox-label">Ignore Path</span>
+                        <label className="checkbox-label">
+                          <input
+                            type="checkbox"
+                            className="checkbox-base"
+                            checked={newPath.ignore}
+                            onChange={(e) => handleNewPathChange('ignore', e.target.checked)}
+                          />
+                        </label>
+                      </div>
+                    </div>
+                    <div className="section-fields"></div>
                   </div>
-                  <div className="section-fields"></div>
                 </div>
               </div>
               <div className="section-footer">
