@@ -619,7 +619,7 @@ input:disabled {
 }
 
 .modal-body#settings {
-  height: 90vh;
+  height: 85vh;
 }
 
 .modal-header {
@@ -680,6 +680,11 @@ input:disabled {
     color: rgba(255, 255, 255, 0.70);
 }
 
+.modal-footer {
+  margin-top: 0.5rem;
+  align-self: flex-end;
+}
+
 .section-container {
     margin-bottom: 0.75rem;
     padding: 1rem;
@@ -692,6 +697,37 @@ input:disabled {
 
 .section-help {
   font-style: italic;
+}
+
+.section-list {
+  display: flex;
+  flex-flow: column;
+  justify-content: center;
+}
+
+.section-item {
+  display: flex;
+  justify-content: space-between;
+  background-color: var(--bg-header);
+  border-radius: var(--radius-xl);
+  border-color: var(--tint-primary);
+  border-width: 0.2rem;
+  border-style: solid;
+  margin-bottom: 0.5rem;
+}
+
+.section-fields {
+  padding: 0.75rem;
+}
+
+.section-fields label {
+  margin-right: 0.5rem;
+}
+
+.section-footer {
+  display: flex;
+  justify-content: end;
+  gap: 0.75rem;
 }
 
 /* --- IMAGE GALLERY STYLING --- */
