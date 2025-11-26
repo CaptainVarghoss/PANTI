@@ -2,160 +2,148 @@ import React, { useState, useEffect } from 'react';
 import ConfirmationDialog from './ConfirmDialog';
 import { getStyles } from '../helpers/color_helper';
 import { useAuth } from '../context/AuthContext';
-import { MdEdit } from "react-icons/md";
-import { FaCirclePlus } from "react-icons/fa6";
+import { MdDelete } from "react-icons/md";
 
 
 function FilterManager({filters, setFilters}) {
-    const { token, isAuthenticated, settings, isAdmin } = useAuth();
+    const { token, isAdmin } = useAuth();
 
-    const [isLoadingFilters, setIsLoadingFilters] = useState(false);
-    const [editingFilterId, setEditingFilterId] = useState(null);
-    const [newFilterMode, setNewFilterMode] = useState(false);
-    const [currentEditFilter, setCurrentEditFilter] = useState({});
+    const [editableFilters, setEditableFilters] = useState([]);
     const [newFilter, setNewFilter] = useState({ name: '', color: '#000000', icon: '', admin_only: false });
-    const [isUpdatingFilters, setIsUpdatingFilters] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState(null);
+    const [message, setMessage] = useState(null);
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
     const [filterToDelete, setFilterToDelete] = useState('');
 
+    useEffect(() => {
+        // Deep copy filters to create a mutable version for editing
+        setEditableFilters(JSON.parse(JSON.stringify(filters)));
+    }, [filters]);
 
-    const updateFilter = async (filterId, updatedData) => {
-        const headers = {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        };
-
-        const response = await fetch(`/api/filters/${filterId}`, {
-            method: 'PUT',
-            headers: headers,
-            body: JSON.stringify(updatedData),
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.detail || 'Failed to update filter');
-        }
-        return response.json();
+    const handleInputChange = (id, field, value) => {
+        setEditableFilters(prev =>
+            prev.map(filter =>
+                filter.id === id ? { ...filter, [field]: value } : filter
+            )
+        );
     };
 
-    const addFilter = async (newFilterData) => {
-        const headers = {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        };
-
-        const response = await fetch(`/api/filters/`, {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify(newFilterData),
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.detail || 'Failed to add filter');
-        }
-        return response.json();
+    const handleNewFilterChange = (field, value) => {
+        setNewFilter(prev => ({ ...prev, [field]: value }));
     };
 
-    const delFilter = async () => {
-        if (!filterToDelete || filterToDelete == '') { return }
-
-        const headers = {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        };
-
-        const response = await fetch(`/api/filters/${filterToDelete}`, {
-            method: 'DELETE',
-            headers: headers,
-            body: JSON.stringify(filterToDelete),
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.detail || 'Failed to add filter');
-        }
-    };
-
-    const handleEditChange = (e) => {
-        const { name, value, type, checked } = e.target;
-        setCurrentEditFilter(prev => ({
-        ...prev,
-        [name]: type === 'checkbox' ? checked : value,
-        }));
-    };
-
-    const handleNewFilterChange = (e) => {
-        const { name, value, type, checked } = e.target;
-        setNewFilter(prev => ({
-        ...prev,
-        [name]: type === 'checkbox' ? checked : value,
-        }));
-    };
-
-    const handleEditClick = (filter) => {
-        setEditingFilterId(filter.id);
-        setCurrentEditFilter({ ...filter });
-        setNewFilterMode(false);
-    };
-
-    const handleCancelEdit = () => {
-        setEditingFilterId(null);
-        setCurrentEditFilter({});
-    };
-
-    const handleDeleteFilter = async (filterId) => {
-        try {
-            const response = await delFilter(filterId);
-        } catch (err) {
-            setError(err.message || 'An error occured while deleting the filter.');
-            console.error(err);
-        } finally {
-            // After deleting, we need to refetch the filters from the main App component.
-            // A simple way is to pass down the fetch function, but for now, a page reload
-            // can work, or we can manually update the state.
-            // For a better UX, we'd pass a refetch function from App.jsx
-        }
-    };
-
-    const handleUpdateSubmit = async (e) => {
-        e.preventDefault();
-        setIsUpdatingFilters(true);
+    const handleDiscardChanges = () => {
+        setEditableFilters(JSON.parse(JSON.stringify(filters))); // Reset to original
+        setMessage(null);
         setError(null);
+    };
+
+    const handleSaveChanges = async () => {
+        if (!isAdmin) return;
+        setIsSaving(true);
+        setError(null);
+        setMessage(null);
+
+        const updatePromises = editableFilters.map(filter => {
+            const originalFilter = filters.find(f => f.id === filter.id);
+            if (JSON.stringify(filter) === JSON.stringify(originalFilter)) {
+                return Promise.resolve({ ok: true }); // No changes
+            }
+
+            return fetch(`/api/filters/${filter.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify(filter),
+            });
+        });
+
         try {
-            // Ensure the ID is correctly passed to the API function
-            const response = await updateFilter(editingFilterId, currentEditFilter);
-            // Manually update the state to reflect the change without a full refetch
-            setFilters(prevFilters => 
-                prevFilters.map(f => 
-                    f.id === editingFilterId ? { ...f, ...currentEditFilter } : f
-                )
-            );
-            setEditingFilterId(null);
-            setCurrentEditFilter({});
+            const results = await Promise.all(updatePromises);
+            const failed = results.filter(res => !res.ok);
+
+            if (failed.length > 0) {
+                throw new Error(`${failed.length} filter(s) failed to update.`);
+            }
+
+            setMessage('All changes saved successfully!');
+            // Notify parent to refetch
+            const response = await fetch('/api/filters/', { headers: { 'Authorization': `Bearer ${token}` } });
+            const updatedFilters = await response.json();
+            setFilters(updatedFilters);
+
         } catch (err) {
-            setError(err.message || 'An error occurred while updating the filter.');
-            console.error(err);
+            setError(err.message || 'An error occurred while saving changes.');
         } finally {
-            setIsUpdatingFilters(false);
+            setIsSaving(false);
         }
     };
 
-    const handleAddNewFilterSubmit = async (e) => {
+    const handleAddNewFilter = async (e) => {
         e.preventDefault();
-        setIsLoadingFilters(true);
+        if (!isAdmin) return;
+        setIsSaving(true);
         setError(null);
+        setMessage(null);
+
         try {
-            const response = await addFilter(newFilter);
-            // Add the new filter to the state
-            setFilters(prevFilters => [...prevFilters, response]);
-            setNewFilterMode(false);
+            const response = await fetch('/api/filters/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify(newFilter),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Failed to add filter');
+            }
+
+            setMessage('New filter added successfully!');
+            setNewFilter({ name: '', color: '#000000', icon: '', admin_only: false }); // Reset form
+
+            // Refetch all filters to update list
+            const refetchResponse = await fetch('/api/filters/', { headers: { 'Authorization': `Bearer ${token}` } });
+            const updatedFilters = await refetchResponse.json();
+            setFilters(updatedFilters);
+
         } catch (err) {
-            setError(err.message || 'An error occurred while adding the filter.');
-            console.error(err);
+            setError(err.message);
         } finally {
-            setIsLoadingFilters(false);
+            setIsSaving(false);
+        }
+    };
+
+    const handleDeleteFilter = async () => {
+        if (!filterToDelete || !isAdmin) return;
+
+        try {
+            const response = await fetch(`/api/filters/${filterToDelete}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Failed to delete filter');
+            }
+
+            setMessage('Filter deleted successfully!');
+            // Refetch to update list
+            const refetchResponse = await fetch('/api/filters/', { headers: { 'Authorization': `Bearer ${token}` } });
+            const updatedFilters = await refetchResponse.json();
+            setFilters(updatedFilters);
+
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setShowConfirmDialog(false);
+            setFilterToDelete('');
         }
     };
 
@@ -164,238 +152,151 @@ function FilterManager({filters, setFilters}) {
         setShowConfirmDialog(true);
     };
 
-    if (isLoadingFilters) {
-        return (
-        <div className="loading-message">
-            <p>Loading filters...</p>
-        </div>
-        );
-    }
-
-    if (error) {
-        return (
-        <div className="error-message">
-            <p>{error}</p>
-        </div>
-        );
-    }
+    const hasUnsavedChanges = JSON.stringify(filters) !== JSON.stringify(editableFilters);
 
     return (
-        <div className="filter-manager-container">
+        <>
+            <div className="section-container">
+                <div className="section-header">
+                    <h3>Configured Filters</h3>
+                </div>
+                {editableFilters.length === 0 ? (
+                    <p className="status-text">No filters configured yet.</p>
+                ) : (
+                    <div className="section-list">
+                        {editableFilters.map(filter => (
+                            <div key={filter.id} className="section-item">
+                                <div className="section-fields">
+                                    <div className="form-group">
+                                        <label>Name</label>
+                                        <input
+                                            type="text"
+                                            value={filter.name || ''}
+                                            onChange={(e) => handleInputChange(filter.id, 'name', e.target.value)}
+                                            className="form-input"
+                                            disabled={!isAdmin}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Color</label>
+                                        <input
+                                            type="color"
+                                            value={filter.color || '#000000'}
+                                            onChange={(e) => handleInputChange(filter.id, 'color', e.target.value)}
+                                            className="form-input color-input"
+                                            disabled={!isAdmin}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="section-fields">
+                                    <div className="checkbox-container">
+                                        <span className="checkbox-label">Admin Only</span>
+                                        <label className="checkbox-label">
+                                            <input
+                                                type="checkbox"
+                                                className="checkbox-base"
+                                                checked={filter.admin_only}
+                                                onChange={(e) => handleInputChange(filter.id, 'admin_only', e.target.checked)}
+                                                disabled={!isAdmin}
+                                            />
+                                        </label>
+                                    </div>
+                                </div>
+                                {isAdmin && (
+                                    <div className="section-fields">
+                                        <button onClick={() => handleDeleteClick(filter.id)} className="btn-base btn-red icon-button" title="Delete Filter">
+                                            <MdDelete size={18} />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                        {isAdmin && (
+                            <div className="section-footer">
+                                {hasUnsavedChanges && (
+                                    <button onClick={handleDiscardChanges} className="btn-base btn-orange" disabled={isSaving}>
+                                        Discard Changes
+                                    </button>
+                                )}
+                                <button onClick={handleSaveChanges} className="btn-base btn-green" disabled={isSaving || !hasUnsavedChanges}>
+                                    {isSaving ? 'Saving...' : 'Apply Changes'}
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
 
-            {/* List of existing filters */}
-            <div className="filter-list-section">
-            {filters && filters.map(filter => {
-                const styles = getStyles(filter.color);
-                return (
-                    <div key={filter.id} className="filter-item">
-                    {editingFilterId === filter.id ? (
-                        <form onSubmit={handleUpdateSubmit} className="form-section">
-                        <h3 className="form-heading">Editing Filter: <span className="modal-filter-pill" style={styles}>{filter.name}</span></h3>
-                        <div className="form-group">
-                            <label htmlFor={`edit-name-${filter.id}`} className="form-label">Name</label>
-                            <input
-                            type="text"
-                            id={`edit-name-${filter.id}`}
-                            name="name"
-                            value={currentEditFilter.name || ''}
-                            onChange={handleEditChange}
-                            className="form-input"
-                            required
-                            />
+            {isAdmin && (
+                <div className="section-container">
+                    <form onSubmit={handleAddNewFilter}>
+                        <div className="section-header">
+                            <h3>Add New Filter</h3>
                         </div>
-                        <div className="form-group">
-                            <label htmlFor={`edit-color-${filter.id}`} className="form-label">Color</label>
-                            <input
-                            type="color"
-                            id={`edit-color-${filter.id}`}
-                            name="color"
-                            value={currentEditFilter.color || '#000000'}
-                            onChange={handleEditChange}
-                            className="form-input color-input"
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label htmlFor={`edit-icon-${filter.id}`} className="form-label">Icon Name (e.g., PlusCircle, Bolt)</label>
-                            <div className="icon-input-group">
-                            <input
-                                type="text"
-                                id={`edit-icon-${filter.id}`}
-                                name="icon"
-                                value={currentEditFilter.icon || ''}
-                                onChange={handleEditChange}
-                                placeholder="e.g., ExclamationCircle, Briefcase"
-                                className="icon-input-field"
-                            />
-                            <span className="icon-preview-box">
-
-                            </span>
+                        <div className="section-list">
+                            <div className="section-item">
+                                <div className="section-fields">
+                                    <div className="form-group">
+                                        <label>Name</label>
+                                        <input
+                                            type="text"
+                                            value={newFilter.name}
+                                            onChange={(e) => handleNewFilterChange('name', e.target.value)}
+                                            className="form-input"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Color</label>
+                                        <input
+                                            type="color"
+                                            value={newFilter.color}
+                                            onChange={(e) => handleNewFilterChange('color', e.target.value)}
+                                            className="form-input color-input"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="section-fields">
+                                    <div className="checkbox-container">
+                                        <span className="checkbox-label">Admin Only</span>
+                                        <label className="checkbox-label">
+                                            <input
+                                                type="checkbox"
+                                                className="checkbox-base"
+                                                checked={newFilter.admin_only}
+                                                onChange={(e) => handleNewFilterChange('admin_only', e.target.checked)}
+                                            />
+                                        </label>
+                                    </div>
+                                </div>
+                                <div className="section-fields"></div>
                             </div>
                         </div>
-                        <div className="checkbox-container">
-                            <span className="checkbox-label">Admin Only</span>
-                            <label className="checkbox-label">
-                                <input
-                                    type="checkbox"
-                                    name="admin_only"
-                                    className="checkbox-base"
-                                    checked={currentEditFilter.admin_only || false}
-                                    onChange={handleEditChange}
-                                />
-                            </label>
-                        </div>
-                        <div className="form-actions">
-                            <button
-                            type='button'
-                            onClick={() => handleDeleteClick(filter.id)}
-                            className='btn-base btn-red'
-                            >
-                            Delete
-                            </button>
-                            <button
-                            type="button"
-                            onClick={handleCancelEdit}
-                            className="btn-base btn-secondary"
-                            >
-                            Cancel
-                            </button>
-                            <button
-                            type="submit"
-                            className="btn-base btn-primary"
-                            >
-                            Save
+                        
+                        
+                        <div className="section-footer">
+                            <button type="submit" className="btn-base btn-primary" disabled={isSaving}>
+                                {isSaving ? 'Adding...' : 'Add Filter'}
                             </button>
                         </div>
-                        </form>
-                    ) : (
-                        <div className="filter-item-content">
-                        <div className="filter-display-group">
-                            <span
-                            className="modal-filter-pill"
-                            style={styles}
-                            title={filter.color}
-                            >
-                            {filter.name}
-                            </span>
-                            {filter.admin_only && (
-                            <span className="filter-admin-badge">Admin</span>
-                            )}
-                        </div>
-                        <button
-                            onClick={() => handleEditClick(filter)}
-                            className="btn-base btn-secondary"
-                        >
-                            <MdEdit /> Edit
-                        </button>
-                        </div>
-                    )}
-                    </div>
-                )
-            })}
-            </div>
-
-            {/* Add New Filter Section */}
-            <div className="form-container">
-            {!newFilterMode ? (
-                <button
-                onClick={() => {
-                    setNewFilterMode(true);
-                    setEditingFilterId(null);
-                }}
-                className="btn-base btn-primary"
-                >
-                <FaCirclePlus /> Add New Filter
-                </button>
-            ) : (
-                <form onSubmit={handleAddNewFilterSubmit} className="form-section">
-                <h3 className="form-heading">Add New Filter</h3>
-                <div className="form-group">
-                    <label htmlFor="new-name" className="form-label">Name</label>
-                    <input
-                    type="text"
-                    id="new-name"
-                    name="name"
-                    value={newFilter.name}
-                    onChange={handleNewFilterChange}
-                    className="form-input new-filter"
-                    required
-                    />
+                    </form>
                 </div>
-                <div className="form-group">
-                    <label htmlFor="new-color" className="form-label">Color</label>
-                    <input
-                    type="color"
-                    id="new-color"
-                    name="color"
-                    value={newFilter.color}
-                    onChange={handleNewFilterChange}
-                    className="form-input color-input new-filter"
-                    />
-                </div>
-                <div className="form-group">
-                    <label htmlFor="new-icon" className="form-label">Icon Name (e.g., PlusCircle, Bolt)</label>
-                    <div className="icon-input-group">
-                    <input
-                        type="text"
-                        id="new-icon"
-                        name="icon"
-                        value={newFilter.icon}
-                        onChange={handleNewFilterChange}
-                        placeholder="e.g., ExclamationCircle, Briefcase"
-                        className="icon-input-field new-filter"
-                    />
-                    <span className="icon-preview-box">
-
-                    </span>
-                    </div>
-                </div>
-                <div className="checkbox-container">
-                    <span className="checkbox-label">Admin Only</span>
-                    <label className="checkbox-label">
-                        <input
-                            type="checkbox"
-                            name="admin_only"
-                            className="checkbox-base"
-                            checked={newFilter.admin_only}
-                            onChange={handleNewFilterChange}
-                        />
-                    </label>
-                </div>
-                <div className="form-actions">
-                    <button
-                    type="button"
-                    onClick={() => setNewFilterMode(false)}
-                    className="btn-base btn-secondary"
-                    >
-                    Cancel
-                    </button>
-                    <button
-                    type="submit"
-                    className="btn-base btn-primary"
-                    >
-                    Add Filter
-                    </button>
-                </div>
-                </form>
             )}
-            </div>
+            
             <ConfirmationDialog
                 isOpen={showConfirmDialog}
                 onClose={() => {
                     setShowConfirmDialog(false);
                     setFilterToDelete('');
                 }}
-                onConfirm={() => {
-                    handleDeleteFilter();
-                    setShowConfirmDialog(false);
-                }}
+                onConfirm={handleDeleteFilter}
                 title="Delete Filter"
                 message="Are you sure you want to delete this filter? This action cannot be undone."
                 confirmText="Delete"
                 cancelText="Keep"
                 confirmButtonColor="#dc2626"
             />
-        </div>
+        </>
     );
 };
 

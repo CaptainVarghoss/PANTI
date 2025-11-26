@@ -366,6 +366,7 @@ function ImagePathsManagement({ onBack }) {
                       </label>
                     </div>
                   </div>
+                  <div className="section-fields"></div>
                 </div>
               </div>
               <div className="section-footer">
