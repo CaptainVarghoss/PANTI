@@ -20,20 +20,18 @@ function NavbarButtons({
                 {filters.map(filter => {
                     if (!filter.header_display) return null;
 
-                    const isActive = filter.activeStageIndex !== -1;
+                    const isActive = filter.activeStageIndex > 0; // The filter is only visually active if not in the main stage (index 0)
                     const stageNames = ['main', 'second', 'third'];
                     const activeStageName = isActive ? stageNames[filter.activeStageIndex] : 'main'; // Default to main if inactive
 
-                    const activeColor = filter[`${activeStageName}_stage_color`] || 'var(--accent-red)'; // Fallback color
-                    const activeIcon = filter[`${activeStageName}_stage_icon`]; // Icon for the active stage
+                    const activeColorName = filter[`${activeStageName}_stage_color`];
+                    const activeIcon = filter[`${activeStageName}_stage_icon`];
 
                     return (
                         <button 
                             key={filter.id} 
-                            className={`btn-base filter-menu-button ${isActive ? 'active' : ''}`}
+                            className={`btn-base filter-menu-button ${isActive ? 'active' : ''} ${filter.activeStageIndex !== -1 && activeColorName ? activeColorName : ''}`}
                             onClick={() => handleFilterToggle(filter.id)}
-                            style={{ backgroundColor: isActive ? activeColor : 'var(--color-secondary)' }} // Use active color or a default inactive color
-                            // Use dangerouslySetInnerHTML only if you trust the icon source (e.g., it's sanitized SVG from your DB)
                             dangerouslySetInnerHTML={{ __html: activeIcon || '' }}
                             title={filter.name}
                         >

@@ -362,13 +362,14 @@ function ImageGrid({
         queryString.append('trash_only', 'true');
       }
 
-      // Check for active filters and pass IDs
+      // Check for active filters and pass their active stage indices
       if (filters) {
-        const usedFilters = filters.map(filter => {
-          if (filter.isSelected === true) {
-            queryString.append('filter', filter.id);
-          }
-        })
+        const activeStages = {};
+        filters.forEach(filter => {
+          // Only include filters that are currently active (not index -1)
+          if (filter.activeStageIndex !== -1) activeStages[filter.id] = filter.activeStageIndex;
+        });
+        if (Object.keys(activeStages).length > 0) queryString.append('active_stages_json', JSON.stringify(activeStages));
       }
 
       const response = await fetch(`/api/images/?${queryString.toString()}`, { headers });

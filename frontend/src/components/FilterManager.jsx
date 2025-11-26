@@ -1,9 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import ConfirmationDialog from './ConfirmDialog';
 import { getStyles } from '../helpers/color_helper';
 import { useAuth } from '../context/AuthContext';
 import { MdDelete } from "react-icons/md";
 
+/**
+ * Reads the --theme-color-list CSS custom property from the root element,
+ * trims it, and splits it into an array of color variable names.
+ * @returns {string[]} An array of color variable names (e.g., ['color-primary', 'accent-red']).
+ */
+const getThemeColors = () => {
+  try {
+    const styles = getComputedStyle(document.documentElement);
+    const themeColorListString = styles.getPropertyValue('--theme-color-list').trim();
+    if (themeColorListString) {
+      return themeColorListString.split(' ');
+    }
+    return [];
+  } catch (error) {
+    console.error("Failed to read theme colors from CSS:", error);
+    return []; // Return an empty array on error
+  }
+};
 /**
  * A helper component to render the editor for a single filter stage (main, second, third).
  * It contains the logic to disable options that are already in use by other stages.
@@ -15,7 +33,7 @@ const FilterStageEditor = ({
     isAdmin,
     baseStageOptions,
     thirdStageOptions,
-    colorOptions
+    themeColors
 }) => {
     const otherStageValues = ['main', 'second', 'third']
         .filter(s => s !== stage)
@@ -30,7 +48,7 @@ const FilterStageEditor = ({
                 <select
                     value={filter[`${stage}_stage`] || ''}
                     onChange={(e) => handleInputChange(filter.id, `${stage}_stage`, e.target.value)}
-                    className="form-input"
+                    className="form-input-base dropdown-base"
                     disabled={!isAdmin}
                 >
                     {availableOptions.map(opt => (
@@ -46,12 +64,19 @@ const FilterStageEditor = ({
                 <select
                     value={filter[`${stage}_stage_color`] || ''}
                     onChange={(e) => handleInputChange(filter.id, `${stage}_stage_color`, e.target.value)}
-                    className="form-input"
+                    className="form-input-base dropdown-base"
                     disabled={!isAdmin}
-                    style={{ backgroundColor: filter[`${stage}_stage_color`] || 'transparent', color: 'white' }}
+                    style={{ backgroundColor: filter[`${stage}_stage_color`] ? `var(--${filter[`${stage}_stage_color`]})` : 'transparent', color: 'white' }}
                 >
-                    <option value="" disabled>Color</option>
-                    {colorOptions.map(opt => <option key={opt.value} value={opt.value} style={{ backgroundColor: opt.value, color: 'white' }}>{opt.name}</option>)}
+                    <option value="">-- Select Color --</option>
+                    {/* Use themeColors which is an array of strings */}
+                    {themeColors.map(colorName => (
+                        <option 
+                            key={colorName} 
+                            value={colorName} 
+                            style={{ backgroundColor: `var(--${colorName})` }}
+                        >{colorName}</option>
+                    ))}
                 </select>
             </div>
             <div className="form-group">
@@ -76,18 +101,7 @@ function FilterManager({filters, setFilters}) {
     const baseStageOptions = ['show', 'hide', 'show_only'];
     const thirdStageOptions = ['show', 'hide', 'show_only', 'disabled'];
 
-    // Define accent colors from CSS for color dropdowns
-    const colorOptions = [
-        { name: 'Default', value: '' },
-        { name: 'Primary', value: 'var(--accent-primary)' },
-        { name: 'Secondary', value: 'var(--accent-secondary)' },
-        { name: 'Red', value: 'var(--accent-red)' },
-        { name: 'Orange', value: 'var(--accent-orange)' },
-        { name: 'Yellow', value: 'var(--accent-yellow)' },
-        { name: 'Green', value: 'var(--accent-green)' },
-        { name: 'Blue', value: 'var(--accent-blue)' },
-        { name: 'Purple', value: 'var(--accent-purple)' },
-    ];
+    const [themeColors, setThemeColors] = useState([]);
 
     // Initialize state directly from the prop to ensure it has data on the first render.
     const [editableFilters, setEditableFilters] = useState(() => JSON.parse(JSON.stringify(filters)));
@@ -103,6 +117,11 @@ function FilterManager({filters, setFilters}) {
     const [message, setMessage] = useState(null);
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
     const [filterToDelete, setFilterToDelete] = useState('');
+
+    // Fetch theme colors from CSS on component mount
+    useEffect(() => {
+        setThemeColors(getThemeColors());
+    }, []);
 
     const handleInputChange = (id, field, value) => {
         setEditableFilters(prev => prev.map(filter => {
@@ -314,7 +333,7 @@ function FilterManager({filters, setFilters}) {
                                                 type="text"
                                                 value={filter.name || ''}
                                                 onChange={(e) => handleInputChange(filter.id, 'name', e.target.value)}
-                                                className="form-input"
+                                                className="form-input-base"
                                                 disabled={!isAdmin}
                                             />
                                         </div>
@@ -324,7 +343,7 @@ function FilterManager({filters, setFilters}) {
                                                 type="text"
                                                 value={filter.search_terms || ''}
                                                 onChange={(e) => handleInputChange(filter.id, 'search_terms', e.target.value)}
-                                                className="form-input"
+                                                className="form-input-base"
                                                 disabled={!isAdmin}
                                             />
                                         </div>
@@ -385,7 +404,7 @@ function FilterManager({filters, setFilters}) {
                                             isAdmin={isAdmin}
                                             baseStageOptions={baseStageOptions}
                                             thirdStageOptions={thirdStageOptions}
-                                            colorOptions={colorOptions}
+                                            themeColors={themeColors}
                                         />
                                     ))}
                                 </div>
@@ -426,7 +445,7 @@ function FilterManager({filters, setFilters}) {
                                                 type="text"
                                                 value={newFilter.name}
                                                 onChange={(e) => handleNewFilterChange('name', e.target.value)}
-                                                className="form-input"
+                                                className="form-input-base"
                                                 required
                                             />
                                         </div>
@@ -436,7 +455,7 @@ function FilterManager({filters, setFilters}) {
                                                 type="text"
                                                 value={newFilter.search_terms}
                                                 onChange={(e) => handleNewFilterChange('search_terms', e.target.value)}
-                                                className="form-input"
+                                                className="form-input-base"
                                             />
                                         </div>
                                     </div>
@@ -488,7 +507,7 @@ function FilterManager({filters, setFilters}) {
                                             isAdmin={true} // Form is only visible to admins
                                             baseStageOptions={baseStageOptions}
                                             thirdStageOptions={thirdStageOptions}
-                                            colorOptions={colorOptions}
+                                            themeColors={themeColors}
                                         />
                                     ))}
                                 </div>

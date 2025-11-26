@@ -13,6 +13,7 @@
     /* ACCENT COLORS */
     --accent-primary: hsl(320, 90%, 65%); /* Bright Fuchsia/Pink (Active Tag Color) */
     --accent-secondary: hsl(175, 94%, 50%);
+    --accent-blue: hsl(210, 90%, 55%);
     --accent-green: hsl(120, 70%, 50%); /* Success/OK Accent */
     --accent-orange: hsl(30, 90%, 55%); /* Warning/Cancel Accent */
     --accent-red: hsl(0, 80%, 55%);    /* Critical Alert/Danger Accent */
@@ -21,6 +22,7 @@
     /* TINTS for Hover Fill Effect (Used for button fills) */
     --tint-primary: hsl(320, 20%, 30%);
     --tint-secondary: hsl(175, 60%, 30%);
+    --tint-blue: hsl(210, 60%, 30%);
     --tint-green: hsl(120, 20%, 30%); 
     --tint-orange: hsl(30, 20%, 30%); 
     --tint-red: hsl(0, 20%, 30%);      
@@ -33,6 +35,11 @@
     --padding-base: 1.5rem;
     --radius-xl: 1.25rem; /* Very rounded corners for cards/header */
     --width-main: 100vw;
+
+    /* Define available colors here to make them available for filter buttons.
+       Avoid adding or removing items from this list to preserve backwards compatability.
+    */
+    --theme-color-list: btn-primary btn-secondary btn-green btn-orange btn-red btn-yellow;
 }
 
 /* --- BASE STYLES --- */
@@ -135,6 +142,14 @@ p {
 .btn-primary {
     --accent-color: var(--accent-primary);
     --tint-color: var(--tint-primary);
+}
+.btn-secondary {
+    --accent-color: var(--accent-secondary);
+    --tint-color: var(--tint-secondary);
+}
+.btn-blue {
+    --accent-color: var(--accent-blue);
+    --tint-color: var(--tint-blue);
 }
 .btn-green {
     --accent-color: var(--accent-green);

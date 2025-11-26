@@ -70,7 +70,7 @@ def read_images(
     last_id: Optional[int] = Query(None, description="ID of the last item from the previous page for cursor-based pagination"),
     last_sort_value: Optional[str] = Query(None, description="Value of the sort_by column for the last_id item (for stable pagination)"),
     db: Session = Depends(database.get_db),
-    filter: List[int] = Query(None),
+    active_stages_json: Optional[str] = Query(None, description="JSON string of active filter stages, e.g., '{\"1\":0, \"2\":1}'"),
     trash_only: bool = Query(False, description="If true, only returns images marked as deleted."),
     current_user: models.User = Depends(auth.get_current_user),
 ):
@@ -92,7 +92,7 @@ def read_images(
         # If not viewing trash, filter out deleted items and apply search/filter criteria
         query = query.filter(models.ImageLocation.deleted == False)
         # Apply search filter if provided
-        query = query.filter(generate_image_search_filter(search_terms=search_query, admin=current_user.admin, filters=filter, db=db))
+        query = query.filter(generate_image_search_filter(search_terms=search_query, admin=current_user.admin, active_stages_json=active_stages_json, db=db))
 
     # Apply cursor-based pagination (Keyset Pagination)
     if last_id is not None and last_sort_value is not None:

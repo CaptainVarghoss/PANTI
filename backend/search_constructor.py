@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, and_, not_
 from sqlalchemy.sql import expression
 from models import ImageContent, Tag, ImagePath, Filter, ImageLocation
-import database
+import database, json
 
 # --- Token Definitions for Lexical Analysis ---
 # These constants define the types of tokens our tokenizer will recognize.
@@ -374,10 +374,11 @@ def build_sqlalchemy_filter(node: Node, ImageContent, Tag, ImageLocation):
 def generate_image_search_filter(
     search_terms: str,
     admin: bool = False,
-    filters: list[int] | None = None,
+    active_stages_json: str | None = None,
     db: Session = Depends(database.get_db)
 ):
     """
+    ... (docstring)
     Parses a complex search string and generates a SQLAlchemy query filter
     that can be applied to an Image query.
 
@@ -389,7 +390,8 @@ def generate_image_search_filter(
     - Partial word matches for unquoted terms.
     - Searches across `ImageModel.meta`, `ImageModel.folder`, and `ImageModel.tags_relationship`
       (which queries `TagModel.name`).
-    - Applies filters defined in the `Filter` table, respecting `admin_only` and `reverse` flags.
+    - Applies filters defined in the `Filter` table, respecting `admin_only` and the active stage
+      ('hide', 'show', 'show_only').
 
     Args:
         search_terms (str): The search query string provided by the user.
@@ -408,90 +410,87 @@ def generate_image_search_filter(
     # Start with a filter derived from the search terms
     ast_filter = expression.true() # Default if search_terms are empty or syntax error
 
-    # Initialize a clause for combined programmatic filters
-    combined_db_filters_clause = expression.true()
+    # This will hold clauses for 'hide' and 'show_only' filters
+    db_filter_clauses = []
 
-    # This will hold search terms from all active filters
-    filter_search_terms = None
+    # This will hold the final filter clauses for each 'show_only' filter
+    show_only_clauses = []
+
+    # Parse the active stages JSON from the query parameter
+    active_stages = {}
+    if active_stages_json and active_stages_json != 'null':
+        try:
+            active_stages = json.loads(active_stages_json)
+        except json.JSONDecodeError:
+            print(f"Warning: Could not decode active_stages_json: {active_stages_json}")
+            active_stages = {}
 
     # Fetch filters from the database
     db_filters = db.query(Filter).options(joinedload(Filter.tags), joinedload(Filter.neg_tags)).all()
 
     for f in db_filters:
-        # Check admin_only restriction first
         if f.admin_only and not admin:
-            continue # Skip this filter if it's admin-only and the user is not an admin
+            continue
 
-        # Determine if this filter is active based on the 'filters' ID list from the query
-        is_filter_active = f.id in filters if filters else False
+        # Determine the active stage for this filter
+        stage_index = active_stages.get(str(f.id)) # JSON keys are strings
+        stage_map = {0: f.main_stage, 1: f.second_stage, 2: f.third_stage}
+        active_stage = stage_map.get(stage_index)
 
-        # If the filter is not enabled and not active via query params, skip it.
-        if not f.enabled and not is_filter_active:
-            continue # Skip to the next filter if it's not meant to be applied
+        if not active_stage or active_stage == 'disabled':
+            continue
 
-        # --- Build the core filter clause for this Filter entry ---
-        current_filter_clause_positive = expression.true()
+        # --- Build the positive and negative criteria for this filter ---
+        positive_criteria_parts = []
+        negative_criteria = expression.false() # An image matches the negative criteria if it has ANY of the neg_tags
 
-        # Handle f.keywords (string field, still needs tokenization/parsing)
+        # Positive: search_terms
         if f.search_terms:
-            filter_search_terms = (filter_search_terms or "") + " " + f.search_terms
+            try:
+                tokens = tokenize(f.search_terms)
+                if tokens:
+                    parser = Parser(tokens)
+                    ast = parser.parse()
+                    positive_criteria_parts.append(build_sqlalchemy_filter(ast, ImageContent, Tag, ImageLocation))
+            except SyntaxError:
+                # Ignore malformed search_terms in a filter
+                pass
 
-        # Tags
+        # Positive: tags
         if f.tags:
-            tag_conditions = []
-            for tag_obj in f.tags:
-                tag_conditions.append(Tag.id == tag_obj.id)
+            tag_ids = [tag.id for tag in f.tags]
+            positive_criteria_parts.append(ImageContent.tags.any(Tag.id.in_(tag_ids)))
 
-            if tag_conditions:
-                # Image must have ANY of these tags
-                tags_positive_clause = ImageContent.tags.any(or_(*tag_conditions))
-                current_filter_clause_positive = and_(current_filter_clause_positive, tags_positive_clause)
-
-        # Negative tags
-        negative_tags_clause = expression.true()
+        # Negative: neg_tags
         if f.neg_tags:
-            negative_tag_conditions = []
-            for neg_tag_obj in f.neg_tags:
-                # The image must NOT have this specific negative tag
-                negative_tag_conditions.append(Tag.id == neg_tag_obj.id)
+            neg_tag_ids = [tag.id for tag in f.neg_tags]
+            negative_criteria = ImageContent.tags.any(Tag.id.in_(neg_tag_ids))
 
-            if negative_tag_conditions:
-                # The image must NOT have ANY of these negative tags
-                negative_tags_clause = not_(ImageContent.tags.any(or_(*negative_tag_conditions)))
+        # Combine all positive criteria with OR. An image matches if it meets ANY positive criterion.
+        positive_criteria = or_(*positive_criteria_parts) if positive_criteria_parts else expression.false()
 
-        # Combine positive filter conditions with negative tag conditions for this specific filter
-        # An image must match the positive criteria AND not match any negative tags
-        final_current_filter_clause = and_(current_filter_clause_positive, negative_tags_clause)
+        # --- Apply logic based on the active stage ---
+        # The core logic for a filter is "matches positive criteria AND does NOT match negative criteria"
+        filter_core_logic = and_(positive_criteria, not_(negative_criteria))
 
-        # Determine the stage to use: if the filter is activated by the user, use the second stage.
-        # Otherwise, use the main (default) stage.
-        active_stage = f.second_stage if is_filter_active else f.main_stage
-
-        if active_stage == "hide":
-            # HIDE: The results must NOT match this filter's criteria.
-            combined_db_filters_clause = and_(combined_db_filters_clause, not_(final_current_filter_clause))
-        elif active_stage == "show":
-            # SHOW: The results MUST match this filter's criteria.
-            combined_db_filters_clause = and_(combined_db_filters_clause, final_current_filter_clause)
-        # "show_only" and "disabled" stages don't add to the search filter here,
-        # as their logic is primarily for UI display and what gets returned, not for filtering the query itself.
+        if active_stage == 'hide':
+            # HIDE: Exclude images that match the core logic.
+            # This means we want `not(filter_core_logic)`
+            db_filter_clauses.append(not_(filter_core_logic))
+        elif active_stage == 'show_only':
+            # SHOW_ONLY: Results MUST match the core logic.
+            # We collect these and will OR them together later.
+            show_only_clauses.append(filter_core_logic)
+        elif active_stage == 'show':
+            # SHOW: This filter has no effect on the query.
+            pass
 
     # Apply global admin_only filters for ImagePath and Tags if `admin` is False
     global_admin_filter = expression.true() # Starts as true
     if not admin:
-        # Condition 1: Ensure the associated ImagePath is NOT admin_only.
-        # This condition relies on ImagePath being outer joined to the Image query.
-        # We use a direct filter on ImagePath.admin_only
         global_admin_filter = and_(global_admin_filter, ImagePath.admin_only == False)
-
-        # Condition 2: Ensure NONE of the associated Tags are admin_only.
-        # This is achieved by checking that there isn't `any` tag linked to the image
-        # that has `admin_only` set to `True`.
         global_admin_filter = and_(global_admin_filter,
                                    not_(ImageContent.tags.any(Tag.admin_only == True)))
-
-    if filter_search_terms:
-        search_terms = (search_terms or "") + " " + filter_search_terms
 
     if search_terms:
 
@@ -507,9 +506,14 @@ def generate_image_search_filter(
             print(f"Search query parsing error: {e}")
             return expression.false()
 
-    # Combine all parts: AST-derived filter (from user search_terms),
-    # global admin filter, and database-defined filters.
-    # The order of combination (ANDing) ensures all conditions are met.
-    final_filter_clause = and_(ast_filter, global_admin_filter, combined_db_filters_clause)
+    # Start with the user's search query and global admin restrictions
+    final_filter_clause = and_(ast_filter, global_admin_filter)
+
+    # If there are any 'show_only' filters active, the results must match AT LEAST ONE of them.
+    if show_only_clauses:
+        final_filter_clause = and_(final_filter_clause, or_(*show_only_clauses))
+
+    # Apply all other filter clauses (e.g., 'hide' filters)
+    final_filter_clause = and_(final_filter_clause, *db_filter_clauses)
 
     return final_filter_clause

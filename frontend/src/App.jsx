@@ -146,7 +146,7 @@ function App() {
       if (typeof handleSearchAndSortChange === 'function') {
           handleSearchAndSortChange(debouncedSearchTerm, sortBy, sortOrder);
       }
-  }, [debouncedSearchTerm, sortBy, sortOrder, handleSearchAndSortChange]);
+  }, [debouncedSearchTerm, sortBy, sortOrder, handleSearchAndSortChange, filters]);
 
   useEffect(() => {
     if (!isAuthenticated) { return }
