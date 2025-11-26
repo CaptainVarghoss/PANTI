@@ -380,8 +380,8 @@ function FilterManager({filters, setFilters}) {
                                                 </div>
                                                 <div className="form-group form-group-full">
                                                     <label>Search Terms</label>
-                                                    <input
-                                                        type="text"
+                                                    <textarea
+                                                        rows="3"
                                                         value={filter.search_terms || ''}
                                                         onChange={(e) => handleInputChange(filter.id, 'search_terms', e.target.value)}
                                                         className="form-input-base"
@@ -485,6 +485,7 @@ function FilterManager({filters, setFilters}) {
                                                     <label>Name</label>
                                                     <input
                                                         type="text"
+                                                        placeholder="Filter Name"
                                                         value={newFilter.name}
                                                         onChange={(e) => handleNewFilterChange('name', e.target.value)}
                                                         className="form-input-base"
@@ -493,8 +494,9 @@ function FilterManager({filters, setFilters}) {
                                                 </div>
                                                 <div className="form-group form-group-full">
                                                     <label>Search Terms</label>
-                                                    <input
-                                                        type="text"
+                                                    <textarea
+                                                        rows="3"
+                                                        placeholder="List of search terms."
                                                         value={newFilter.search_terms}
                                                         onChange={(e) => handleNewFilterChange('search_terms', e.target.value)}
                                                         className="form-input-base"
