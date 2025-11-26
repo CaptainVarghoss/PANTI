@@ -253,7 +253,11 @@ function FilterManager({filters, setFilters}) {
             // Notify parent to refetch
             const response = await fetch('/api/filters/', { headers: { 'Authorization': `Bearer ${token}` } });
             const updatedFilters = await response.json();
-            setFilters(updatedFilters);
+            
+            // Re-initialize filters with activeStageIndex before updating the parent state
+            const initializedFilters = updatedFilters.map(f => ({ ...f, activeStageIndex: f.enabled ? 0 : -1 }));
+
+            setFilters(initializedFilters);
 
         } catch (err) {
             setError(err.message || 'An error occurred while saving changes.');
