@@ -67,39 +67,41 @@ const MoveFilesForm = ({ filesToMove, onMoveSuccess, onClose }) => {
     };
 
     return (
-        <>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--accent-primary)' }}>
-                Move Selected Files
-            </h3>
-            <p style={{ marginBottom: '1.5rem', color: 'var(--text-muted)', fontSize: '1rem' }}>
-                Select a destination folder to move the {filesToMove.length} selected item(s).
-            </p>
+        <section>
+            <div className="section-container">
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--accent-primary)' }}>
+                    Move Selected Files
+                </h3>
+                <p style={{ marginBottom: '1.5rem', color: 'var(--text-muted)', fontSize: '1rem' }}>
+                    Select a destination folder to move the {filesToMove.length} selected item(s).
+                </p>
 
-            <div className="folder-list-container">
-                {folders.length > 0 ? (
-                    <ul className="folder-list">
-                        {folders.map((folder) => (
-                            <li
-                                key={folder.path}
-                                className={`folder-list-item ${selectedFolder === folder.path ? 'active' : ''}`}
-                                onClick={() => setSelectedFolder(folder.path)}
-                            >
-                                {folder.path}
-                            </li>
-                        ))}
-                    </ul>
-                ) : (
-                    <p>No destination folders available.</p>
-                )}
+                <div className="folder-list-container">
+                    {folders.length > 0 ? (
+                        <ul className="folder-list">
+                            {folders.map((folder) => (
+                                <li
+                                    key={folder.path}
+                                    className={`folder-list-item ${selectedFolder === folder.path ? 'active' : ''}`}
+                                    onClick={() => setSelectedFolder(folder.path)}
+                                >
+                                    {folder.path}
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p>No destination folders available.</p>
+                    )}
+                </div>
+
+                {error && <p style={{ color: 'var(--accent-red)', marginBottom: '1rem' }}>{error}</p>}
+
+                <div className="section-footer" style={{justifyContent: 'space-between'}}>
+                    <button className="btn-base btn-orange" onClick={onClose} disabled={isLoading}>Cancel</button>
+                    <button className="btn-base btn-green" onClick={handleMoveConfirm} disabled={isLoading || !selectedFolder}>{isLoading ? 'Moving...' : 'Move'}</button>
+                </div>
             </div>
-
-            {error && <p style={{ color: 'var(--accent-red)', marginBottom: '1rem' }}>{error}</p>}
-
-            <div className="modal-footer">
-                <button className="btn-base btn-orange" onClick={onClose} disabled={isLoading}>Cancel</button>
-                <button className="btn-base btn-green" onClick={handleMoveConfirm} disabled={isLoading || !selectedFolder}>{isLoading ? 'Moving...' : 'Move'}</button>
-            </div>
-        </>
+        </section>
     );
 };
 

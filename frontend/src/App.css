@@ -934,7 +934,8 @@ form .section-list .section-item .section-fields:nth-child(3) {
 }
 
 .folder-list-item:hover {
-    background-color: hsl(240, 10%, 35%);
+    background-color: var(--accent-primary);
+    color: var(--color-primary);
     border-color: var(--border-color);
 }
 
