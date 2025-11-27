@@ -113,7 +113,7 @@ TagCluster.Display = function TagDisplay({ type, itemId }) {
  * @param {number} itemId - The ID of the item.
  * @param {Function} onClose - Callback to close the popup.
  */
-TagCluster.Popup = function TagPopup({ type, itemId, onClose }) {
+TagCluster.Popup = function TagPopup({ type, itemId, onClose, onTagSelect }) {
     const { token, isAdmin, settings } = useAuth();
     const wrapperRef = useRef(null);
     useOutsideAlerter(wrapperRef, onClose);
@@ -168,6 +168,12 @@ TagCluster.Popup = function TagPopup({ type, itemId, onClose }) {
     }, [type, itemId, token]);
 
     const handleTagToggle = useCallback(async (tag) => {
+        // If onTagSelect is provided, we are in selection mode for the search bar.
+        if (onTagSelect) {
+            onTagSelect(tag);
+            return; // Don't proceed with updating tags on an item.
+        }
+
         const newActiveTagIds = new Set(activeTagIds);
         if (newActiveTagIds.has(tag.id)) {
             newActiveTagIds.delete(tag.id);
@@ -219,7 +225,7 @@ TagCluster.Popup = function TagPopup({ type, itemId, onClose }) {
             setError(err.message);
             // Revert optimistic update on error (optional, could refetch)
         }
-    }, [activeTagIds, type, itemId, token]);
+    }, [activeTagIds, type, itemId, token, onTagSelect]);
 
     if (!canModifyTags) {
         return <div ref={wrapperRef} className="tag-cluster-popup">

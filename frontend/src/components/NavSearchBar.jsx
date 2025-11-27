@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback} from 'react';
 import { IoMdCloseCircle } from "react-icons/io";
+import TagCluster from './TagCluster';
+import { useAuth } from '../context/AuthContext';
+import ContextMenu from './ContextMenu';
 
 /**
  * A search bar component for the navigation bar.
@@ -21,9 +24,36 @@ function NavSearchBar({
     setSortBy,
     setSortOrder
 }) {
+    const { token } = useAuth();
     const [inputValue, setInputValue] = useState(searchTerm);
     const debounceDelay = 300; // delay in ms
 
+    const [suggestions, setSuggestions] = useState([]);
+    const [activeSuggestionType, setActiveSuggestionType] = useState(null);
+    const searchWrapperRef = useRef(null);
+    const [contextMenu, setContextMenu] = useState({
+        isVisible: false,
+        x: 0,
+        y: 0,
+        items: [],
+    });
+
+    const resetSuggestions = useCallback(() => {
+        setSuggestions([]);
+        setActiveSuggestionType(null);
+    }, []);
+
+    // Effect to handle clicks outside the search bar to close suggestions
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (searchWrapperRef.current && !searchWrapperRef.current.contains(event.target)) {
+                setContextMenu(prev => ({ ...prev, isVisible: false }));
+                resetSuggestions();
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [resetSuggestions]);
     
 
     // Debounce the update to the parent component's state
@@ -45,6 +75,65 @@ function NavSearchBar({
         setInputValue(searchTerm);
     }, [searchTerm]); 
 
+    // Effect for autocomplete suggestions
+    useEffect(() => {
+        const handleAutocomplete = async () => {
+            const lastPart = inputValue.substring(inputValue.lastIndexOf(' ') + 1);
+            const lowerLastPart = lastPart.toLowerCase();
+
+            if (lowerLastPart === 'tag:') {
+                setActiveSuggestionType('TAG');
+                setSuggestions([]); // TagCluster will be shown directly
+            } else if (lowerLastPart === 'folder:') {
+                const searchInput = searchWrapperRef.current.querySelector('input');
+                const rect = searchInput.getBoundingClientRect();
+                setActiveSuggestionType('FOLDER');
+                try {
+                    const response = await fetch('/api/folders/', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        const menuItems = data.folders.map(f => ({
+                            label: f.short_name || f.path,
+                            action: 'select_folder',
+                            value: f.path
+                        }));
+                        setContextMenu({ isVisible: true, x: rect.left, y: rect.bottom, items: menuItems });
+                        setSuggestions([]); // We are using context menu instead
+                    }
+                } catch (error) {
+                    console.error("Failed to fetch folders for autocomplete", error);
+                }
+            } else {
+                resetSuggestions();
+            }
+        };
+
+        handleAutocomplete();
+    }, [inputValue, token, resetSuggestions]);
+    
+    const handleFolderSelect = (folderPath) => {
+        const baseInput = inputValue.substring(0, inputValue.lastIndexOf(' ') + 1);
+        // Quote the suggestion if it contains spaces
+        const suggestionValue = folderPath.includes(' ') ? `"${folderPath}"` : folderPath;
+        setInputValue(`${baseInput}FOLDER:${suggestionValue} `);
+        setContextMenu(prev => ({ ...prev, isVisible: false }));
+        searchWrapperRef.current.querySelector('input').focus();
+        resetSuggestions();
+    };
+
+    const handleTagSelect = (tag) => {
+        const baseInput = inputValue.substring(0, inputValue.lastIndexOf(' '));
+        const tagValue = tag.name.includes(' ') ? `"${tag.name}"` : tag.name;
+        
+        // Replace 'tag:' with the selected tag
+        const newInputValue = inputValue.replace(/tag:$/i, `TAG:${tagValue} `);
+
+        setInputValue(newInputValue);
+        resetSuggestions();
+    };
+
     const handleClear = () => {
         setInputValue('');
         // Update parent immediately for a responsive clear action
@@ -54,14 +143,14 @@ function NavSearchBar({
     };
 
     return (
-        <div className="navbar-search-wrapper">
-           
+        <div className="navbar-search-wrapper" ref={searchWrapperRef} style={{ position: 'relative' }}>
             <input
                 type="text"
-                placeholder="Search images..."
+                placeholder="Search images... (try 'TAG:' or 'FOLDER:')"
                 className="form-input-base"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
+                autoComplete="off"
             />
             {inputValue && (
                 <button
@@ -71,6 +160,23 @@ function NavSearchBar({
                 >
                     <IoMdCloseCircle size={20} />
                 </button>
+            )}
+
+            {activeSuggestionType === 'TAG' && (
+                <div className="autocomplete-popup">
+                    <TagCluster.Popup type="image_tags" itemId={null} onClose={resetSuggestions} onTagSelect={handleTagSelect} />
+                </div>
+            )}
+
+            {contextMenu.isVisible && activeSuggestionType === 'FOLDER' && (
+                <ContextMenu
+                    isOpen={contextMenu.isVisible}
+                    x={contextMenu.x}
+                    y={contextMenu.y}
+                    onClose={() => setContextMenu(prev => ({ ...prev, isVisible: false }))}
+                    onMenuItemClick={(action, data) => handleFolderSelect(data.value)}
+                    menuItems={contextMenu.items}
+                />
             )}
         </div>
     );
