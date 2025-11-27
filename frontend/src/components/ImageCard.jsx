@@ -1,4 +1,4 @@
-import React, { forwardRef, useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, forwardRef } from 'react';
 
 /**
  * Renders a single image card with its thumbnail and filename.
@@ -9,7 +9,7 @@ import React, { forwardRef, useState, useEffect, useRef } from 'react';
  */
 const ImageCard = forwardRef(({ image, onClick, onContextMenu, refreshKey, isSelected }, ref) => {
   const [isLoading, setIsLoading] = useState(true);
-  const [thumbnailUrl, setThumbnailUrl] = useState(`/api/thumbnails/${image.id}`);
+  const [thumbnailUrl, setThumbnailUrl] = useState(null);
   const retryTimeoutRef = useRef(null);
 
   const handleImageLoad = () => {
@@ -34,6 +34,12 @@ const ImageCard = forwardRef(({ image, onClick, onContextMenu, refreshKey, isSel
   };
 
   useEffect(() => {
+    // Set initial URL
+    setThumbnailUrl(`/api/thumbnails/${image.id}`);
+  }, [image.id]);
+
+
+  useEffect(() => {
     // When the refreshKey changes, it means a new thumbnail might be available.
     // Appending a timestamp to the URL forces the browser to reload the image.
     setThumbnailUrl(`/api/thumbnails/${image.id}?t=${new Date().getTime()}`);
@@ -48,10 +54,12 @@ const ImageCard = forwardRef(({ image, onClick, onContextMenu, refreshKey, isSel
 
   return (
     <div
-      ref={ref}
+      ref={ref} // The ref for infinite scroll is now passed here
       key={image.id}
       className={`btn-base btn-primary image-card ${isSelected ? 'selected' : ''}`}
-      onClick={() => onClick(image)}>
+      onClick={() => onClick(image)}
+      style={{ transition: 'transform 0.3s ease-in-out, opacity 0.3s ease-in-out' }}
+    >
       <div className="image-card-inner">
         {thumbnailUrl && (
           <img
