@@ -879,7 +879,7 @@ form .section-list .section-item .section-fields:nth-child(3) {
     border-style: solid;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
     z-index: 100;
-    min-width: 160px;
+    width: 10rem;
     padding: 0.5rem 0;
     list-style: none; /* Remove default list styling */
 }
@@ -963,6 +963,15 @@ form .section-list .section-item .section-fields:nth-child(3) {
     flex-wrap: wrap;
     gap: 0.5rem;
     width: 15rem;
+}
+
+.context-menu .tag-cluster-popup {
+  position: unset;
+  top: unset;
+  right: unset;
+  width: unset;
+  border: none;
+  box-shadow: none;
 }
 
 .autocomplete-popup .tag-cluster-popup {
