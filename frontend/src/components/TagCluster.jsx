@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { IoClose } from 'react-icons/io5';
+import { IoClose, IoAddCircleOutline, IoRemoveCircleOutline } from 'react-icons/io5';
 
 
 /**
@@ -122,6 +122,8 @@ TagCluster.Popup = function TagPopup({ type, itemId, onClose, onTagSelect }) {
     const [allTags, setAllTags] = useState([]);
     const [activeTagIds, setActiveTagIds] = useState(new Set());
     const [error, setError] = useState(null);
+    const [newTagName, setNewTagName] = useState('');
+    const [showCreateForm, setShowCreateForm] = useState(false);
 
     const canModifyTags = isAdmin || (settings?.allow_tag_add === true);
 
@@ -129,13 +131,10 @@ TagCluster.Popup = function TagPopup({ type, itemId, onClose, onTagSelect }) {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // Fetch all tags
-                const tagsResponse = await fetch('/api/tags/', { headers: { 'Authorization': `Bearer ${token}` } });
-                if (!tagsResponse.ok) throw new Error('Failed to fetch all tags');
-                const tagsData = await tagsResponse.json();
-                setAllTags(tagsData);
+                // Fetch all tags (this part is extracted to be reusable)
+                await fetchAllTags();
 
-                // Fetch the specific filter to get its current tags
+                // Fetch the specific item's current tags based on type
                 if (type.startsWith('filter') && itemId) {
                     const filterResponse = await fetch(`/api/filters/${itemId}`, { headers: { 'Authorization': `Bearer ${token}` } });
                     if (!filterResponse.ok) throw new Error('Failed to fetch filter details');
@@ -167,6 +166,14 @@ TagCluster.Popup = function TagPopup({ type, itemId, onClose, onTagSelect }) {
         };
         fetchData();
     }, [type, itemId, token]);
+
+    // Function to fetch all tags, can be called independently
+    const fetchAllTags = async () => {
+        const tagsResponse = await fetch('/api/tags/', { headers: { 'Authorization': `Bearer ${token}` } });
+        if (!tagsResponse.ok) throw new Error('Failed to fetch all tags');
+        const tagsData = await tagsResponse.json();
+        setAllTags(tagsData);
+    };
 
     const handleTagToggle = useCallback(async (tag) => {
         // If onTagSelect is provided, we are in selection mode for the search bar.
@@ -228,6 +235,35 @@ TagCluster.Popup = function TagPopup({ type, itemId, onClose, onTagSelect }) {
         }
     }, [activeTagIds, type, itemId, token, onTagSelect]);
 
+    const handleCreateTag = async (e) => {
+        e.preventDefault();
+        if (!newTagName.trim() || !canModifyTags) return;
+
+        try {
+            const response = await fetch('/api/tags/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({ name: newTagName.trim() }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Failed to create tag.');
+            }
+
+            // Clear the input and refetch all tags to show the new one
+            setNewTagName('');
+            await fetchAllTags();
+
+        } catch (err) {
+            setError(err.message);
+            // Optionally, provide more specific feedback to the user
+        }
+    };
+
     if (!canModifyTags) {
         return <div ref={wrapperRef} className="tag-cluster-popup">
             <p className="error-text">You do not have permission to modify tags.</p>
@@ -254,6 +290,35 @@ TagCluster.Popup = function TagPopup({ type, itemId, onClose, onTagSelect }) {
                     </span>
                 );
             })}
+            {canModifyTags && (
+                <div className="tag-create-container">
+                    <div className={`tag-create-form-wrapper ${showCreateForm ? 'visible' : ''}`}>
+                        <form onSubmit={handleCreateTag} className="tag-create-form">
+                            <input
+                                type="text"
+                                value={newTagName}
+                                onChange={(e) => setNewTagName(e.target.value)}
+                                placeholder="Create new tag..."
+                                className="form-input-base"
+                            />
+                            <button
+                                type="submit"
+                                disabled={!newTagName.trim()}
+                                className="btn-base btn-green"
+                            >
+                                Add
+                            </button>
+                        </form>
+                    </div>
+                    <button
+                        className="tag-create-toggle-btn"
+                        onClick={() => setShowCreateForm(prev => !prev)}
+                        title={showCreateForm ? "Hide form" : "Create new tag"}
+                    >
+                        {showCreateForm ? <IoRemoveCircleOutline size={24} /> : <IoAddCircleOutline size={24} />}
+                    </button>
+                </div>
+            )}
         </div>
     );
 }

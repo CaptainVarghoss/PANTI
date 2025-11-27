@@ -950,7 +950,7 @@ form .section-list .section-item .section-fields:nth-child(3) {
 
 /* --- TAG CLUSTER POPUP --- */
 .tag-cluster-popup {
-    position: absolute;
+    position: relative; /* Changed to relative for positioning children */
     top: 3.5rem; /* Position below the button with a small gap */
     right: 1rem;
     z-index: 30;
@@ -963,6 +963,63 @@ form .section-list .section-item .section-fields:nth-child(3) {
     flex-wrap: wrap;
     gap: 0.5rem;
     width: 15rem;
+}
+
+.tag-create-container {
+    width: 100%;
+    position: relative;
+    padding-bottom: 2rem;
+}
+
+.tag-create-form-wrapper {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out, margin-top 0.3s ease-in-out;
+}
+
+.tag-create-form-wrapper.visible {
+    max-height: 100px; /* Adjust if form becomes taller */
+    opacity: 1;
+    margin-top: 0.5rem;
+}
+
+.tag-create-form {
+    display: flex;
+    flex-flow: column;
+    gap: 0.5rem;
+    width: 100%;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.tag-create-form input {
+    flex-grow: 1;
+    height: 2rem;
+    padding: 0 0.75rem;
+    font-size: 0.875rem;
+    width: -webkit-fill-available;
+}
+
+.tag-create-form button {
+    flex-shrink: 0;
+}
+
+.tag-create-toggle-btn {
+    position: absolute;
+    bottom: -0.25rem;
+    right: -0.25rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.tag-create-toggle-btn:hover {
+    color: var(--accent-green);
+    transform: scale(1.1);
 }
 
 .tag-cluster-close-btn {
