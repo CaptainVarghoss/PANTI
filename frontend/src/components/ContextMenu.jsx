@@ -5,6 +5,7 @@ import TagCluster from './TagCluster';
 const ContextMenu = ({ x, y, isOpen, onClose, thumbnailData, onMenuItemClick, menuItems, images }) => {
   const menuRef = useRef(null);
   const [showTagCluster, setShowTagCluster] = useState(false);
+  const prevIsOpenRef = useRef(isOpen);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -22,6 +23,12 @@ const ContextMenu = ({ x, y, isOpen, onClose, thumbnailData, onMenuItemClick, me
     if (thumbnailData && images && !images.find(img => img.id === thumbnailData.id)) {
       onClose();
     }
+
+    // Reset the tag cluster view only when the menu is newly opened, not on every re-render.
+    if (isOpen && !prevIsOpenRef.current) {
+      setShowTagCluster(false);
+    }
+    prevIsOpenRef.current = isOpen;
 
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
