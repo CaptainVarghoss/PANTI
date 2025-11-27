@@ -460,12 +460,54 @@ function ImageGrid({
               : img
           )
         );
-      } else {
-        // This is a general refresh (e.g., for a new image added). Refetch the first page.
-        console.log("WebSocket: Received general refresh_images message. Refetching first page.");
-        // This will replace the current images with the most up-to-date list from the server,
-        // automatically including new images and excluding ones that no longer match the filter.
-        fetchImages(null, null, searchTerm, sortBy, sortOrder);
+      } else { // Handle general refresh (image_added, images_moved, etc.)
+        console.log("WebSocket: Received general refresh_images message. Merging new images into grid.");
+
+        // Fetch the first page of images in the background without clearing the current view
+        const fetchUpdatedImageList = async () => {
+          const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+          const queryString = new URLSearchParams();
+          // Fetch a list of the same size as the currently loaded images to accurately determine removals.
+          // Ensure we fetch at least one page's worth of images.
+          queryString.append('limit', Math.max(images.length, imagesPerPage));
+          queryString.append('sort_by', sortBy);
+          queryString.append('sort_order', sortOrder);
+          if (searchTerm) queryString.append('search_query', searchTerm);
+          if (trash_only) queryString.append('trash_only', 'true');
+          if (filters) {
+            const activeStages = {};
+            filters.forEach(filter => {
+              if (filter.activeStageIndex !== -1) activeStages[filter.id] = filter.activeStageIndex;
+            });
+            if (Object.keys(activeStages).length > 0) queryString.append('active_stages_json', JSON.stringify(activeStages));
+          }
+
+          try {
+            const response = await fetch(`/api/images/?${queryString.toString()}`, { headers });
+            if (!response.ok) throw new Error('Failed to fetch updated images');
+            const newImages = await response.json();
+
+            setImages(prevImages => {
+              const newImageIds = new Set(newImages.map(img => img.id));
+
+              // Combine new images with previous images to get a complete list.
+              // Place new images first to ensure they appear at the top if the sort order dictates.
+              const combined = [...newImages, ...prevImages];
+
+              // Use a Map to ensure uniqueness, preserving the order from the combined array.
+              // The first occurrence of an image (from `newImages`) will be kept.
+              const uniqueImages = Array.from(new Map(combined.map(item => [item.id, item])).values());
+
+              // Filter this unique list to only include images that are present in the latest fetch.
+              // This correctly removes images that have been filtered out, while preserving the order of the rest.
+              return uniqueImages.filter(img => newImageIds.has(img.id));
+            });
+          } catch (error) {
+            console.error("Error fetching images for WebSocket merge:", error);
+          }
+        };
+
+        fetchUpdatedImageList();
       }
 
     } else if (type === 'image_deleted') {
