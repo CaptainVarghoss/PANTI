@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import ConfirmationDialog from './ConfirmDialog';
-import { getStyles } from '../helpers/color_helper';
 import { useAuth } from '../context/AuthContext';
 import { MdDelete } from "react-icons/md";
 import IconPicker from './IconPicker'; // Import the new component
+import TagCluster from './TagCluster';
 import * as MdIcons from 'react-icons/md'; // Import all icons to render them
 
 /**
@@ -110,6 +110,7 @@ function FilterManager({filters, setFilters}) {
 
     // Initialize state directly from the prop to ensure it has data on the first render.
     const [editableFilters, setEditableFilters] = useState(() => JSON.parse(JSON.stringify(filters)));
+
     const [newFilter, setNewFilter] = useState({
         name: '', search_terms: '', enabled: false, header_display: false, admin_only: false,
         main_stage: 'hide', main_stage_color: '', main_stage_icon: '', // Default unique values
@@ -122,6 +123,9 @@ function FilterManager({filters, setFilters}) {
     const [message, setMessage] = useState(null);
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
     const [filterToDelete, setFilterToDelete] = useState('');
+
+    // State to manage which tag picker is open
+    const [openTagPicker, setOpenTagPicker] = useState({ filterId: null, type: null });
 
     // State for the Icon Picker
     const [isIconPickerOpen, setIsIconPickerOpen] = useState(false);
@@ -139,7 +143,13 @@ function FilterManager({filters, setFilters}) {
     // Fetch theme colors from CSS on component mount
     useEffect(() => {
         setThemeColors(getThemeColors());
-    }, []);
+    }, [token]);
+
+    // This effect ensures that if the original `filters` prop changes (e.g., after a save),
+    // the local editable state is reset and re-synced.
+    useEffect(() => {
+        setEditableFilters(JSON.parse(JSON.stringify(filters)));
+    }, [filters]);
 
     const handleInputChange = (id, field, value) => {
         setEditableFilters(prev => prev.map(filter => {
@@ -184,10 +194,6 @@ function FilterManager({filters, setFilters}) {
         }
         closeIconPicker();
     };
-    useEffect(() => {
-        // This effect now correctly handles *updates* to the filters prop after the initial render.
-        setEditableFilters(JSON.parse(JSON.stringify(filters)));
-    }, [filters]);
 
     const handleNewFilterChange = (field, value) => {
         setNewFilter(prevFilter => {
@@ -341,7 +347,8 @@ function FilterManager({filters, setFilters}) {
         setFilterToDelete(filterId);
         setShowConfirmDialog(true);
     };
-
+    
+    // A simple, direct comparison between the original filters prop and the local editable state.
     const hasUnsavedChanges = JSON.stringify(filters) !== JSON.stringify(editableFilters);
 
     return (
@@ -435,6 +442,36 @@ function FilterManager({filters, setFilters}) {
                                                 )}
                                             </div>
                                         </div>
+                                        <div className="section-row">
+                                            <div className="section-fields">
+                                                <div className="form-group">
+                                                    <label>Tags</label>
+                                                     <TagCluster.Display type="filter_tags" itemId={filter.id} />
+                                                </div>
+                                            </div>
+                                            <div className="section-fields" style={{ position: 'relative' }}>
+                                                <button type="button" className="btn-base" onClick={() => setOpenTagPicker(prev => (prev.filterId === filter.id && prev.type === 'tags') ? { filterId: null, type: null } : { filterId: filter.id, type: 'tags' })}>
+                                                    Change Tags
+                                                </button>
+                                                {openTagPicker.filterId === filter.id && openTagPicker.type === 'tags' && ( <TagCluster.Popup type="filter_tags" itemId={filter.id} onClose={() => setOpenTagPicker({ filterId: null, type: null })} /> )}
+                                            </div>
+                                        </div>
+
+                                        <div className="section-row">
+                                            <div className="section-fields">
+                                                <div className="form-group">
+                                                    <label>Negative Tags</label>
+                                                     <TagCluster.Display type="filter_neg_tags" itemId={filter.id} />
+                                                </div>
+                                            </div>
+                                            <div className="section-fields" style={{ position: 'relative' }}>
+                                                <button type="button" className="btn-base" onClick={() => setOpenTagPicker(prev => (prev.filterId === filter.id && prev.type === 'neg_tags') ? { filterId: null, type: null } : { filterId: filter.id, type: 'neg_tags' })}>
+                                                    Change Negative Tags
+                                                </button>
+                                                {openTagPicker.filterId === filter.id && openTagPicker.type === 'neg_tags' && ( <TagCluster.Popup type="filter_neg_tags" itemId={filter.id} onClose={() => setOpenTagPicker({ filterId: null, type: null })} /> )}
+                                            </div>
+                                        </div>
+
                                         <div className="section-row">
                                             {['main', 'second', 'third'].map(stage => (
                                                 <FilterStageEditor

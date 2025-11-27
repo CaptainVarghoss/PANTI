@@ -1,4 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useAuth } from '../context/AuthContext';
+
 
 /**
  * A custom hook to handle clicks outside of a specified element.
@@ -21,29 +23,165 @@ function useOutsideAlerter(ref, handler) {
     }, [ref, handler]);
 }
 
+// A simple event bus for communication between TagCluster components
+const tagUpdateManager = new EventTarget();
+
 /**
- * Renders a popup menu of tags that can be toggled.
- * @param {Object} props - The component props.
- * @param {Array<Object>} props.allTags - Array of all available tag objects.
- * @param {Set<number>} props.activeTagIds - A Set of IDs for currently active tags.
- * @param {Function} props.onTagToggle - Function to call when a tag is clicked.
- * @param {Function} props.onClose - Function to call to close the popup.
+ * A self-contained component to display and manage tags for different entity types.
+ * It exports two sub-components: `TagCluster.Display` and `TagCluster.Popup`.
  */
-function TagCluster({ allTags, activeTagIds, onTagToggle, onClose }) {
+const TagCluster = () => null; // Base component does nothing itself.
+
+/**
+ * Displays the active tags for a given item.
+ * @param {string} type - The type of the item (e.g., 'filter_tags', 'filter_neg_tags').
+ * @param {number} itemId - The ID of the item.
+ */
+TagCluster.Display = function TagDisplay({ type, itemId }) {
+    const { token } = useAuth();
+    const [activeTags, setActiveTags] = useState([]);
+
+    const fetchActiveTags = useCallback(async () => {
+
+        const fetchActiveTags = async () => {
+            // This logic can be expanded to handle different types like 'image' or 'folder'
+            if (type.startsWith('filter')) {
+                const response = await fetch(`/api/filters/${itemId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const filter = await response.json();
+                    const tagObjects = type === 'filter_tags' ? filter.tags : filter.neg_tags;
+                    setActiveTags(tagObjects || []);
+                }
+            }
+        };
+
+        fetchActiveTags();
+    }, [type, itemId, token]);
+
+    useEffect(() => {
+        if (!type || !itemId) return;
+
+        fetchActiveTags(); // Initial fetch
+
+        // Listener for updates from the Popup component
+        const handleTagsUpdated = (event) => {
+            if (event.detail.itemId === itemId && event.detail.type === type) {
+                fetchActiveTags(); // Refetch if the update is for this component
+            }
+        };
+
+        tagUpdateManager.addEventListener('tagsUpdated', handleTagsUpdated);
+
+        // Cleanup listener on unmount
+        return () => tagUpdateManager.removeEventListener('tagsUpdated', handleTagsUpdated);
+    }, [type, itemId, fetchActiveTags]);
+
+    return (
+        <div className="tag-display-container">
+            {activeTags.map(tag => (
+                <span key={tag.id} className="tag-badge active">
+                    {tag.name}
+                </span>
+            ))}
+        </div>
+    );
+};
+
+/**
+ * Renders a popup menu for toggling tags on an item.
+ * @param {string} type - The type of the item (e.g., 'filter_tags', 'filter_neg_tags').
+ * @param {number} itemId - The ID of the item.
+ * @param {Function} onClose - Callback to close the popup.
+ */
+TagCluster.Popup = function TagPopup({ type, itemId, onClose }) {
+    const { token } = useAuth();
     const wrapperRef = useRef(null);
     useOutsideAlerter(wrapperRef, onClose);
+
+    const [allTags, setAllTags] = useState([]);
+    const [activeTagIds, setActiveTagIds] = useState(new Set());
+    const [error, setError] = useState(null);
+
+    // Fetch all available tags and the item's current tags
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                // Fetch all tags
+                const tagsResponse = await fetch('/api/tags/', { headers: { 'Authorization': `Bearer ${token}` } });
+                if (!tagsResponse.ok) throw new Error('Failed to fetch all tags');
+                const tagsData = await tagsResponse.json();
+                setAllTags(tagsData);
+
+                // Fetch the specific filter to get its current tags
+                if (type.startsWith('filter') && itemId) {
+                    const filterResponse = await fetch(`/api/filters/${itemId}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                    if (!filterResponse.ok) throw new Error('Failed to fetch filter details');
+                    const filterData = await filterResponse.json();
+                    // The API returns full tag objects in `tags` and `neg_tags` arrays.
+                    // We need to extract the IDs from these objects.
+                    const tagObjects = type === 'filter_tags' ? filterData.tags : filterData.neg_tags;
+                    setActiveTagIds(new Set((tagObjects || []).map(tag => tag.id)));
+                }
+                // This can be extended for other types like 'image'
+
+            } catch (err) {
+                setError(err.message);
+            }
+        };
+        fetchData();
+    }, [type, itemId, token]);
+
+    const handleTagToggle = useCallback(async (tag) => {
+        const newActiveTagIds = new Set(activeTagIds);
+        if (newActiveTagIds.has(tag.id)) {
+            newActiveTagIds.delete(tag.id);
+        } else {
+            newActiveTagIds.add(tag.id);
+        }
+
+        // Optimistically update the UI
+        setActiveTagIds(newActiveTagIds);
+
+        // Persist the change to the backend
+        try {
+            const field = type === 'filter_tags' ? 'tag_ids' : 'neg_tag_ids';
+            const payload = { [field]: Array.from(newActiveTagIds) };
+
+            const response = await fetch(`/api/filters/${itemId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to update tags.');
+            }
+
+            // Dispatch a custom event to notify Display components of the change
+            tagUpdateManager.dispatchEvent(new CustomEvent('tagsUpdated', {
+                detail: { itemId, type }
+            }));
+
+        } catch (err) {
+            setError(err.message);
+            // Revert optimistic update on error (optional, could refetch)
+        }
+    }, [activeTagIds, type, itemId, token]);
+
+    if (error) return <div ref={wrapperRef} className="tag-cluster-popup"><p className="error-text">{error}</p></div>;
 
     return (
         <div ref={wrapperRef} className="tag-cluster-popup">
             {allTags.map(tag => {
                 const isActive = activeTagIds.has(tag.id);
-                const tagClasses = `tag-badge ${isActive ? 'active' : ''} popup-tag`;
-
+                const tagClasses = `tag-badge ${isActive ? 'active' : ''}`;
                 return (
                     <span
                         key={tag.id}
                         className={tagClasses}
-                        onClick={() => onTagToggle(tag)}
+                        onClick={() => handleTagToggle(tag)}
                     >
                         {tag.name}
                     </span>
