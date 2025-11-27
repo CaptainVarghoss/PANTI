@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
+import asyncio
 
 import auth
 import database
 import models
 import schemas
+from websocket_manager import manager
 
 router = APIRouter()
 
@@ -46,6 +48,12 @@ def create_filter(filter_in: schemas.FilterCreate, db: Session = Depends(databas
     db.add(db_filter)
     db.commit()
     db.refresh(db_filter)
+
+    # After creating a filter, broadcast a general refresh message
+    if database.main_event_loop:
+        message = {"type": "refresh_images", "reason": "tags_updated"}
+        asyncio.run_coroutine_threadsafe(manager.broadcast_json(message), database.main_event_loop)
+
     return db_filter
 
 @router.get("/filters/", response_model=List[schemas.Filter])
@@ -100,6 +108,12 @@ def update_filter(filter_id: int, filter_in: schemas.FilterUpdate, db: Session =
                 raise HTTPException(status_code=400, detail=f"Tag with ID {tag_id} not found for negative tags.")
     db.commit()
     db.refresh(db_filter)
+
+    # After updating a filter, broadcast a general refresh message
+    if database.main_event_loop:
+        message = {"type": "refresh_images", "reason": "tags_updated"}
+        asyncio.run_coroutine_threadsafe(manager.broadcast_json(message), database.main_event_loop)
+
     return db_filter
 
 @router.delete("/filters/{filter_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -111,4 +125,10 @@ def delete_filter(filter_id: int, db: Session = Depends(database.get_db), curren
         raise HTTPException(status_code=404, detail="Filter not found")
     db.delete(db_filter)
     db.commit()
+
+    # After deleting a filter, broadcast a general refresh message
+    if database.main_event_loop:
+        message = {"type": "refresh_images", "reason": "tags_updated"}
+        asyncio.run_coroutine_threadsafe(manager.broadcast_json(message), database.main_event_loop)
+
     return

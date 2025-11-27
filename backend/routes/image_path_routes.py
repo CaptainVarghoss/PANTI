@@ -2,13 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from typing import List
 import threading
-import os
+import os, asyncio
 
 import auth
 import database
 import models
 import schemas
 import image_processor
+from websocket_manager import manager
 
 router = APIRouter()
 
@@ -92,6 +93,12 @@ def update_image_path(path_id: int, path: schemas.ImagePathUpdate, db: Session =
 
     db.commit()
     db.refresh(db_image_path)
+
+    # After updating folder tags, broadcast a general refresh message
+    if database.main_event_loop:
+        message = {"type": "refresh_images", "reason": "tags_updated"}
+        asyncio.run_coroutine_threadsafe(manager.broadcast_json(message), database.main_event_loop)
+
     return db_image_path
 
 @router.delete("/imagepaths/{path_id}", status_code=status.HTTP_204_NO_CONTENT)

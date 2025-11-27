@@ -247,6 +247,12 @@ def update_image(image_id: int, image_update: schemas.ImageTagUpdate, db: Sessio
     
     db.commit()
     db.refresh(db_image)
+
+    # After updating tags, broadcast a general refresh message
+    if database.main_event_loop:
+        message = {"type": "refresh_images", "reason": "tags_updated"}
+        asyncio.run_coroutine_threadsafe(manager.broadcast_json(message), database.main_event_loop)
+
     return read_image(image_id, db)
 
 @router.post("/images/{image_id}/delete", status_code=status.HTTP_204_NO_CONTENT)
