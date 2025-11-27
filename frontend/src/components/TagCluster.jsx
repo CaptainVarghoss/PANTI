@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { IoClose } from 'react-icons/io5';
 
 
 /**
@@ -237,6 +238,9 @@ TagCluster.Popup = function TagPopup({ type, itemId, onClose, onTagSelect }) {
 
     return (
         <div ref={wrapperRef} className="tag-cluster-popup">
+            <button className="tag-cluster-close-btn" onClick={onClose} title="Close">
+                <IoClose size={18} />
+            </button>
             {allTags.map(tag => {
                 const isActive = activeTagIds.has(tag.id);
                 const tagClasses = `tag-badge ${isActive ? 'active' : ''}`;
