@@ -69,10 +69,9 @@ function Modal({ isOpen, onClose, modalType, modalProps = {} }) { // eslint-disa
     const [touchStartX, setTouchStartX] = useState(0);
     const [touchStartY, setTouchStartY] = useState(0);
     const [imageTranslateX, setImageTranslateX] = useState(0);
-    const [imageTagIds, setImageTagIds] = useState(new Set());
-    const [isTagsLoading, setIsTagsLoading] = useState(false);
-    const [tagsError, setTagsError] = useState(null);
 
+    // State to manage which tag picker is open
+    const [openTagPicker, setOpenTagPicker] = useState({ imageId: null, type: null });
     const usePreview = settings?.enable_previews === true;
     const SWIPE_THRESHOLD = 85;
     const TAP_THRESHOLD = 10;
@@ -126,67 +125,6 @@ function Modal({ isOpen, onClose, modalType, modalProps = {} }) { // eslint-disa
     }, [isOpen, currentImage, usePreview, isAuthenticated, token, modalType]);
 
     const canModifyTags = isAdmin || (settings?.allow_tag_add === true);
-
-    const fetchImageTags = useCallback(async () => {
-        if (!currentImage?.id) {
-            setImageTagIds(new Set());
-            return;
-        }
-        setIsTagsLoading(true);
-        setTagsError(null);
-        try {
-            const response = await fetch(`/api/tags/?imageId=${currentImage.id}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (!response.ok) throw new Error('Failed to fetch image tags');
-            const tags = await response.json();
-            setImageTagIds(new Set(tags.map(t => t.id)));
-        } catch (error) {
-            setTagsError(error.message);
-            console.error("Error fetching image tags:", error);
-        } finally {
-            setIsTagsLoading(false);
-        }
-    }, [currentImage, token]);
-
-    useEffect(() => {
-        if (isOpen && modalType === 'image') {
-            fetchImageTags();
-        }
-    }, [isOpen, modalType, fetchImageTags]);
-
-    const updateImageTags = async (newTagIdsSet) => {
-        if (!currentImage?.id || !canModifyTags) return;
-        try {
-            await fetch(`/api/images/${currentImage.id}/tags`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ tag_ids: Array.from(newTagIdsSet) }),
-            });
-        } catch (error) {
-            console.error('Error saving tags:', error);
-            setTagsError(error.message);
-            fetchImageTags(); // Revert optimistic update
-        }
-    };
-
-    const handleTagToggle = (tag) => {
-        if (!canModifyTags) {
-            if (tag?.name) {
-                setSearchTerm(`TAG:"${tag.name}"`);
-                onClose();
-            }
-            return;
-        }
-        const newTagIds = new Set(imageTagIds);
-        if (newTagIds.has(tag.id)) {
-            newTagIds.delete(tag.id);
-        } else {
-            newTagIds.add(tag.id);
-        }
-        setImageTagIds(newTagIds);
-        updateImageTags(newTagIds);
-    };
 
     let imageUrlToDisplay;
     if (modalType === 'image') {
@@ -290,7 +228,20 @@ function Modal({ isOpen, onClose, modalType, modalProps = {} }) { // eslint-disa
                     )}
                 </div>
                 <section>
-                    <TagCluster activeTagIds={imageTagIds} onTagToggle={handleTagToggle} canEdit={canModifyTags} onTagsUpdated={fetchImageTags} />
+                    <div className="section-row">
+                        <div className="section-fields">
+                            <div className="form-group">
+                                <label>Tags</label>
+                                <TagCluster.Display type="image_tags" itemId={currentImage.id} />
+                            </div>
+                        </div>
+                        <div className="section-fields" style={{ position: 'relative' }}>
+                            <button type="button" className="btn-base" onClick={() => setOpenTagPicker(prev => (prev.imageId === currentImage.id && prev.type === 'tags') ? { imageId: null, type: null } : { imageId: currentImage.id, type: 'tags' })}>
+                                Change Tags
+                            </button>
+                            {openTagPicker.imageId === currentImage.id && openTagPicker.type === 'tags' && ( <TagCluster.Popup type="image_tags" itemId={currentImage.id} onClose={() => setOpenTagPicker({ imageId: null, type: null })} /> )}
+                        </div>
+                    </div>
                     <div className="section-container">
                         <h3 className="section-header">Metadata</h3>
                         <ul className="section-list">

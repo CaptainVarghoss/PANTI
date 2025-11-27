@@ -63,6 +63,15 @@ TagCluster.Display = function TagDisplay({ type, itemId }) {
                     // Assuming the API returns tags directly in a 'tags' property
                     setActiveTags(pathData.tags || []);
                 }
+            } else if (type === 'image_tags') {
+                const response = await fetch(`/api/tags/?imageId=${itemId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const imageData = await response.json();
+                    // This endpoint returns an array of tags directly
+                    setActiveTags(imageData || []);
+                }
             }
         };
 
@@ -140,6 +149,13 @@ TagCluster.Popup = function TagPopup({ type, itemId, onClose }) {
                     const pathData = await pathResponse.json();
                     const tagObjects = pathData.tags;
                     setActiveTagIds(new Set((tagObjects || []).map(tag => tag.id)));
+                } else if (type === 'image_tags' && itemId) {
+                    const imageResponse = await fetch(`/api/tags/?imageId=${itemId}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                    if (!imageResponse.ok) throw new Error('Failed to fetch image details');
+                    const imageData = await imageResponse.json();
+                    // This endpoint returns an array of tags directly.
+                    // We just need their IDs.
+                    setActiveTagIds(new Set((imageData || []).map(tag => tag.id)));
                 }
 
             } catch (err) {
@@ -174,6 +190,14 @@ TagCluster.Popup = function TagPopup({ type, itemId, onClose }) {
             } else if (type === 'imagepath_tags') {
                 const payload = { tag_ids: Array.from(newActiveTagIds) };
                 response = await fetch(`/api/imagepaths/${itemId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(payload)
+                });
+            } else if (type === 'image_tags') {
+                // This endpoint is specifically for updating tags on an image
+                const payload = { tag_ids: Array.from(newActiveTagIds) };
+                response = await fetch(`/api/images/${itemId}/tags`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify(payload)
