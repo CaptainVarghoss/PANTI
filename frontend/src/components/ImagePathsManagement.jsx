@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
+import TagCluster from './TagCluster';
 import { MdDelete } from "react-icons/md";
 
 /**
@@ -18,6 +19,9 @@ function ImagePathsManagement({ onBack }) {
 
   // State for in-place editing
   const [editablePaths, setEditablePaths] = useState([]);
+
+  // State to manage which tag picker is open
+  const [openTagPicker, setOpenTagPicker] = useState({ pathId: null, type: null });
 
   // State for the "Add New" form
   const [newPath, setNewPath] = useState({ path: '', short_name: '', description: '', admin_only: true, ignore: false });
@@ -288,6 +292,21 @@ function ImagePathsManagement({ onBack }) {
                       </button>
                     </div>
                   )}
+                </div>
+                <div className="section-row">
+                    <div className="section-fields">
+                        <div className="form-group">
+                            <label>Tags</label>
+                            <TagCluster.Display type="imagepath_tags" itemId={path.id} />
+                        </div>
+                    </div>
+                    <div className="section-fields" style={{ position: 'relative' }}>
+                        <button type="button" className="btn-base" onClick={() => setOpenTagPicker(prev => (prev.pathId === path.id && prev.type === 'tags') ? { pathId: null, type: null } : { pathId: path.id, type: 'tags' })}>
+                            Change Tags
+                        </button>
+                        {openTagPicker.pathId === path.id && openTagPicker.type === 'tags' && (
+                            <TagCluster.Popup type="imagepath_tags" itemId={path.id} onClose={() => setOpenTagPicker({ pathId: null, type: null })} /> )}
+                    </div>
                 </div>
               </div>
             ))}

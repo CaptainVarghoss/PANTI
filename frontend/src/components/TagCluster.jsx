@@ -54,6 +54,15 @@ TagCluster.Display = function TagDisplay({ type, itemId }) {
                     const tagObjects = type === 'filter_tags' ? filter.tags : filter.neg_tags;
                     setActiveTags(tagObjects || []);
                 }
+            } else if (type === 'imagepath_tags') {
+                const response = await fetch(`/api/imagepaths/${itemId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const pathData = await response.json();
+                    // Assuming the API returns tags directly in a 'tags' property
+                    setActiveTags(pathData.tags || []);
+                }
             }
         };
 
@@ -124,7 +133,14 @@ TagCluster.Popup = function TagPopup({ type, itemId, onClose }) {
                     const tagObjects = type === 'filter_tags' ? filterData.tags : filterData.neg_tags;
                     setActiveTagIds(new Set((tagObjects || []).map(tag => tag.id)));
                 }
-                // This can be extended for other types like 'image'
+                // Handle imagepath_tags
+                else if (type === 'imagepath_tags' && itemId) {
+                    const pathResponse = await fetch(`/api/imagepaths/${itemId}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                    if (!pathResponse.ok) throw new Error('Failed to fetch image path details');
+                    const pathData = await pathResponse.json();
+                    const tagObjects = pathData.tags;
+                    setActiveTagIds(new Set((tagObjects || []).map(tag => tag.id)));
+                }
 
             } catch (err) {
                 setError(err.message);
@@ -146,14 +162,23 @@ TagCluster.Popup = function TagPopup({ type, itemId, onClose }) {
 
         // Persist the change to the backend
         try {
-            const field = type === 'filter_tags' ? 'tag_ids' : 'neg_tag_ids';
-            const payload = { [field]: Array.from(newActiveTagIds) };
-
-            const response = await fetch(`/api/filters/${itemId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(payload)
-            });
+            let response;
+            if (type.startsWith('filter')) {
+                const field = type === 'filter_tags' ? 'tag_ids' : 'neg_tag_ids';
+                const payload = { [field]: Array.from(newActiveTagIds) };
+                response = await fetch(`/api/filters/${itemId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(payload)
+                });
+            } else if (type === 'imagepath_tags') {
+                const payload = { tag_ids: Array.from(newActiveTagIds) };
+                response = await fetch(`/api/imagepaths/${itemId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(payload)
+                });
+            }
 
             if (!response.ok) {
                 throw new Error('Failed to update tags.');
