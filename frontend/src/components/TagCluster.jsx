@@ -114,13 +114,15 @@ TagCluster.Display = function TagDisplay({ type, itemId }) {
  * @param {Function} onClose - Callback to close the popup.
  */
 TagCluster.Popup = function TagPopup({ type, itemId, onClose }) {
-    const { token } = useAuth();
+    const { token, isAdmin, settings } = useAuth();
     const wrapperRef = useRef(null);
     useOutsideAlerter(wrapperRef, onClose);
 
     const [allTags, setAllTags] = useState([]);
     const [activeTagIds, setActiveTagIds] = useState(new Set());
     const [error, setError] = useState(null);
+
+    const canModifyTags = isAdmin || (settings?.allow_tag_add === true);
 
     // Fetch all available tags and the item's current tags
     useEffect(() => {
@@ -218,6 +220,12 @@ TagCluster.Popup = function TagPopup({ type, itemId, onClose }) {
             // Revert optimistic update on error (optional, could refetch)
         }
     }, [activeTagIds, type, itemId, token]);
+
+    if (!canModifyTags) {
+        return <div ref={wrapperRef} className="tag-cluster-popup">
+            <p className="error-text">You do not have permission to modify tags.</p>
+        </div>;
+    }
 
     if (error) return <div ref={wrapperRef} className="tag-cluster-popup"><p className="error-text">{error}</p></div>;
 

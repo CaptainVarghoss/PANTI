@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ImageCard from '../components/ImageCard';
+import TagCluster from './TagCluster';
 import ContextMenu from './ContextMenu';
 import { useAuth } from '../context/AuthContext'; // To get token and settings for authenticated calls
 
@@ -41,6 +42,13 @@ function ImageGrid({
       y: 0,
       thumbnailData: null, // Data of the thumbnail that was right-clicked
     });
+
+  const [tagPicker, setTagPicker] = useState({
+    isVisible: false,
+    x: 0,
+    y: 0,
+    item: null,
+  });
 
   const lastIdRef = useRef(lastId);
   const lastSortValueRef = useRef(lastSortValue);
@@ -128,6 +136,15 @@ function ImageGrid({
   // Handle click on a context menu item
   const handleMenuItemClick = (action, data) => {
       console.log(`Action: ${action} on Thumbnail ID: ${data.id}`);
+
+      if (action === 'add_tag') {
+        setTagPicker({
+          isVisible: true,
+          x: contextMenu.x,
+          y: contextMenu.y,
+          item: data,
+        });
+      }
 
       const markImageAsDeleted = async (imageId) => {
         try {
@@ -311,6 +328,7 @@ function ImageGrid({
     } else { // Default for main grid
         activeContextMenuItems = [
             { label: "Select", action: "select" },
+            { label: "Add Tag", action: "add_tag" },
             { label: "Move", action: "move" },
             { label: "Delete", action: "delete" }
         ];
@@ -589,6 +607,16 @@ function ImageGrid({
         setContextMenu={setContextMenu}
         menuItems={activeContextMenuItems}
       />
+
+      {tagPicker.isVisible && (
+        <div style={{ position: 'fixed', top: tagPicker.y, left: tagPicker.x, zIndex: 1001 }}>
+          <TagCluster.Popup
+            type="image_tags"
+            itemId={tagPicker.item.id}
+            onClose={() => setTagPicker({ isVisible: false, x: 0, y: 0, item: null })}
+          />
+        </div>
+      )}
     </>
   );
 }
