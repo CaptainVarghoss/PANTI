@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ImageCard from '../components/ImageCard';
-import TagCluster from './TagCluster';
-import { Flipper, Flipped } from 'react-flip-toolkit';
 import ContextMenu from './ContextMenu';
 import { useAuth } from '../context/AuthContext'; // To get token and settings for authenticated calls
 
@@ -580,39 +578,17 @@ function ImageGrid({
 
   return (
     <>
-      <Flipper
-        flipKey={images.map(i => i.id).join(',')}
-        className={`image-grid ${isSelectMode ? 'select-mode' : ''}`}
-        spring="gentle"
-      >
+      <div className={`image-grid ${isSelectMode ? 'select-mode' : ''}`}>
         {images.map((image, index) => (
-          <Flipped
+          <ImageCard
             key={image.id}
-            flipId={image.id}
-            onAppear={(el, i) => {
-              el.style.opacity = '0';
-              el.style.transform = 'translateY(20px)';
-              setTimeout(() => {
-                el.style.opacity = '1';
-                el.style.transform = 'translateY(0)';
-              }, i * 30); // 30ms stagger delay
-            }}
-          >
-            {(flippedProps) => {
-              return (
-                <div {...flippedProps}>
-                  <ImageCard
-                    ref={images.length === index + 1 && hasMore ? lastImageElementRef : null}
-                    image={image}
-                    onClick={handleImageClick}
-                    isSelected={selectedImages.has(image.id)}
-                    onContextMenu={(e) => handleContextMenu(e, image)}
-                    refreshKey={image.refreshKey}
-                  />
-                </div>
-              );
-            }}
-          </Flipped>
+            ref={images.length === index + 1 && hasMore ? lastImageElementRef : null}
+            image={image}
+            onClick={handleImageClick}
+            isSelected={selectedImages.has(image.id)}
+            onContextMenu={(e) => handleContextMenu(e, image)}
+            refreshKey={image.refreshKey}
+          />
         ))}
 
         {imagesError && <p>{imagesError}</p>}
@@ -624,7 +600,7 @@ function ImageGrid({
         {!imagesLoading && !isFetchingMore && images.length === 0 && !imagesError && (
           <p>No images found. Add some to your configured paths and run the scanner!</p>
         )}
-      </Flipper>
+      </div>
 
       <ContextMenu
         isOpen={contextMenu.isVisible}
