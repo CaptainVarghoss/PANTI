@@ -36,6 +36,7 @@ function ImageGrid({
   const [hasMore, setHasMore] = useState(true); // True if there are more images to load
   const [isFetchingMore, setIsFetchingMore] = useState(false); // Tracks if a fetch for more images is in progress
 
+  const [focusedImageId, setFocusedImageId] = useState(null);
   const [contextMenu, setContextMenu] = useState({
       isVisible: false,
       x: 0,
@@ -44,6 +45,7 @@ function ImageGrid({
     });
 
   const lastIdRef = useRef(lastId);
+  const gridRef = useRef(null); // Ref for the grid container
 
   // Variants for the container
   const gridContainerVariants = {
@@ -72,6 +74,10 @@ function ImageGrid({
   // Get imagesPerPage from settings, default to 60 if not available or invalid
   const imagesPerPage = parseInt(settings.thumb_num) || 60;
 
+  const getFocusedImage = useCallback(() => {
+    return images.find(img => img.id === focusedImageId);
+  }, [images, focusedImageId]);
+
   const fetchImageById = useCallback(async (imageId) => {
     try {
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
@@ -92,6 +98,7 @@ function ImageGrid({
   }, [token]);
 
   const handleImageClick = useCallback((image) => {
+    setFocusedImageId(image.id); // Set focus on click
     if (isSelectMode) {
       // In select mode, toggle selection
       setSelectedImages(prevSelected => {
@@ -117,7 +124,7 @@ function ImageGrid({
         setSearchTerm: setSearchTerm
       });
     }
-  }, [isSelectMode, openModal, images, setSearchTerm]);
+  }, [isSelectMode, openModal, images, setSearchTerm, setSelectedImages]);
 
   // Handle right-click event on a thumbnail
   const handleContextMenu = (event, thumbnail) => {
@@ -128,6 +135,9 @@ function ImageGrid({
         y: event.clientY,
         thumbnailData: thumbnail,
     });
+
+    // Also set focus on right-click
+    setFocusedImageId(thumbnail.id);
 
     // If the right-clicked image is not already in the selection,
     // add it to the selection. This makes the context menu feel more intuitive.
@@ -344,6 +354,107 @@ function ImageGrid({
       setSelectedImages(new Set());
     }
   }, [isSelectMode]);
+
+  // Effect for closing the image modal with Space or Enter
+  useEffect(() => {
+    const handleModalKeyDown = (e) => {
+      // Check if the image modal is open by looking for its specific content
+      const imageModal = document.querySelector('.modal-image-section');
+
+      if (imageModal && (e.key === ' ' || e.key === 'Enter')) {
+        // Prevent the default action (like scrolling on space)
+        e.preventDefault();
+        
+        // Find the close button and click it programmatically
+        const closeButton = document.querySelector('.modal-close-button');
+        if (closeButton) {
+          closeButton.click();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleModalKeyDown);
+    return () => document.removeEventListener('keydown', handleModalKeyDown);
+  }, []); // Empty dependency array ensures this runs only once
+
+  // Effect for handling keyboard navigation
+  useEffect(() => {
+    const getColumns = () => {
+      if (!gridRef.current) return 5; // Default fallback
+      const gridStyle = window.getComputedStyle(gridRef.current);
+      const gridTemplateColumns = gridStyle.getPropertyValue('grid-template-columns');
+      return gridTemplateColumns.split(' ').length;
+    };
+
+    const handleKeyDown = (e) => {
+      // Don't interfere with input fields
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      if (!images || images.length === 0) return;
+
+      let currentIndex = -1;
+      if (focusedImageId !== null) {
+        currentIndex = images.findIndex(img => img.id === focusedImageId);
+      } else {
+        // If no image is focused, focus the first one on key press
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'Enter'].includes(e.key)) {
+          setFocusedImageId(images[0].id);
+        }
+        return;
+      }
+
+      if (currentIndex === -1) return;
+
+      let nextIndex = currentIndex;
+      const columns = getColumns();
+
+      switch (e.key) {
+        case 'ArrowLeft':
+          nextIndex = Math.max(0, currentIndex - 1);
+          break;
+        case 'ArrowRight':
+          nextIndex = Math.min(images.length - 1, currentIndex + 1);
+          break;
+        case 'ArrowUp':
+          nextIndex = Math.max(0, currentIndex - columns);
+          break;
+        case 'ArrowDown':
+          nextIndex = Math.min(images.length - 1, currentIndex + columns);
+          break;
+        case ' ': // Spacebar
+        case 'Enter':
+          e.preventDefault();
+          const focusedImage = getFocusedImage();
+          if (focusedImage) {
+            handleImageClick(focusedImage);
+          }
+          return; // Don't update focus, let the modal open
+        default:
+          return; // Ignore other keys
+      }
+
+      if (nextIndex !== currentIndex) {
+        e.preventDefault();
+        const nextImage = images[nextIndex];
+        if (nextImage) {
+          setFocusedImageId(nextImage.id);
+          // Scroll the new focused image into view
+          const cardElement = document.querySelector(`[data-image-id="${nextImage.id}"]`);
+          if (cardElement) {
+            cardElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [images, focusedImageId, getFocusedImage, handleImageClick]);
+
 
   // Fetch images function, now accepting an optional cursor (last_id)
   const fetchImages = useCallback(async (isInitialLoad) => {
@@ -585,6 +696,7 @@ function ImageGrid({
     <>
       <motion.div
         layout
+        ref={gridRef}
         className={`image-grid ${isSelectMode ? 'select-mode' : ''}`}
         variants={gridContainerVariants}
         initial="hidden"
@@ -606,6 +718,7 @@ function ImageGrid({
                 onClick={handleImageClick}
                 isSelected={selectedImages.has(image.id)}
                 onContextMenu={(e) => handleContextMenu(e, image)}
+                isFocused={focusedImageId === image.id}
                 refreshKey={image.refreshKey} />
             </motion.div>
           ))}

@@ -796,6 +796,11 @@ form .section-list .section-item .section-fields:nth-child(3) {
     border-color: var(--accent-primary)
 }
 
+.image-card.focused {
+  outline: 3px solid var(--accent-secondary);
+  outline-offset: 2px;
+}
+
 .image-card img {
   width: 100%;
   transition: all 0.5s ease;

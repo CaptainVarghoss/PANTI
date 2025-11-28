@@ -7,7 +7,7 @@ import React, { useState, useEffect, useRef, forwardRef } from 'react';
  * @param {object} props.image - The image object containing details like id, filename, and meta.
  * @param {any} props.refreshKey - A key that triggers a refresh of the thumbnail.
  */
-const ImageCard = forwardRef(({ image, onClick, onContextMenu, refreshKey, isSelected }, ref) => {
+const ImageCard = forwardRef(({ image, onClick, onContextMenu, refreshKey, isSelected, isFocused }, ref) => {
   const [isLoading, setIsLoading] = useState(true);
   const [thumbnailUrl, setThumbnailUrl] = useState(null);
   const retryTimeoutRef = useRef(null);
@@ -56,8 +56,9 @@ const ImageCard = forwardRef(({ image, onClick, onContextMenu, refreshKey, isSel
     <div
       ref={ref} // The ref for infinite scroll is now correctly attached here
       key={image.id}
-      className={`btn-base btn-primary image-card ${isSelected ? 'selected' : ''}`}
+      className={`btn-base btn-primary image-card ${isSelected ? 'selected' : ''} ${isFocused ? 'focused' : ''}`}
       onClick={() => onClick(image)}
+      data-image-id={image.id} // Add data attribute for easy selection
       style={{ transition: 'transform 0.3s ease-in-out, opacity 0.3s ease-in-out' }}
     >
       <div className="image-card-inner">
