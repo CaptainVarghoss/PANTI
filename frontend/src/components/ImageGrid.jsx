@@ -97,19 +97,38 @@ function ImageGrid({
     }
   }, [token]);
 
-  const handleImageClick = useCallback((image) => {
+  const handleImageClick = useCallback((event, image) => {
     setFocusedImageId(image.id); // Set focus on click
     if (isSelectMode) {
-      // In select mode, toggle selection
-      setSelectedImages(prevSelected => {
-        const newSelected = new Set(prevSelected);
-        if (newSelected.has(image.id)) {
-          newSelected.delete(image.id);
-        } else {
-          newSelected.add(image.id);
+      // In select mode, handle selection logic
+      if (event.shiftKey && focusedImageId) {
+        // Shift-click for range selection
+        const lastFocusedIndex = images.findIndex(img => img.id === focusedImageId);
+        const clickedIndex = images.findIndex(img => img.id === image.id);
+
+        if (lastFocusedIndex !== -1 && clickedIndex !== -1) {
+          const start = Math.min(lastFocusedIndex, clickedIndex);
+          const end = Math.max(lastFocusedIndex, clickedIndex);
+          const rangeToSelect = images.slice(start, end + 1).map(img => img.id);
+
+          setSelectedImages(prevSelected => {
+            const newSelected = new Set(prevSelected);
+            rangeToSelect.forEach(id => newSelected.add(id));
+            return newSelected;
+          });
         }
-        return newSelected;
-      });
+      } else {
+        // Normal click in select mode: toggle selection
+        setSelectedImages(prevSelected => {
+          const newSelected = new Set(prevSelected);
+          if (newSelected.has(image.id)) {
+            newSelected.delete(image.id);
+          } else {
+            newSelected.add(image.id);
+          }
+          return newSelected;
+        });
+      }
     } else {
       // Normal mode, open modal
       openModal('image', {
@@ -124,7 +143,7 @@ function ImageGrid({
         setSearchTerm: setSearchTerm
       });
     }
-  }, [isSelectMode, openModal, images, setSearchTerm, setSelectedImages]);
+  }, [isSelectMode, openModal, images, setSearchTerm, setSelectedImages, focusedImageId]);
 
   // Handle right-click event on a thumbnail
   const handleContextMenu = (event, thumbnail) => {
@@ -428,7 +447,7 @@ function ImageGrid({
           e.preventDefault();
           const focusedImage = getFocusedImage();
           if (focusedImage) {
-            handleImageClick(focusedImage);
+            handleImageClick(e, focusedImage);
           }
           return; // Don't update focus, let the modal open
         default:
@@ -715,7 +734,7 @@ function ImageGrid({
               <ImageCard
                 ref={images.length === index + 1 && hasMore ? lastImageElementRef : null}
                 image={image}
-                onClick={handleImageClick}
+                onClick={(e, img) => handleImageClick(e, img)}
                 isSelected={selectedImages.has(image.id)}
                 onContextMenu={(e) => handleContextMenu(e, image)}
                 isFocused={focusedImageId === image.id}

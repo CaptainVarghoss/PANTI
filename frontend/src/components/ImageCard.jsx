@@ -57,7 +57,7 @@ const ImageCard = forwardRef(({ image, onClick, onContextMenu, refreshKey, isSel
       ref={ref} // The ref for infinite scroll is now correctly attached here
       key={image.id}
       className={`btn-base btn-primary image-card ${isSelected ? 'selected' : ''} ${isFocused ? 'focused' : ''}`}
-      onClick={() => onClick(image)}
+      onClick={(e) => onClick(e, image)}
       data-image-id={image.id} // Add data attribute for easy selection
       style={{ transition: 'transform 0.3s ease-in-out, opacity 0.3s ease-in-out' }}
     >
