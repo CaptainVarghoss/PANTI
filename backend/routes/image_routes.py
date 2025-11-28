@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func, and_, or_, not_
+from sqlalchemy import func, and_, or_, not_, select
 from typing import List, Optional
 from pathlib import Path
 from datetime import datetime
@@ -254,6 +254,56 @@ def update_image(image_id: int, image_update: schemas.ImageTagUpdate, db: Sessio
         asyncio.run_coroutine_threadsafe(manager.broadcast_json(message), database.main_event_loop)
 
     return read_image(image_id, db)
+
+@router.post("/images/tags/bulk-update", status_code=status.HTTP_204_NO_CONTENT)
+def bulk_update_image_tags(
+    update_request: schemas.ImageTagBulkUpdate,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """
+    Adds or removes a single tag from a list of images in bulk.
+    Requires authentication.
+    """
+    image_ids = update_request.image_ids
+    tag_id = update_request.tag_id
+    action = update_request.action
+
+    if not image_ids:
+        return # Nothing to do
+
+    # Fetch the tag to be added/removed
+    tag = db.query(models.Tag).filter(models.Tag.id == tag_id).first()
+    if not tag:
+        raise HTTPException(status_code=404, detail=f"Tag with ID {tag_id} not found.")
+
+    # Get the content hashes for the given image location IDs
+    content_hashes_query = select(models.ImageLocation.content_hash).where(models.ImageLocation.id.in_(image_ids))
+    content_hashes = db.execute(content_hashes_query).scalars().all()
+
+    if not content_hashes:
+        raise HTTPException(status_code=404, detail="No valid images found for the provided IDs.")
+
+    # Fetch all image content objects at once
+    images_to_update = db.query(models.ImageContent).options(joinedload(models.ImageContent.tags)).filter(
+        models.ImageContent.content_hash.in_(content_hashes)
+    ).all()
+
+    for image_content in images_to_update:
+        has_tag = any(t.id == tag_id for t in image_content.tags)
+        if action == 'add' and not has_tag:
+            image_content.tags.append(tag)
+        elif action == 'remove' and has_tag:
+            image_content.tags.remove(tag)
+
+    db.commit()
+
+    # After updating tags, broadcast a refresh message for the affected images
+    if database.main_event_loop:
+        message = {"type": "refresh_images", "reason": "tags_updated_bulk", "image_ids": image_ids}
+        asyncio.run_coroutine_threadsafe(manager.broadcast_json(message), database.main_event_loop)
+
+    return
 
 @router.post("/images/{image_id}/delete", status_code=status.HTTP_204_NO_CONTENT)
 def mark_image_as_deleted(

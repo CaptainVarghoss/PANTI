@@ -114,7 +114,7 @@ TagCluster.Display = function TagDisplay({ type, itemId }) {
  * @param {number} itemId - The ID of the item.
  * @param {Function} onClose - Callback to close the popup.
  */
-TagCluster.Popup = function TagPopup({ type, itemId, onClose, onTagSelect }) {
+TagCluster.Popup = function TagPopup({ type, itemId, itemIds, onClose, onTagSelect }) {
     const { token, isAdmin, settings } = useAuth();
     const wrapperRef = useRef(null);
     useOutsideAlerter(wrapperRef, onClose);
@@ -158,6 +158,9 @@ TagCluster.Popup = function TagPopup({ type, itemId, onClose, onTagSelect }) {
                     // This endpoint returns an array of tags directly.
                     // We just need their IDs.
                     setActiveTagIds(new Set((imageData || []).map(tag => tag.id)));
+                } else if (type === 'image_tags_bulk') {
+                    // For bulk editing, we start with no active tags. The user will select tags to apply to all.
+                    setActiveTagIds(new Set());
                 }
 
             } catch (err) {
@@ -165,7 +168,7 @@ TagCluster.Popup = function TagPopup({ type, itemId, onClose, onTagSelect }) {
             }
         };
         fetchData();
-    }, [type, itemId, token]);
+    }, [type, itemId, itemIds, token]);
 
     // Function to fetch all tags, can be called independently
     const fetchAllTags = async () => {
@@ -218,22 +221,41 @@ TagCluster.Popup = function TagPopup({ type, itemId, onClose, onTagSelect }) {
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify(payload)
                 });
+            } else if (type === 'image_tags_bulk') {
+                // This is the new bulk update logic
+                const payload = { // Ensure itemIds is not undefined before creating the payload
+                    image_ids: Array.from(itemIds),
+                    tag_id: tag.id,
+                    action: newActiveTagIds.has(tag.id) ? 'add' : 'remove'
+                };
+                response = await fetch(`/api/images/tags/bulk-update`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(payload)
+                });
             }
 
             if (!response.ok) {
                 throw new Error('Failed to update tags.');
             }
 
-            // Dispatch a custom event to notify Display components of the change
-            tagUpdateManager.dispatchEvent(new CustomEvent('tagsUpdated', {
-                detail: { itemId, type }
-            }));
+            if (type === 'image_tags_bulk') {
+                // For bulk updates, we might need a more general notification
+                // or rely on a full refresh triggered by the parent component.
+                // For now, we can dispatch for each item if itemIds exists.
+                itemIds.forEach(id => tagUpdateManager.dispatchEvent(new CustomEvent('tagsUpdated', { detail: { itemId: id, type: 'image_tags' } })));
+            } else {
+                // Dispatch a custom event to notify Display components of the change
+                tagUpdateManager.dispatchEvent(new CustomEvent('tagsUpdated', {
+                    detail: { itemId, type }
+                }));
+            }
 
         } catch (err) {
             setError(err.message);
             // Revert optimistic update on error (optional, could refetch)
         }
-    }, [activeTagIds, type, itemId, token, onTagSelect]);
+    }, [activeTagIds, type, itemId, itemIds, token, onTagSelect]);
 
     const handleCreateTag = async (e) => {
         e.preventDefault();

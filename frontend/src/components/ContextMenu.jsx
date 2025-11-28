@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import TagCluster from './TagCluster';
 
 // Reusable Context Menu Component
-const ContextMenu = ({ x, y, isOpen, onClose, thumbnailData, onMenuItemClick, menuItems, images }) => {
+const ContextMenu = ({ x, y, isOpen, onClose, thumbnailData, onMenuItemClick, menuItems, images, selectedImageIds }) => {
   const menuRef = useRef(null);
   const [showTagCluster, setShowTagCluster] = useState(false);
   const prevIsOpenRef = useRef(isOpen);
@@ -53,6 +53,8 @@ const ContextMenu = ({ x, y, isOpen, onClose, thumbnailData, onMenuItemClick, me
   const handleItemClick = (item) => {
     if (item.action === 'add_tag') {
       setShowTagCluster(prev => !prev); // Toggle tag cluster visibility
+    } else if (item.action === 'edit_tags_selected') {
+      setShowTagCluster(prev => !prev); // Also use this for bulk edit
     } else {
       onMenuItemClick(item.action, thumbnailData || item, itemsToRender);
       onClose(); // Close menu for other actions
@@ -67,14 +69,25 @@ const ContextMenu = ({ x, y, isOpen, onClose, thumbnailData, onMenuItemClick, me
       style={{ top: y, left: x }}
     >
       {showTagCluster ? (
-        <TagCluster.Popup
-          type="image_tags"
-          itemId={thumbnailData.id}
-          onClose={() => {
-            setShowTagCluster(false);
-            onClose(); // Also close the main context menu
-          }}
-        />
+        menuItems.find(item => item.action === 'edit_tags_selected') ? (
+          <TagCluster.Popup
+            type="image_tags_bulk"
+            itemIds={selectedImageIds} // Pass the set of selected IDs
+            onClose={() => {
+              setShowTagCluster(false);
+              onClose();
+            }}
+          />
+        ) : (
+          <TagCluster.Popup
+            type="image_tags"
+            itemId={thumbnailData.id}
+            onClose={() => {
+              setShowTagCluster(false);
+              onClose(); // Also close the main context menu
+            }}
+          />
+        )
       ) : (
         <ul className="context-menu-list">
           {itemsToRender.map((item) => (

@@ -90,6 +90,11 @@ class ImageUpdate(ImageBase):
 class ImageTagUpdate(BaseModel):
     tag_ids: List[int] = []
 
+class ImageTagBulkUpdate(BaseModel):
+    image_ids: List[int]
+    tag_id: int
+    action: str # Should be 'add' or 'remove'
+
 class ImageMoveRequest(BaseModel):
     imageIds: List[int]
     destinationPath: str

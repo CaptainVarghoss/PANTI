@@ -345,6 +345,7 @@ function ImageGrid({
     if (trash_only) {
         activeContextMenuItems = [
             { label: `Restore ${selectedImages.size} Selected`, action: "restore_selected" },
+            { label: `Edit Tags for ${selectedImages.size} Selected`, action: "edit_tags_selected" },
             { label: `Delete ${selectedImages.size} Permanently`, action: "delete_permanent_selected" },
         ];
     } else {
@@ -352,6 +353,7 @@ function ImageGrid({
             { label: `Delete ${selectedImages.size} Selected`, action: "delete_selected" },
             { label: `Move ${selectedImages.size} Selected`, action: "move_selected" },
         ];
+        if (selectedImages.size > 0) activeContextMenuItems.unshift({ label: `Edit Tags for ${selectedImages.size} Selected`, action: "edit_tags_selected" });
     }
   } else {
     // Not in select mode, use single-item actions
@@ -764,6 +766,7 @@ function ImageGrid({
         setContextMenu={setContextMenu}
         menuItems={activeContextMenuItems}
         images={images}
+        selectedImageIds={selectedImages}
       />
 
     </>
