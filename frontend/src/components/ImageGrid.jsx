@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ImageCard from '../components/ImageCard';
+import { motion, AnimatePresence } from 'framer-motion';
 import ContextMenu from './ContextMenu';
 import { useAuth } from '../context/AuthContext'; // To get token and settings for authenticated calls
 
@@ -43,6 +44,25 @@ function ImageGrid({
     });
 
   const lastIdRef = useRef(lastId);
+
+  // Variants for the container
+  const gridContainerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.05, // Stagger the animation of children
+      },
+    },
+  };
+
+  // Variants for each image card
+  const imageCardVariants = {
+    hidden: { opacity: 0, scale: 0 },
+    visible: { opacity: 1, scale: 1, transition: { duration: 0.3 } },
+  };
+
+
   const lastSortValueRef = useRef(lastSortValue);
   useEffect(() => {
     lastIdRef.current = lastId;
@@ -578,18 +598,28 @@ function ImageGrid({
 
   return (
     <>
-      <div className={`image-grid ${isSelectMode ? 'select-mode' : ''}`}>
-        {images.map((image, index) => (
-          <ImageCard
-            key={image.id}
-            ref={images.length === index + 1 && hasMore ? lastImageElementRef : null}
-            image={image}
-            onClick={handleImageClick}
-            isSelected={selectedImages.has(image.id)}
-            onContextMenu={(e) => handleContextMenu(e, image)}
-            refreshKey={image.refreshKey}
-          />
-        ))}
+      <motion.div
+        layout
+        className={`image-grid ${isSelectMode ? 'select-mode' : ''}`}
+        variants={gridContainerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        <AnimatePresence>
+          {images.map((image, index) => (
+            <motion.div
+              layout
+              key={image.id}
+              variants={imageCardVariants}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              ref={images.length === index + 1 && hasMore ? lastImageElementRef : null} // Attach ref here
+            >
+              <ImageCard image={image} onClick={handleImageClick} isSelected={selectedImages.has(image.id)} onContextMenu={(e) => handleContextMenu(e, image)} refreshKey={image.refreshKey} />
+            </motion.div>
+          ))}
+        </AnimatePresence>
 
         {imagesError && <p>{imagesError}</p>}
 
@@ -600,7 +630,7 @@ function ImageGrid({
         {!imagesLoading && !isFetchingMore && images.length === 0 && !imagesError && (
           <p>No images found. Add some to your configured paths and run the scanner!</p>
         )}
-      </div>
+      </motion.div>
 
       <ContextMenu
         isOpen={contextMenu.isVisible}
