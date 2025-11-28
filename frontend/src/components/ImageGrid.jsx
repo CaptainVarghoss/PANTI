@@ -346,48 +346,45 @@ function ImageGrid({
   }, [isSelectMode]);
 
   // Fetch images function, now accepting an optional cursor (last_id)
-  const fetchImages = useCallback(async (
-    currentLastId,
-    currentLastSortValue,
-    currentSearchTerm,
-    currentSortBy, 
-    currentSortOrder
-  ) => {
-    if (isFetchingMore && currentLastId !== null) {
-      return;
-    }
+  const fetchImages = useCallback(async (isInitialLoad) => {
+    // The guard against re-fetching is now handled by the callers.
+    // This function is now only responsible for the API call itself.
 
-    // Set appropriate loading state based on whether it's the initial load or a subsequent fetch
-    setImagesLoading(prev => prev || (images.length === 0 && currentLastId === null));
-    setIsFetchingMore(prev => prev || (images.length !== 0 || currentLastId !== null)); // Set fetching more for subsequent
-    setImagesError(null); // Clear any previous errors
+    if (isInitialLoad) {
+      setImagesLoading(true);
+    } else {
+      setIsFetchingMore(true);
+    }
+    setImagesError(null);
 
     try {
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-      const queryString = new URLSearchParams();
-      queryString.append('limit', imagesPerPage);
-      queryString.append('sort_by', currentSortBy);
-      queryString.append('sort_order', currentSortOrder);
+      const limit = isInitialLoad ? imagesPerPage * 2 : imagesPerPage;
 
-      if (currentSearchTerm) {
-        queryString.append('search_query', currentSearchTerm);
+      const queryString = new URLSearchParams();
+      queryString.append('limit', limit);
+      queryString.append('sort_by', sortBy);
+      queryString.append('sort_order', sortOrder);
+
+      if (searchTerm) {
+        queryString.append('search_query', searchTerm);
       }
-      if (currentLastId !== null) {
-        queryString.append('last_id', currentLastId);
+
+      // Use refs for cursors in subsequent loads
+      if (!isInitialLoad && lastIdRef.current) {
+        queryString.append('last_id', lastIdRef.current);
       }
-      if (currentLastSortValue !== null) {
-        queryString.append('last_sort_value', currentLastSortValue);
+      if (!isInitialLoad && lastSortValueRef.current) {
+        queryString.append('last_sort_value', lastSortValueRef.current);
       }
 
       if (trash_only) {
         queryString.append('trash_only', 'true');
       }
 
-      // Check for active filters and pass their active stage indices
       if (filters) {
         const activeStages = {};
         filters.forEach(filter => {
-          // Only include filters that are currently active (not index -1)
           if (filter.activeStageIndex !== -1) activeStages[filter.id] = filter.activeStageIndex;
         });
         if (Object.keys(activeStages).length > 0) queryString.append('active_stages_json', JSON.stringify(activeStages));
@@ -401,32 +398,24 @@ function ImageGrid({
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json(); // Array of new images from the backend
+      const data = await response.json();
 
-      setImages(prevImages => {
-        // If it's a new search/sort, replace existing images, otherwise append
-        // This condition correctly resets the grid when search/sort parameters change
-        if (currentLastId === null) {
-          return data;
-        } else {
-          // Filter out duplicates to prevent React key warnings and redundant data
+      if (isInitialLoad) {
+        setImages(data);
+      } else {
+        setImages(prevImages => {
           const existingIds = new Set(prevImages.map(img => img.id));
           const uniqueNewImages = data.filter(img => !existingIds.has(img.id));
-          return [...prevImages, ...uniqueNewImages]; // Append only unique new images
-        }
-      });
+          return [...prevImages, ...uniqueNewImages];
+        });
+      }
 
-      // Update the cursor (lastId and lastSortValue) for the next potential fetch
       if (data.length > 0) {
         const newLastImage = data[data.length - 1];
         setLastId(newLastImage.id);
-        // The backend should return the specific value used for sorting in the Image schema
-        // For simplicity, we'll assume the sort_by value is directly accessible.
-        // In a real scenario, you might need a specific field for this or derive it.
-        let valForSort = newLastImage[currentSortBy];
-        // Handle date_created if it's a date object
-        if (currentSortBy === 'date_created') {
-          valForSort = new Date(valForSort).toISOString(); // Convert to ISO string for consistent comparison
+        let valForSort = newLastImage[sortBy];
+        if (sortBy === 'date_created') {
+          valForSort = new Date(valForSort).toISOString();
         }
         setLastSortValue(valForSort);
       } else {
@@ -434,17 +423,42 @@ function ImageGrid({
         setLastSortValue(null);
       }
 
-      setHasMore(data.length === imagesPerPage);
+      setHasMore(data.length === limit);
 
     } catch (error) {
       console.error('Error fetching images:', error);
       setImagesError('Failed to load images. Ensure backend scanner has run and images exist, and you are logged in if required.');
-      setHasMore(false); // Stop trying to fetch more if there's an error
+      setHasMore(false);
     } finally {
-      setImagesLoading(false); 
+      setImagesLoading(false);
       setIsFetchingMore(false);
     }
-  }, [token, imagesPerPage, filters]);
+  }, [token, imagesPerPage, sortBy, sortOrder, searchTerm, filters, trash_only, setImages]); // Dependencies are now correct and stable
+
+  // Effect for initial page load and when search/sort parameters change
+  useEffect(() => {
+    if (searchTerm === null) {
+      setImages([]);
+      setImagesLoading(false);
+      return;
+    }
+
+    if (isAuthenticated && imagesPerPage > 0) {
+      // Reset cursors and trigger a new initial load
+      setLastId(null);
+      setLastSortValue(null);
+      setHasMore(true);
+      fetchImages(true); // `true` indicates it's an initial load
+    } else if (!isAuthenticated) {
+      setImages([]);
+      setImagesLoading(false);
+      setIsFetchingMore(false);
+      setHasMore(false);
+      setLastId(null);
+      setLastSortValue(null);
+      setImagesError("Please log in to view images.");
+    }
+  }, [isAuthenticated, imagesPerPage, searchTerm, sortBy, sortOrder, filters, trash_only, fetchImages]);
 
   // Effect for handling WebSocket messages
   useEffect(() => {
@@ -534,57 +548,26 @@ function ImageGrid({
     setWebSocketMessage(null);
   }, [webSocketMessage, searchTerm, sortBy, sortOrder, fetchImages]);
 
-  // Effect for initial page load and when search/sort parameters change (now from props)
-  useEffect(() => {
-    // Only fetch if authenticated and imagesPerPage is valid
-    // When the search term is null, it's a signal not to fetch, but to clear.
-    if (searchTerm === null) {
-      setImages([]);
-      setImagesLoading(false);
-      return;
-    }
-    // Also, ensure searchTerm is not null, which is used to prevent fetching.
-    if (isAuthenticated && imagesPerPage > 0 && searchTerm !== null) {
-      const newSearch = async () => {
-        setImagesLoading(true);
-        await fetchImages(null, null, searchTerm, sortBy, sortOrder);
-        setLastId(null);
-        setLastSortValue(null);
-        setHasMore(true);
-      };
-      newSearch();
-    } else if (!isAuthenticated) {
-      // If not authenticated, clear images and reset all relevant states
-      setImages([]);
-      setImagesLoading(false);
-      setIsFetchingMore(false);
-      setHasMore(false);
-      setLastId(null);
-      setLastSortValue(null);
-      setImagesError("Please log in to view images.");
-    } 
-  }, [isAuthenticated, imagesPerPage, searchTerm, sortBy, sortOrder, fetchImages, filters, trash_only]);
-  
   // Ref for the element to observe for infinite scrolling
   const observer = useRef();
   const lastImageElementRef = useCallback(node => {
-    if (imagesLoading || isFetchingMore || !hasMore) {
-      if (observer.current) {
-        observer.current.disconnect(); // Disconnect if we should stop observing
-      }
+    // If we are currently loading, or there are no more images, do nothing.
+    if (imagesLoading || isFetchingMore) return;
+
+    // Disconnect any existing observer before creating a new one.
+    if (observer.current) observer.current.disconnect();
+
+    // If there are no more images to load, we don't need an observer.
+    if (!hasMore) {
       return;
     }
 
-    // Disconnect previous observer to avoid multiple observations
-    if (observer.current) observer.current.disconnect();
-
     // Create a new IntersectionObserver instance
     observer.current = new IntersectionObserver(entries => {
-      // If the target element is intersecting (visible) and we have more data, and not already fetching
-      if (entries[0].isIntersecting && hasMore && !isFetchingMore) {
-        // Directly call fetchImages to load the next page using the current lastId 
-        // This is the trigger for subsequent pages.
-        fetchImages(lastIdRef.current, lastSortValueRef.current, searchTerm, sortBy, sortOrder);
+      // If the observed element is intersecting, trigger the next fetch.
+      // The guards inside the callback prevent re-fetching.
+      if (entries[0].isIntersecting) {
+        fetchImages(false); // `false` indicates it's a subsequent load
       }
     }, {
       root: null, // Use the viewport as the root element
@@ -593,8 +576,10 @@ function ImageGrid({
     }); 
 
     // Start observing the provided DOM node if it exists
-    if (node) observer.current.observe(node);
-  }, [imagesLoading, isFetchingMore, hasMore, fetchImages, searchTerm, sortBy, sortOrder, trash_only]);
+    if (node) {
+      observer.current.observe(node);
+    }
+  }, [imagesLoading, isFetchingMore, hasMore, fetchImages]); // The dependency array is now minimal and correct.
 
   return (
     <>
@@ -614,9 +599,14 @@ function ImageGrid({
               initial="hidden"
               animate="visible"
               exit="hidden"
-              ref={images.length === index + 1 && hasMore ? lastImageElementRef : null} // Attach ref here
             >
-              <ImageCard image={image} onClick={handleImageClick} isSelected={selectedImages.has(image.id)} onContextMenu={(e) => handleContextMenu(e, image)} refreshKey={image.refreshKey} />
+              <ImageCard
+                ref={images.length === index + 1 && hasMore ? lastImageElementRef : null}
+                image={image}
+                onClick={handleImageClick}
+                isSelected={selectedImages.has(image.id)}
+                onContextMenu={(e) => handleContextMenu(e, image)}
+                refreshKey={image.refreshKey} />
             </motion.div>
           ))}
         </AnimatePresence>

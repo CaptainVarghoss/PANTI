@@ -7,7 +7,7 @@ import React, { useState, useEffect, useRef, forwardRef } from 'react';
  * @param {object} props.image - The image object containing details like id, filename, and meta.
  * @param {any} props.refreshKey - A key that triggers a refresh of the thumbnail.
  */
-const ImageCard = ({ image, onClick, onContextMenu, refreshKey, isSelected, ref: lastImageElementRef }) => {
+const ImageCard = forwardRef(({ image, onClick, onContextMenu, refreshKey, isSelected }, ref) => {
   const [isLoading, setIsLoading] = useState(true);
   const [thumbnailUrl, setThumbnailUrl] = useState(null);
   const retryTimeoutRef = useRef(null);
@@ -54,7 +54,7 @@ const ImageCard = ({ image, onClick, onContextMenu, refreshKey, isSelected, ref:
 
   return (
     <div
-      ref={lastImageElementRef} // The ref for infinite scroll is now passed here
+      ref={ref} // The ref for infinite scroll is now correctly attached here
       key={image.id}
       className={`btn-base btn-primary image-card ${isSelected ? 'selected' : ''}`}
       onClick={() => onClick(image)}
@@ -82,6 +82,6 @@ const ImageCard = ({ image, onClick, onContextMenu, refreshKey, isSelected, ref:
       </div>
     </div>
   );
-};
+});
 
 export default ImageCard;
