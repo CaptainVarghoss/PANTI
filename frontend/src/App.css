@@ -626,7 +626,7 @@ input:disabled {
   max-width: -webkit-fill-available;
 }
 
-.modal-content img {
+.modal-content img, .modal-content video {
   height: 100%;
 }
 
