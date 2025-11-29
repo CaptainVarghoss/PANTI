@@ -463,12 +463,14 @@ def generate_image_search_filter(
         # Positive: tags
         if f.tags:
             tag_ids = [tag.id for tag in f.tags]
-            positive_criteria_parts.append(ImageContent.tags.any(Tag.id.in_(tag_ids)))
+            # An image matches if its own tags OR its folder's tags are in the list
+            positive_criteria_parts.append(or_(ImageContent.tags.any(Tag.id.in_(tag_ids)), ImagePath.tags.any(Tag.id.in_(tag_ids))))
 
         # Negative: neg_tags
         if f.neg_tags:
             neg_tag_ids = [tag.id for tag in f.neg_tags]
-            negative_criteria = ImageContent.tags.any(Tag.id.in_(neg_tag_ids))
+            # An image is excluded if its own tags OR its folder's tags are in the list
+            negative_criteria = or_(ImageContent.tags.any(Tag.id.in_(neg_tag_ids)), ImagePath.tags.any(Tag.id.in_(neg_tag_ids)))
 
         # Combine all positive criteria with OR. An image matches if it meets ANY positive criterion.
         positive_criteria = or_(*positive_criteria_parts) if positive_criteria_parts else expression.false()
@@ -492,9 +494,11 @@ def generate_image_search_filter(
     # Apply global admin_only filters for ImagePath and Tags if `admin` is False
     global_admin_filter = expression.true() # Starts as true
     if not admin:
-        global_admin_filter = and_(global_admin_filter, ImagePath.admin_only == False)
-        global_admin_filter = and_(global_admin_filter,
-                                   not_(ImageContent.tags.any(Tag.admin_only == True)))
+        global_admin_filter = and_(
+            ImagePath.admin_only == False,
+            not_(ImageContent.tags.any(Tag.admin_only == True)),
+            not_(ImagePath.tags.any(Tag.admin_only == True)) # Also check folder tags
+        )
 
     if search_terms:
 
