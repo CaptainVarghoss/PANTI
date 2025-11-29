@@ -1,10 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { IoChevronBack, IoChevronForward, IoClose } from 'react-icons/io5';
+import { IoChevronBack, IoChevronForward, IoClose, IoExpand, IoContract } from 'react-icons/io5';
 import { useAuth } from '../context/AuthContext';
 import TagCluster from './TagCluster';
-import ImagePathsManagement from './ImagePathsManagement';
-import DeviceSpecificSettingsForm from './DeviceSpecificSettingsForm';
-import GlobalSettingsForm from './GlobalSettingsForm';
 import Settings from './Settings'; // Import the new unified Settings component
 
 /**
@@ -21,6 +18,36 @@ import Settings from './Settings'; // Import the new unified Settings component
 function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFilters }) { // eslint-disable-line no-unused-vars
     const { token, isAuthenticated, settings, isAdmin, logout } = useAuth();
     const modalContentRef = useRef(null);
+    const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
+
+    const toggleFullScreen = useCallback(() => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => {
+                alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+            });
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    }, []);
+
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => {
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+        };
+    }, []);
+
+    // --- Image Modal Navigation Logic ---
+    const { currentImage, images, onNavigate } = modalProps;
+    const currentIndex = (modalType === 'image' && currentImage && images) ? images.findIndex(img => img.id === currentImage.id) : -1;
+    const canGoPrev = currentIndex > 0;
+    const canGoNext = currentIndex !== -1 && currentIndex < images.length - 1;
+
 
     // --- General Modal Logic ---
     useEffect(() => {
@@ -34,6 +61,8 @@ function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFi
                     handleNext();
                 } else if (event.key === 'ArrowLeft' && canGoPrev) {
                     handlePrev();
+                } else if (event.key === 'f') {
+                    toggleFullScreen();
                 }
             }
         };
@@ -45,7 +74,7 @@ function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFi
         return () => {
             document.removeEventListener('keydown', handleKeyDown);
         };
-    }, [isOpen, onClose, modalType, modalProps]); // Dependencies will be specific to handlers
+    }, [isOpen, onClose, modalType, canGoNext, canGoPrev, onNavigate, images, currentIndex]);
 
     // --- Settings Modal State and Logic ---
     const [openSections, setOpenSections] = useState({});
@@ -60,7 +89,7 @@ function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFi
     };
 
     // --- Image Modal State and Logic ---
-    const { currentImage, images, onNavigate, searchTerm, setSearchTerm } = modalProps;
+    const { searchTerm, setSearchTerm } = modalProps;
     const [blobImageUrl, setBlobImageUrl] = useState(null);
     const [isFetchingOriginal, setIsFetchingOriginal] = useState(false);
     const [originalImageError, setOriginalImageError] = useState(null);
@@ -130,10 +159,6 @@ function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFi
         const previewUrl = `${PREVIEWS_DIR}/${currentImage?.checksum}_preview.webp`;
         imageUrlToDisplay = usePreview ? previewUrl : blobImageUrl;
     }
-
-    const currentIndex = (modalType === 'image' && currentImage) ? images.findIndex(img => img.id === currentImage.id) : -1;
-    const canGoPrev = currentIndex > 0;
-    const canGoNext = currentIndex !== -1 && currentIndex < images.length - 1;
 
     const navigateImage = useCallback((direction) => {
         if (!images || images.length === 0) return;
@@ -287,10 +312,16 @@ function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFi
 
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <button onClick={(e) => { e.stopPropagation(); onClose(); }} className="btn-base btn-primary modal-close-button" title="Close">
-                <IoClose size={24} />
-            </button>
-
+            <div className="modal-controls">
+                {modalType === 'image' && (
+                    <button onClick={(e) => { e.stopPropagation(); toggleFullScreen(); }} className="btn-base btn-primary modal-fullscreen-button" title="Toggle Fullscreen">
+                        {isFullscreen ? <IoContract size={24} /> : <IoExpand size={24} />}
+                    </button>
+                )}
+                <button onClick={(e) => { e.stopPropagation(); onClose(); }} className="btn-base btn-primary modal-close-button" title="Close">
+                    <IoClose size={24} />
+                </button>
+            </div>
             {modalType === 'image' && currentImage && renderImageModalContent()}
             {modalType === 'settings' && renderSettingsModalContent()}
             {modalProps.ContentComponent && renderGenericModalContent()}

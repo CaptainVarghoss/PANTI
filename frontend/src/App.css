@@ -596,11 +596,17 @@ input:disabled {
     overscroll-behavior-y: contain;
 }
 
-.modal-close-button {
+.modal-controls {
     position: absolute;
     top: 1rem;
     right: 1rem;
     z-index: 10;
+    padding: 0.5rem;
+    display: flex;
+    gap:0.5rem; 
+}
+
+.modal-controls button {
     padding: 0.5rem;
     width: 2.5rem;
     min-width: 2.5rem;
