@@ -83,7 +83,7 @@ function NavSearchBar({
 
             if (lowerLastPart === 'tag:') {
                 setActiveSuggestionType('TAG');
-                setSuggestions([]); // TagCluster will be shown directly
+                setSuggestions([]);
             } else if (lowerLastPart === 'folder:') {
                 const searchInput = searchWrapperRef.current.querySelector('input');
                 const rect = searchInput.getBoundingClientRect();
@@ -100,7 +100,7 @@ function NavSearchBar({
                             value: f.path
                         }));
                         setContextMenu({ isVisible: true, x: rect.left, y: rect.bottom, items: menuItems });
-                        setSuggestions([]); // We are using context menu instead
+                        setSuggestions([]);
                     }
                 } catch (error) {
                     console.error("Failed to fetch folders for autocomplete", error);
@@ -136,7 +136,6 @@ function NavSearchBar({
 
     const handleClear = () => {
         setInputValue('');
-        // Update parent immediately for a responsive clear action
         if (searchTerm !== '') {
             setSearchTerm('');
         }
@@ -146,7 +145,7 @@ function NavSearchBar({
         <div className="navbar-search-wrapper" ref={searchWrapperRef} style={{ position: 'relative' }}>
             <input
                 type="text"
-                placeholder="Search images... (try 'TAG:' or 'FOLDER:')"
+                placeholder="Search images..."
                 className="form-input-base"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
