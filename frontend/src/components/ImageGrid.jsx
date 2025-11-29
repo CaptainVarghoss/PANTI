@@ -27,6 +27,8 @@ function ImageGrid({
   trash_only = false,
   contextMenuItems,
   openModal,
+  focusedImageId,
+  setFocusedImageId,
 }) {
   const { token, isAuthenticated, settings } = useAuth();
   const [imagesLoading, setImagesLoading] = useState(true); // For initial load state
@@ -35,8 +37,6 @@ function ImageGrid({
   const [lastSortValue, setLastSortValue] = useState(null);
   const [hasMore, setHasMore] = useState(true); // True if there are more images to load
   const [isFetchingMore, setIsFetchingMore] = useState(false); // Tracks if a fetch for more images is in progress
-
-  const [focusedImageId, setFocusedImageId] = useState(null);
   const [contextMenu, setContextMenu] = useState({
       isVisible: false,
       x: 0,
@@ -382,106 +382,6 @@ function ImageGrid({
       setSelectedImages(new Set());
     }
   }, [isSelectMode]);
-
-  // Effect for closing the image modal with Space or Enter
-  useEffect(() => {
-    const handleModalKeyDown = (e) => {
-      // Check if the image modal is open by looking for its specific content
-      const imageModal = document.querySelector('.modal-image-section');
-
-      if (imageModal && (e.key === ' ' || e.key === 'Enter')) {
-        // Prevent the default action (like scrolling on space)
-        e.preventDefault();
-        
-        // Find the close button and click it programmatically
-        const closeButton = document.querySelector('.modal-close-button');
-        if (closeButton) {
-          closeButton.click();
-        }
-      }
-    };
-
-    document.addEventListener('keydown', handleModalKeyDown);
-    return () => document.removeEventListener('keydown', handleModalKeyDown);
-  }, []); // Empty dependency array ensures this runs only once
-
-  // Effect for handling keyboard navigation
-  useEffect(() => {
-    const getColumns = () => {
-      if (!gridRef.current) return 5; // Default fallback
-      const gridStyle = window.getComputedStyle(gridRef.current);
-      const gridTemplateColumns = gridStyle.getPropertyValue('grid-template-columns');
-      return gridTemplateColumns.split(' ').length;
-    };
-
-    const handleKeyDown = (e) => {
-      // Don't interfere with input fields
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-        return;
-      }
-
-      if (!images || images.length === 0) return;
-
-      let currentIndex = -1;
-      if (focusedImageId !== null) {
-        currentIndex = images.findIndex(img => img.id === focusedImageId);
-      } else {
-        // If no image is focused, focus the first one on key press
-        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'Enter'].includes(e.key)) {
-          setFocusedImageId(images[0].id);
-        }
-        return;
-      }
-
-      if (currentIndex === -1) return;
-
-      let nextIndex = currentIndex;
-      const columns = getColumns();
-
-      switch (e.key) {
-        case 'ArrowLeft':
-          nextIndex = Math.max(0, currentIndex - 1);
-          break;
-        case 'ArrowRight':
-          nextIndex = Math.min(images.length - 1, currentIndex + 1);
-          break;
-        case 'ArrowUp':
-          nextIndex = Math.max(0, currentIndex - columns);
-          break;
-        case 'ArrowDown':
-          nextIndex = Math.min(images.length - 1, currentIndex + columns);
-          break;
-        case ' ': // Spacebar
-        case 'Enter':
-          e.preventDefault();
-          const focusedImage = getFocusedImage();
-          if (focusedImage) {
-            handleImageClick(e, focusedImage);
-          }
-          return; // Don't update focus, let the modal open
-        default:
-          return; // Ignore other keys
-      }
-
-      if (nextIndex !== currentIndex) {
-        e.preventDefault();
-        const nextImage = images[nextIndex];
-        if (nextImage) {
-          setFocusedImageId(nextImage.id);
-          // Scroll the new focused image into view
-          const cardElement = document.querySelector(`[data-image-id="${nextImage.id}"]`);
-          if (cardElement) {
-            cardElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-          }
-        }
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [images, focusedImageId, getFocusedImage, handleImageClick]);
 
 
   // Fetch images function, now accepting an optional cursor (last_id)

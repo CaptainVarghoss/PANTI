@@ -14,21 +14,6 @@ const ConfirmationDialog = ({
   // Ref for the modal content to detect clicks outside
   const modalRef = useRef(null);
 
-  // Close the dialog if the Escape key is pressed
-  useEffect(() => {
-    const handleEscape = (event) => {
-      if (event.key === 'Escape') {
-        onClose();
-      }
-    };
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
-    }
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [isOpen, onClose]);
-
   // Handle clicks outside the modal content to close it
   const handleClickOutside = (event) => {
     if (modalRef.current && !modalRef.current.contains(event.target)) {

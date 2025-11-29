@@ -8,6 +8,7 @@ import MoveFilesForm from './components/MoveFilesForm'; // Import the new move f
 import TrashView from './components/TrashView';
 import UnauthenticatedApp from './components/UnauthenticatedApp'; // Import the new component
 import Navbar from './components/Navbar'; // Import Navbar from its own file
+import { useGlobalHotkeys } from './hooks/useGlobalHotkeys'; // Import the new hook
 import { useWebSocket } from './hooks/useWebSocket'; // Import the custom hook
 
 import './App.css';
@@ -41,11 +42,38 @@ function App() {
   const [trashCount, setTrashCount] = useState(0);
   const [selectedImages, setSelectedImages] = useState(new Set());
   const [folderViewSearchTerm, setFolderViewSearchTerm] = useState(null);
+
+  // State for keyboard navigation in ImageGrid
+  const [focusedImageId, setFocusedImageId] = useState(null);
+  const getFocusedImage = useCallback(() => images.find(img => img.id === focusedImageId), [images, focusedImageId]);
   
   // --- Centralized Modal State ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState(null);
   const [modalProps, setModalProps] = useState({});
+
+  // --- Fullscreen State ---
+  const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
+
+  const toggleFullScreen = useCallback(() => {
+      if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(err => {
+              alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+          });
+      } else {
+          if (document.exitFullscreen) {
+              document.exitFullscreen();
+          }
+      }
+  }, []);
+
+  useEffect(() => {
+      const handleFullscreenChange = () => {
+          setIsFullscreen(!!document.fullscreenElement);
+      };
+      document.addEventListener('fullscreenchange', handleFullscreenChange);
+      return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
   const openModal = (type, newProps) => {
     setModalType(type);
@@ -138,6 +166,73 @@ function App() {
     console.log("File change detected:", message);
     setWebSocketMessage(message);
   }, []);
+
+  // --- Grid Navigation and Actions ---
+  const handleGridNavigation = useCallback((key) => {
+    if (!images || images.length === 0) return;
+
+    const gridEl = document.querySelector('.image-grid');
+    if (!gridEl) return;
+
+    const gridStyle = window.getComputedStyle(gridEl);
+    const gridTemplateColumns = gridStyle.getPropertyValue('grid-template-columns');
+    const columns = gridTemplateColumns.split(' ').length;
+
+    let currentIndex = -1;
+    if (focusedImageId !== null) {
+      currentIndex = images.findIndex(img => img.id === focusedImageId);
+    } else {
+      setFocusedImageId(images[0].id);
+      return;
+    }
+
+    if (currentIndex === -1) return;
+
+    let nextIndex = currentIndex;
+    switch (key) {
+      case 'ArrowLeft': nextIndex = Math.max(0, currentIndex - 1); break;
+      case 'ArrowRight': nextIndex = Math.min(images.length - 1, currentIndex + 1); break;
+      case 'ArrowUp': nextIndex = Math.max(0, currentIndex - columns); break;
+      case 'ArrowDown': nextIndex = Math.min(images.length - 1, currentIndex + columns); break;
+      default: break;
+    }
+
+    if (nextIndex !== currentIndex) {
+      const nextImage = images[nextIndex];
+      if (nextImage) {
+        setFocusedImageId(nextImage.id);
+        const cardElement = document.querySelector(`[data-image-id="${nextImage.id}"]`);
+        if (cardElement) {
+          cardElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }
+    }
+  }, [images, focusedImageId]);
+
+  // --- Hotkey Hook Integration ---
+  useGlobalHotkeys({
+    // Modal states
+    isModalOpen,
+    modalType,
+    closeModal,
+    canGoPrev: modalProps.onNavigate && modalProps.images?.findIndex(img => img.id === modalProps.currentImage?.id) > 0,
+    canGoNext: modalProps.onNavigate && modalProps.images?.findIndex(img => img.id === modalProps.currentImage?.id) < modalProps.images?.length - 1,
+    handlePrev: () => modalProps.onNavigate && modalProps.onNavigate(modalProps.images[modalProps.images.findIndex(img => img.id === modalProps.currentImage.id) - 1]),
+    handleNext: () => modalProps.onNavigate && modalProps.onNavigate(modalProps.images[modalProps.images.findIndex(img => img.id === modalProps.currentImage.id) + 1]),
+    toggleFullScreen: toggleFullScreen,
+
+    // Grid states
+    isGridActive: !isModalOpen,
+    focusedImage: getFocusedImage(),
+    handleGridNavigation,
+    handleImageOpen: (e, image) => {
+      // This reuses the logic from ImageGrid's handleImageClick
+      const imageCard = document.querySelector(`[data-image-id="${image.id}"]`);
+      if (imageCard) imageCard.click();
+    },
+    // We can add dialog/context menu states here if they become globally managed
+  });
+
 
   // WebSocket connection
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -321,6 +416,8 @@ function App() {
                   setSelectedImages={setSelectedImages}
                   handleMoveSelected={handleMoveSelected}
                   handleMoveSingleImage={handleMoveSingleImage}
+                  focusedImageId={focusedImageId}
+                  setFocusedImageId={setFocusedImageId}
                   openModal={openModal}
                 />
               )}
@@ -363,6 +460,8 @@ function App() {
                       setSelectedImages={setSelectedImages}
                       handleMoveSelected={handleMoveSelected}
                       handleMoveSingleImage={handleMoveSingleImage}
+                      focusedImageId={focusedImageId}
+                      setFocusedImageId={setFocusedImageId}
                       openModal={openModal}
                     />
                   </div>
@@ -377,6 +476,8 @@ function App() {
                 modalProps={modalProps}
                 // Pass state directly to the modal so it re-renders when state changes.
                 filters={filters}
+                isFullscreen={isFullscreen}
+                toggleFullScreen={toggleFullScreen}
                 refetchFilters={refetchFilters}
               />
             )}

@@ -15,32 +15,9 @@ import Settings from './Settings'; // Import the new unified Settings component
  * @param {object} [props.modalProps] - Props specific to the modal type.
  *    For 'image': { currentImage, images, onNavigate, searchTerm, setSearchTerm }
  */
-function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFilters }) { // eslint-disable-line no-unused-vars
+function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFilters, isFullscreen, toggleFullScreen }) { // eslint-disable-line no-unused-vars
     const { token, isAuthenticated, settings, isAdmin, logout } = useAuth();
     const modalContentRef = useRef(null);
-    const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
-
-    const toggleFullScreen = useCallback(() => {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch(err => {
-                alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
-            });
-        } else {
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
-            }
-        }
-    }, []);
-
-    useEffect(() => {
-        const handleFullscreenChange = () => {
-            setIsFullscreen(!!document.fullscreenElement);
-        };
-        document.addEventListener('fullscreenchange', handleFullscreenChange);
-        return () => {
-            document.removeEventListener('fullscreenchange', handleFullscreenChange);
-        };
-    }, []);
 
     // --- Image Modal Navigation Logic ---
     const { currentImage, images, onNavigate } = modalProps;
@@ -48,33 +25,6 @@ function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFi
     const canGoPrev = currentIndex > 0;
     const canGoNext = currentIndex !== -1 && currentIndex < images.length - 1;
 
-
-    // --- General Modal Logic ---
-    useEffect(() => {
-        const handleKeyDown = (event) => {
-            if (event.key === 'Escape') {
-                onClose();
-            }
-            // Image modal specific keybindings
-            if (modalType === 'image') {
-                if (event.key === 'ArrowRight' && canGoNext) {
-                    handleNext();
-                } else if (event.key === 'ArrowLeft' && canGoPrev) {
-                    handlePrev();
-                } else if (event.key === 'f') {
-                    toggleFullScreen();
-                }
-            }
-        };
-
-        if (isOpen) {
-            document.addEventListener('keydown', handleKeyDown);
-        }
-
-        return () => {
-            document.removeEventListener('keydown', handleKeyDown);
-        };
-    }, [isOpen, onClose, modalType, canGoNext, canGoPrev, onNavigate, images, currentIndex]);
 
     // --- Settings Modal State and Logic ---
     const [openSections, setOpenSections] = useState({});
@@ -168,8 +118,8 @@ function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFi
         }
     }, [currentIndex, images, onNavigate]);
 
-    const handleNext = () => navigateImage(1);
-    const handlePrev = () => navigateImage(-1);
+    const handleNext = useCallback(() => navigateImage(1), [navigateImage]);
+    const handlePrev = useCallback(() => navigateImage(-1), [navigateImage]);
 
     const handleTouchStart = useCallback((e) => {
         setTouchStartX(e.touches[0].clientX);
@@ -314,7 +264,7 @@ function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFi
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal-controls">
                 {modalType === 'image' && (
-                    <button onClick={(e) => { e.stopPropagation(); toggleFullScreen(); }} className="btn-base btn-primary modal-fullscreen-button" title="Toggle Fullscreen">
+                    <button onClick={(e) => { e.stopPropagation(); toggleFullScreen(); }} className="btn-base btn-primary modal-fullscreen-button" title="Toggle Fullscreen (f)">
                         {isFullscreen ? <IoContract size={24} /> : <IoExpand size={24} />}
                     </button>
                 )}
