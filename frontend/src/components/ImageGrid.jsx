@@ -97,7 +97,7 @@ function ImageGrid({
     }
   }, [token]);
 
-  const handleImageClick = useCallback((event, image) => {
+  const handleImageClick = useCallback(async (event, image) => {
     setFocusedImageId(image.id); // Set focus on click
     if (isSelectMode) {
       // In select mode, handle selection logic
@@ -105,12 +105,12 @@ function ImageGrid({
         // Shift-click for range selection
         const lastFocusedIndex = images.findIndex(img => img.id === focusedImageId);
         const clickedIndex = images.findIndex(img => img.id === image.id);
-
+  
         if (lastFocusedIndex !== -1 && clickedIndex !== -1) {
           const start = Math.min(lastFocusedIndex, clickedIndex);
           const end = Math.max(lastFocusedIndex, clickedIndex);
           const rangeToSelect = images.slice(start, end + 1).map(img => img.id);
-
+  
           setSelectedImages(prevSelected => {
             const newSelected = new Set(prevSelected);
             rangeToSelect.forEach(id => newSelected.add(id));
@@ -130,9 +130,16 @@ function ImageGrid({
         });
       }
     } else {
-      // Normal mode, open modal
+      // Normal mode: fetch fresh data for the image before opening the modal
+      const freshImageData = await fetchImageById(image.id);
+      if (!freshImageData) {
+        alert("Could not load image data. It may have been moved, deleted, or you may no longer have permission to view it.");
+        setImages(prevImages => prevImages.filter(img => img.id !== image.id));
+        return;
+      }
+
       openModal('image', {
-        currentImage: image,
+        currentImage: freshImageData,
         images: images,
         onNavigate: (nextImage) => openModal('image', { // Re-open modal with new image
           currentImage: nextImage,
@@ -143,7 +150,7 @@ function ImageGrid({
         setSearchTerm: setSearchTerm
       });
     }
-  }, [isSelectMode, openModal, images, setSearchTerm, setSelectedImages, focusedImageId]);
+  }, [isSelectMode, openModal, images, setSearchTerm, setSelectedImages, focusedImageId, fetchImageById, setImages]);
 
   // Handle right-click event on a thumbnail
   const handleContextMenu = (event, thumbnail) => {
