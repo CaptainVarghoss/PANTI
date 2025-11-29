@@ -226,18 +226,20 @@ function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFi
                     )}
                 </div>
                 <section>
-                    <div className="section-row">
-                        <div className="section-fields">
-                            <div className="form-group">
-                                <label>Tags</label>
-                                <TagCluster.Display type="image_tags" itemId={currentImage.id} />
+                    <div className="section-container">
+                        <div className="section-row">
+                            <div className="section-fields">
+                                <div className="form-group">
+                                    <label>Tags</label>
+                                    <TagCluster.Display type="image_tags" itemId={currentImage.id} />
+                                </div>
                             </div>
-                        </div>
-                        <div className="section-fields" style={{ position: 'relative' }}>
-                            <button type="button" className="btn-base" onClick={() => setOpenTagPicker(prev => (prev.imageId === currentImage.id && prev.type === 'tags') ? { imageId: null, type: null } : { imageId: currentImage.id, type: 'tags' })}>
-                                Change Tags
-                            </button>
-                            {openTagPicker.imageId === currentImage.id && openTagPicker.type === 'tags' && ( <TagCluster.Popup type="image_tags" itemId={currentImage.id} onClose={() => setOpenTagPicker({ imageId: null, type: null })} /> )}
+                            <div className="section-fields" style={{ position: 'relative' }}>
+                                <button type="button" className="btn-base" onClick={() => setOpenTagPicker(prev => (prev.imageId === currentImage.id && prev.type === 'tags') ? { imageId: null, type: null } : { imageId: currentImage.id, type: 'tags' })}>
+                                    Change Tags
+                                </button>
+                                {openTagPicker.imageId === currentImage.id && openTagPicker.type === 'tags' && ( <TagCluster.Popup type="image_tags" itemId={currentImage.id} onClose={() => setOpenTagPicker({ imageId: null, type: null })} /> )}
+                            </div>
                         </div>
                     </div>
                     <div className="section-container">

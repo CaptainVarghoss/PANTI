@@ -16,6 +16,7 @@ function ImagePathsManagement({ onBack }) {
   const [message, setMessage] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isReprocessing, setIsReprocessing] = useState(false);
 
   // State for in-place editing
   const [editablePaths, setEditablePaths] = useState([]);
@@ -218,6 +219,41 @@ function ImagePathsManagement({ onBack }) {
     }
   };
 
+  const handleReprocessAll = async () => {
+    setMessage(null);
+    setError(null);
+    setIsReprocessing(true);
+
+    if (!isAdmin) {
+      setError("You must be an admin to trigger metadata reprocessing.");
+      setIsReprocessing(false);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/reprocess-metadata/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ scope: 'all' }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setMessage(`Metadata reprocessing initiated: ${result.message}`);
+      } else {
+        const errorData = await response.json();
+        setError(`Failed to start reprocessing: ${errorData.detail || response.statusText}`);
+      }
+    } catch (err) {
+      setError('Network error or failed to trigger reprocessing.');
+    } finally {
+      setIsReprocessing(false);
+    }
+  };
+
   const hasUnsavedChanges = JSON.stringify(imagePaths) !== JSON.stringify(editablePaths);
 
   return (
@@ -405,6 +441,12 @@ function ImagePathsManagement({ onBack }) {
                   className="btn-base btn-yellow"
                   disabled={isScanning || !isAdmin}>
                   {isScanning ? 'Scanning...' : 'Run Manual Scan'}
+              </button>
+              <button
+                  onClick={handleReprocessAll}
+                  className="btn-base btn-green"
+                  disabled={isReprocessing || !isAdmin}>
+                  {isReprocessing ? 'Refreshing...' : 'Refresh All Metadata'}
               </button>
           </div>
         </>

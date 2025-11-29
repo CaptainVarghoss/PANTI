@@ -593,6 +593,7 @@ input:disabled {
     z-index: 50;
     transition: opacity 0.3s ease-in-out, visibility 0.3s;
     overflow-y: auto;
+    overscroll-behavior-y: contain;
 }
 
 .modal-close-button {
@@ -609,6 +610,7 @@ input:disabled {
 .modal-content {
     position: relative;
     width: min-content;
+    max-width: 98vw;
     min-height: fit-content;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.8);    
     margin:auto;

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict # Import ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from typing import List, Optional, Any, Dict
 from datetime import datetime
 
@@ -222,3 +222,7 @@ class FolderList(BaseModel):
 # --- Trash Schema ---
 class TrashInfo(BaseModel):
     item_count: int
+
+class ReprocessRequest(BaseModel):
+    scope: str = Field(..., description="The scope of reprocessing. Must be one of 'file', 'directory', or 'all'.")
+    identifier: Optional[str] = Field(None, description="Identifier for the scope. The ImageLocation ID for 'file', or the full path for 'directory'.")

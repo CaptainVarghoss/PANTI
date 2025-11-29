@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func, not_
-import json
+import json, time
 from typing import Tuple, Optional
 import threading
 import subprocess
@@ -42,18 +42,49 @@ def _sanitize_for_json(obj):
         return obj.decode('utf-8', errors='replace')
     return obj
 
-def get_meta(filepath: str):
-    if os.path.exists(filepath):
+def get_meta(filepath: str) -> Tuple[dict, Optional[int], Optional[int]]:
+    if not os.path.exists(filepath):
+        return {}, None, None
+
+    mime_type, _ = mimetypes.guess_type(filepath)
+    is_video = mime_type and mime_type.startswith('video/')
+
+    if is_video:
         try:
+            # Use ffprobe for video dimensions
+            ffprobe_command = [
+                'ffprobe',
+                '-v', 'error',
+                '-select_streams', 'v:0',
+                '-show_entries', 'stream=width,height',
+                '-of', 'json',
+                filepath
+            ]
+            result = subprocess.run(ffprobe_command, check=True, capture_output=True, text=True)
+            video_info = json.loads(result.stdout)
+            width = video_info['streams'][0].get('width')
+            height = video_info['streams'][0].get('height')
+            # Videos don't have EXIF in the same way, return empty dict
+            return {}, width, height
+        except (subprocess.CalledProcessError, json.JSONDecodeError, KeyError, IndexError) as e:
+            print(f"Error getting video metadata with ffprobe for {filepath}: {e}")
+            # Fallback or fail gracefully
+            return {}, None, None
+
+    else: # For images
+        try:
+            # Use Pillow for image dimensions and EXIF
             image = PILImage.open(filepath)
             exif = dict(image.info)
-            #exif['width'] = image.width
-            #exif['height'] = image.height
-            image.close() # Good practice to close the image
-            return _sanitize_for_json(exif)
+            width = image.width
+            height = image.height
+            image.close()
+            return _sanitize_for_json(exif), width, height
         except Exception as e:
-            print(f"Error getting metadata for {filepath}: {e}")
-            return {}
+            print(f"Error getting image metadata for {filepath}: {e}")
+            return {}, None, None
+
+    return {}, None, None # Default return if no other condition is met
  
 def add_file_to_db(
     db: Session,
@@ -99,7 +130,7 @@ def add_file_to_db(
                 "mime_type": mime_type,
             }
 
-            new_meta = get_meta(file_full_path)
+            new_meta, width, height = get_meta(file_full_path)
             if new_meta:
                 initial_meta.update(new_meta)
             
@@ -108,7 +139,7 @@ def add_file_to_db(
             sanitized_meta = _sanitize_for_json(initial_meta)
 
             json_meta_string = "{}"
-            try:   
+            try:
                 json_meta_string = json.dumps(sanitized_meta)
             except TypeError as e:
                 print(f'Error in metadata for file: {file_full_path}. Skipping.')
@@ -124,7 +155,9 @@ def add_file_to_db(
                 exif_data=json_meta_string,
                 date_created=date_created_dt,
                 date_modified=date_modified_dt,
-                is_video=is_video
+                is_video=is_video,
+                width=width,
+                height=height
             )
 
         # Add location and reference content by hash.
@@ -524,3 +557,69 @@ def generate_preview(
         print(f"Error generating image preview for {source_filepath}: {e}")
 
     return preview_filepath
+
+def reprocess_metadata_task(db_session_factory, scope: str, identifier: Optional[int | str] = None):
+    """
+    A background task to reprocess metadata for images.
+
+    Args:
+        db_session_factory: A callable that returns a new SQLAlchemy Session.
+        scope (str): The scope of reprocessing ('file', 'directory', 'all').
+        identifier (Optional[Union[int, str]]): The identifier for the scope.
+            - For 'file', this is the ImageLocation ID (int).
+            - For 'directory', this is the path (str).
+            - For 'all', this is not used.
+    """
+    db = db_session_factory()
+    try:
+        print(f"[{datetime.now().isoformat()}] Starting metadata reprocessing task for scope: {scope}, identifier: {identifier}")
+        start_time = time.time()
+
+        locations_to_process = []
+        if scope == 'file':
+            location = db.query(models.ImageLocation).filter(models.ImageLocation.id == identifier).first()
+            if location:
+                locations_to_process.append(location)
+        elif scope == 'directory':
+            locations_to_process = db.query(models.ImageLocation).filter(models.ImageLocation.path == identifier).all()
+        elif scope == 'all':
+            locations_to_process = db.query(models.ImageLocation).all()
+
+        if not locations_to_process:
+            print(f"[{datetime.now().isoformat()}] No items found to reprocess for scope: {scope}, identifier: {identifier}")
+            return
+
+        total_items = len(locations_to_process)
+        print(f"Found {total_items} items to reprocess.")
+
+        for index, location in enumerate(locations_to_process):
+            full_path = os.path.join(location.path, location.filename)
+            if not os.path.exists(full_path):
+                print(f"Skipping {full_path} (item {index + 1}/{total_items}): File not found.")
+                continue
+
+            print(f"Reprocessing {full_path} (item {index + 1}/{total_items})...")
+            new_meta, width, height = get_meta(full_path)
+
+            image_content = db.query(models.ImageContent).filter(models.ImageContent.content_hash == location.content_hash).first()
+
+            if image_content:
+                # Update exif_data, width, and height
+                image_content.width = width
+                image_content.height = height
+                
+                # Preserve existing mime_type if it exists in the old metadata
+                try:
+                    existing_meta = json.loads(image_content.exif_data) if isinstance(image_content.exif_data, str) else image_content.exif_data
+                    if 'mime_type' in existing_meta:
+                        new_meta['mime_type'] = existing_meta['mime_type']
+                except (json.JSONDecodeError, TypeError):
+                    pass # Ignore if old metadata is invalid
+
+                image_content.exif_data = json.dumps(_sanitize_for_json(new_meta))
+                db.commit()
+
+        duration = time.time() - start_time
+        print(f"[{datetime.now().isoformat()}] Finished metadata reprocessing task for {total_items} items in {duration:.2f} seconds.")
+    finally:
+        db.close()
