@@ -153,6 +153,8 @@ function Navbar({
         {settings.left_enabled && (
           <NavbarMenuButtons
             side="left"
+            filters={filters}
+            handleFilterToggle={handleFilterToggle}
             trashCount={trashCount}
             setCurrentView={setCurrentView}
             onSettingsClick={onSettingsClick}
@@ -176,6 +178,8 @@ function Navbar({
         {settings.right_enabled && (
           <NavbarMenuButtons
             side="right"
+            filters={filters}
+            handleFilterToggle={handleFilterToggle}
             trashCount={trashCount}
             setCurrentView={setCurrentView}
             isSelectMode={isSelectMode}

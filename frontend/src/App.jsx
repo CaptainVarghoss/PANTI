@@ -78,10 +78,35 @@ function App() {
     setModalProps({});
   };
 
+  const refetchFilters = useCallback(async () => {
+    if (!isAuthenticated) return;
+    try {
+        const response = await fetch('/api/filters/', {
+            headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const fetchedFilters = await response.json();
+        // If header_display > 0, the filter is enabled and should default to the main stage (index 0).
+        // If header_display is 0, the filter is disabled (index -2).
+        const initializedFilters = fetchedFilters.map(f => ({ ...f, activeStageIndex: f.header_display > 0 ? 0 : -2 }));
+        setFilters(initializedFilters); // Update the global state
+        return initializedFilters; // Return the new state
+    } catch (error) {
+        console.error(`Error refetching filters:`, error);
+        return null; // Return null on error
+    }
+  }, [isAuthenticated, token]);
+
+  // Pass the standard setFilters function for direct state updates (e.g., from Navbar)
+  const handleSetFilters = (newFilters) => {
+    setFilters(newFilters);
+  };
+
   const handleSettingsClick = () => {
     openModal('settings', {
-      filters: filters,
-      setFilters: setFilters,
+      // Props that don't change, like handlers, can stay here.
     });
   };
 
@@ -146,32 +171,13 @@ function App() {
       if (typeof handleSearchAndSortChange === 'function') {
           handleSearchAndSortChange(debouncedSearchTerm, sortBy, sortOrder);
       }
-  }, [debouncedSearchTerm, sortBy, sortOrder, handleSearchAndSortChange, filters]);
+  }, [debouncedSearchTerm, sortBy, sortOrder, handleSearchAndSortChange]);
 
   useEffect(() => {
     if (!isAuthenticated) { return }
-    const fetchFilters = async () => {
-        try {
-            const response = await fetch('/api/filters/', {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-            });
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const fetchedFilters = await response.json();
-            // Initialize each filter with an activeStageIndex.
-            // If the filter is enabled, its initial state is main_stage (index 0).
-            // If disabled, it has no active stage (index -1).
-            const initializedFilters = fetchedFilters.map(f => ({ ...f, activeStageIndex: f.enabled ? 0 : -1 }));
-            setFilters(initializedFilters);
-        } catch (error) {
-            console.error(`Error fetching filters:`, error);
-        }
-    };
-    fetchFilters();
-  }, [isAuthenticated, token]);
+    // Use the useCallback version of refetchFilters for the initial fetch.
+    refetchFilters();
+  }, [isAuthenticated, refetchFilters]);
 
   // Effect to fetch trash count
   useEffect(() => {
@@ -278,7 +284,7 @@ function App() {
               sortOrder={sortOrder}
               setSortBy={setSortBy}
               setSortOrder={setSortOrder}
-              setSearchTerm={setSearchTerm}
+              setSearchTerm={setSearchTerm} // This is correct
               filters={filters}
               setFilters={setFilters}
               isConnected={isConnected}
@@ -369,6 +375,9 @@ function App() {
                 onClose={closeModal}
                 modalType={modalType}
                 modalProps={modalProps}
+                // Pass state directly to the modal so it re-renders when state changes.
+                filters={filters}
+                refetchFilters={refetchFilters}
               />
             )}
           </>

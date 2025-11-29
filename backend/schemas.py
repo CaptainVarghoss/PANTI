@@ -168,9 +168,8 @@ class DeviceSetting(DeviceSettingBase):
 # --- Filter Schemas ---
 class FilterBase(BaseModel):
     name: str
-    enabled: bool = False
     search_terms: Optional[str] = None
-    header_display: bool = False
+    header_display: int = 0
     admin_only: bool = False
     main_stage: str = "hide"
     main_stage_color: Optional[str] = None
@@ -188,9 +187,8 @@ class FilterCreate(FilterBase):
 
 class FilterUpdate(FilterBase):
     name: Optional[str] = None
-    enabled: Optional[bool] = None
     search_terms: Optional[str] = None
-    header_display: Optional[bool] = None
+    header_display: Optional[int] = None
     admin_only: Optional[bool] = None
     main_stage: Optional[str] = None
     main_stage_color: Optional[str] = None
@@ -208,24 +206,6 @@ class Filter(FilterBase):
     id: int
     tags: List[Tag] = [] # List of associated Tags (positive)
     neg_tags: List[Tag] = [] # List of associated Tags (negative)
-    model_config = ConfigDict(from_attributes=True) # Directly use ConfigDict
-
-# --- UserFilter Schemas ---
-class UserFilterBase(BaseModel):
-    filter_id: int
-    user_id: int
-    enabled: bool = False
-
-class UserFilterCreate(UserFilterBase):
-    pass
-
-class UserFilterUpdate(UserFilterBase):
-    filter_id: Optional[int] = None
-    user_id: Optional[int] = None
-    enabled: Optional[bool] = None
-
-class UserFilter(UserFilterBase):
-    id: int
     model_config = ConfigDict(from_attributes=True) # Directly use ConfigDict
 
 # --- Token Schema for Authentication ---

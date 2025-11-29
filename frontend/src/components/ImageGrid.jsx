@@ -517,7 +517,9 @@ function ImageGrid({
       if (filters) {
         const activeStages = {};
         filters.forEach(filter => {
-          if (filter.activeStageIndex !== -1) activeStages[filter.id] = filter.activeStageIndex;
+          // Only include filters that have an active stage selected (index 0, 1, or 2).
+          // This correctly excludes disabled filters (index -2).
+          if (filter.activeStageIndex >= 0) activeStages[filter.id] = filter.activeStageIndex;
         });
         if (Object.keys(activeStages).length > 0) queryString.append('active_stages_json', JSON.stringify(activeStages));
       }

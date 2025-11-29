@@ -13,7 +13,7 @@ import GlobalSettingsForm from './GlobalSettingsForm';
  * @param {function} props.setFilters - Function to update filters.
  * @param {function} props.onLogout - Function to handle user logout.
  */
-function Settings({ filters, setFilters, onLogout }) {
+function Settings({ filters, setFilters, onLogout, refetchFilters }) {
     const { isAdmin } = useAuth();
     const [activeTab, setActiveTab] = useState(isAdmin ? 'global' : 'device');
 
@@ -22,7 +22,7 @@ function Settings({ filters, setFilters, onLogout }) {
             case 'paths':
                 return <ImagePathsManagement />;
             case 'filters':
-                return <FilterManager filters={filters} setFilters={setFilters} />;
+                return <FilterManager filters={filters} refetchFilters={refetchFilters} isAdmin={isAdmin} />;
             case 'device':
                 return <DeviceSpecificSettingsForm />;
             case 'global':

@@ -431,6 +431,10 @@ def generate_image_search_filter(
     for f in db_filters:
         if f.admin_only and not admin:
             continue
+        
+        # Explicitly ignore filters that are disabled via header_display = 0.
+        if f.header_display == 0:
+            continue
 
         # Determine the active stage for this filter
         stage_index = active_stages.get(str(f.id)) # JSON keys are strings

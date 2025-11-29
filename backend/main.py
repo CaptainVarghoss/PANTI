@@ -123,8 +123,7 @@ async def lifespan(app: FastAPI):
             print("Adding initial Filter...")
             db.add(models.Filter(
                 name='Explicit Content',
-                header_display=True,
-                enabled=True,
+                header_display=1,
                 main_stage="hide",
                 main_stage_color="btn-primary",
                 main_stage_icon="MdOutlineExplicit",

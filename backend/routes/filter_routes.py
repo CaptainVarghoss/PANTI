@@ -19,7 +19,6 @@ def create_filter(filter_in: schemas.FilterCreate, db: Session = Depends(databas
 
     db_filter = models.Filter(
         name=filter_in.name,
-        enabled=filter_in.enabled,
         search_terms=filter_in.search_terms,
         header_display=filter_in.header_display,
         admin_only=filter_in.admin_only,

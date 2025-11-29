@@ -17,9 +17,8 @@ import Settings from './Settings'; // Import the new unified Settings component
  * @param {string} props.modalType - Type of modal to display ('image' or 'settings').
  * @param {object} [props.modalProps] - Props specific to the modal type.
  *    For 'image': { currentImage, images, onNavigate, searchTerm, setSearchTerm }
- *    For 'settings': { filters, setFilters }
  */
-function Modal({ isOpen, onClose, modalType, modalProps = {} }) { // eslint-disable-line no-unused-vars
+function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFilters }) { // eslint-disable-line no-unused-vars
     const { token, isAuthenticated, settings, isAdmin, logout } = useAuth();
     const modalContentRef = useRef(null);
 
@@ -50,7 +49,6 @@ function Modal({ isOpen, onClose, modalType, modalProps = {} }) { // eslint-disa
 
     // --- Settings Modal State and Logic ---
     const [openSections, setOpenSections] = useState({});
-    const { filters, setFilters } = modalProps;
 
     const handleAccordionClick = (sectionName) => {
         setOpenSections(prev => ({ ...prev, [sectionName]: !prev[sectionName] }));
@@ -266,7 +264,7 @@ function Modal({ isOpen, onClose, modalType, modalProps = {} }) { // eslint-disa
 
     const renderSettingsModalContent = () => (
         <div ref={modalContentRef} className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <Settings filters={filters} setFilters={setFilters} onLogout={handleLogout} />
+            <Settings filters={filters} refetchFilters={refetchFilters} onLogout={handleLogout} />
         </div>
     );
 

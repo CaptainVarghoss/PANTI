@@ -131,9 +131,8 @@ class Filter(Base):
     __tablename__ = "filters"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True, nullable=False)
-    enabled = Column(Boolean, default=False)
     search_terms = Column(Text)
-    header_display = Column(Boolean, default=False)
+    header_display = Column(Integer, default=1)
     admin_only = Column(Boolean, default=False)
     main_stage = Column(String, default="hide")
     main_stage_color = Column(String)

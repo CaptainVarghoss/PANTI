@@ -1,5 +1,5 @@
 import React from 'react';
-import * as MdIcons from 'react-icons/md'; // Import all icons
+import FilterButtons from './FilterButtons';
 
 
 function NavbarButtons({
@@ -20,33 +20,7 @@ function NavbarButtons({
                     )}
                 </button>
             </li>
-            <li>
-                {filters.map(filter => {
-                    if (!filter.header_display) return null;
-
-                    const isActive = filter.activeStageIndex > 0;
-                    const stageNames = ['main', 'second', 'third'];
-                    const activeStageName = isActive ? stageNames[filter.activeStageIndex] : 'main';
-
-                    const activeColorName = filter[`${activeStageName}_stage_color`];
-                    const activeIconName = filter[`${activeStageName}_stage_icon`];
-
-                    // Dynamically get the Icon component from MdIcons
-                    const IconComponent = activeIconName ? MdIcons[activeIconName] : null;
-
-                    return (
-                        <button 
-                            key={filter.id} 
-                            className={`btn-base filter-menu-button ${isActive ? 'active' : ''} ${filter.activeStageIndex !== -1 && activeColorName ? activeColorName : ''}`}
-                            onClick={() => handleFilterToggle(filter.id)}
-                            title={filter.name}
-                        >
-                            {/* Render the icon component if it exists, otherwise render nothing */}
-                            {IconComponent && <IconComponent size={20} />}
-                        </button>
-                    );
-                })}
-            </li>            
+            <FilterButtons filters={filters} handleFilterToggle={handleFilterToggle} displayLocation={1} />
         </>
     );
 }

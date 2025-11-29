@@ -99,20 +99,19 @@ const FilterStageEditor = ({
     );
 };
 
-function FilterManager({filters, setFilters}) {
-    const { token, isAdmin } = useAuth();
+function FilterManager({filters, refetchFilters, isAdmin}) {
+    const { token } = useAuth();
 
     // Define options for stage dropdowns based on new rules
     const baseStageOptions = ['show', 'hide', 'show_only'];
     const thirdStageOptions = ['show', 'hide', 'show_only', 'disabled'];
-
     const [themeColors, setThemeColors] = useState([]);
 
-    // Initialize state directly from the prop to ensure it has data on the first render.
+    // Local state for editing. This is a copy of the filters prop and is only updated on edit or after a save.
     const [editableFilters, setEditableFilters] = useState(() => JSON.parse(JSON.stringify(filters)));
 
     const [newFilter, setNewFilter] = useState({
-        name: '', search_terms: '', enabled: false, header_display: false, admin_only: false,
+        name: '', search_terms: '', header_display: 0, admin_only: false,
         main_stage: 'hide', main_stage_color: '', main_stage_icon: '', // Default unique values
         second_stage: 'show', second_stage_color: '', second_stage_icon: '', // Default unique values
         third_stage: 'disabled', third_stage_color: '', third_stage_icon: '', // Default unique values
@@ -145,44 +144,38 @@ function FilterManager({filters, setFilters}) {
         setThemeColors(getThemeColors());
     }, [token]);
 
-    // This effect ensures that if the original `filters` prop changes (e.g., after a save),
-    // the local editable state is reset and re-synced.
+    // This effect now only runs when the modal is first opened or if the filters
+    // are changed from outside the settings modal (which is unlikely).
     useEffect(() => {
-        setEditableFilters(JSON.parse(JSON.stringify(filters)));
+        const deepCopy = JSON.parse(JSON.stringify(filters)); // Create a deep copy to avoid mutation.
+        setEditableFilters(deepCopy);
     }, [filters]);
 
     const handleInputChange = (id, field, value) => {
-        setEditableFilters(prev => prev.map(filter => {
-            if (filter.id !== id) return filter;
-    
-            // Create a mutable copy for this filter
-            const updatedFilter = { ...filter, [field]: value };
-    
-            // Only apply cascading logic if a stage dropdown was changed
-            if (field.endsWith('_stage')) {
-                const stages = ['main_stage', 'second_stage', 'third_stage'];
-                const changedStage = field;
-    
-                // Find which other stage (if any) now has a conflicting value
-                const conflictStage = stages.find(s => s !== changedStage && updatedFilter[s] === value);
-    
-                if (conflictStage) {
-                    // A conflict exists. Find a new, unused value for the conflicting stage.
-                    const allOptions = ['show', 'hide', 'show_only', 'disabled'];
-                    const usedValues = stages.map(s => updatedFilter[s]);
-                    
-                    // Find the first available option that isn't currently used by any stage
-                    const newValueForConflict = allOptions.find(opt => !usedValues.includes(opt));
-    
-                    // Assign the new value to the conflicting stage
-                    if (newValueForConflict) {
-                        updatedFilter[conflictStage] = newValueForConflict;
+        setEditableFilters(prevEditableFilters =>
+            prevEditableFilters.map(filter => {
+                if (filter.id !== id) return filter;
+
+                const updatedFilter = { ...filter, [field]: value };
+
+                // Logic to prevent duplicate stage values
+                if (field.endsWith('_stage')) {
+                    const stages = ['main_stage', 'second_stage', 'third_stage'];
+                    const changedStage = field;
+                    const conflictStage = stages.find(s => s !== changedStage && updatedFilter[s] === value);
+
+                    if (conflictStage) {
+                        const allOptions = ['show', 'hide', 'show_only', 'disabled'];
+                        const usedValues = stages.map(s => updatedFilter[s]);
+                        const newValueForConflict = allOptions.find(opt => !usedValues.includes(opt));
+                        if (newValueForConflict) {
+                            updatedFilter[conflictStage] = newValueForConflict;
+                        }
                     }
                 }
-            }
-    
-            return updatedFilter;
-        }));
+                return updatedFilter;
+            })
+        );
     };
 
     const handleIconSelect = (iconName) => {
@@ -220,13 +213,13 @@ function FilterManager({filters, setFilters}) {
     };
 
     const handleDiscardChanges = () => {
-        setEditableFilters(JSON.parse(JSON.stringify(filters))); // Reset to original
+        setEditableFilters(JSON.parse(JSON.stringify(filters))); // Revert local state to the original prop state
         setMessage(null);
         setError(null);
     };
 
     const handleSaveChanges = async () => {
-        if (!isAdmin) return;
+        if (!isAdmin || !hasUnsavedChanges) return; // Guard against saving if no changes
         setIsSaving(true);
         setError(null);
         setMessage(null);
@@ -234,11 +227,11 @@ function FilterManager({filters, setFilters}) {
         const updatePromises = editableFilters.map(filter => {
             const originalFilter = filters.find(f => f.id === filter.id);
             if (JSON.stringify(filter) === JSON.stringify(originalFilter)) {
-                return Promise.resolve({ ok: true }); // No changes
+                return Promise.resolve({ ok: true }); // No changes, skip update for this filter
             }
 
             return fetch(`/api/filters/${filter.id}`, {
-                method: 'PUT',
+                method: 'PUT', // The backend handles partial updates, so sending the whole object is fine.
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`,
@@ -256,15 +249,9 @@ function FilterManager({filters, setFilters}) {
             }
 
             setMessage('All changes saved successfully!');
-            // Notify parent to refetch
-            const response = await fetch('/api/filters/', { headers: { 'Authorization': `Bearer ${token}` } });
-            const updatedFilters = await response.json();
-            
-            // Re-initialize filters with activeStageIndex before updating the parent state
-            const initializedFilters = updatedFilters.map(f => ({ ...f, activeStageIndex: f.enabled ? 0 : -1 }));
-
-            setFilters(initializedFilters);
-
+            // Call the refetch function passed from App.jsx. This will update the parent state,
+            // which will now correctly flow down as new props, triggering the useEffect to update local state.
+            await refetchFilters();
         } catch (err) {
             setError(err.message || 'An error occurred while saving changes.');
         } finally {
@@ -296,7 +283,7 @@ function FilterManager({filters, setFilters}) {
 
             setMessage('New filter added successfully!');
             setNewFilter({ // Reset form to default values
-                name: '', search_terms: '', enabled: false, header_display: false, admin_only: false,
+                name: '', search_terms: '', header_display: 0, admin_only: false,
                 main_stage: 'hide', main_stage_color: '', main_stage_icon: '',
                 second_stage: 'show', second_stage_color: '', second_stage_icon: '',
                 third_stage: 'disabled', third_stage_color: '', third_stage_icon: '',
@@ -306,7 +293,7 @@ function FilterManager({filters, setFilters}) {
             // Refetch all filters to update list
             const refetchResponse = await fetch('/api/filters/', { headers: { 'Authorization': `Bearer ${token}` } });
             const updatedFilters = await refetchResponse.json();
-            setFilters(updatedFilters);
+            refetchFilters();
 
         } catch (err) {
             setError(err.message);
@@ -333,7 +320,7 @@ function FilterManager({filters, setFilters}) {
             // Refetch to update list
             const refetchResponse = await fetch('/api/filters/', { headers: { 'Authorization': `Bearer ${token}` } });
             const updatedFilters = await refetchResponse.json();
-            setFilters(updatedFilters);
+            refetchFilters();
 
         } catch (err) {
             setError(err.message);
@@ -348,8 +335,8 @@ function FilterManager({filters, setFilters}) {
         setShowConfirmDialog(true);
     };
     
-    // A simple, direct comparison between the original filters prop and the local editable state.
-    const hasUnsavedChanges = JSON.stringify(filters) !== JSON.stringify(editableFilters);
+    // Compare the current filters state (from props) with the pristine initial state.
+    const hasUnsavedChanges = JSON.stringify(editableFilters) !== JSON.stringify(filters);
 
     return (
         <>
@@ -410,35 +397,24 @@ function FilterManager({filters, setFilters}) {
                                                     </label>
                                                 </div>
                                                 <div className="checkbox-container">
-                                                    <span className="checkbox-label">Enabled</span>
-                                                    <label className="checkbox-label">
-                                                        <input
-                                                            type="checkbox"
-                                                            className="checkbox-base"
-                                                            checked={filter.enabled || false}
-                                                            onChange={(e) => handleInputChange(filter.id, 'enabled', e.target.checked)}
-                                                            disabled={!isAdmin}
-                                                        />
-                                                    </label>
-                                                </div>
-                                                <div className="checkbox-container">
-                                                    <span className="checkbox-label">Show in Header</span>
-                                                    <label className="checkbox-label">
-                                                        <input
-                                                            type="checkbox"
-                                                            className="checkbox-base"
-                                                            checked={filter.header_display || false}
-                                                            onChange={(e) => handleInputChange(filter.id, 'header_display', e.target.checked)}
-                                                            disabled={!isAdmin}
-                                                        />
-                                                    </label>
+                                                    <label className="form-label" htmlFor={`filter-header-display-${filter.id}`}>Display Location</label>
+                                                    <select
+                                                        id={`filter-header-display-${filter.id}`}
+                                                        value={filter.header_display}
+                                                        onChange={(e) => handleInputChange(filter.id, 'header_display', parseInt(e.target.value, 10))}
+                                                        className="form-input-base dropdown-base"
+                                                        disabled={!isAdmin}
+                                                    >
+                                                        <option value={0}>Disabled</option>
+                                                        <option value={1}>Top Bar</option>
+                                                        <option value={2}>Second Bar</option>
+                                                        <option value={3}>Auxiliary Bar</option>
+                                                    </select>
                                                 </div>
                                             </div>
                                             <div className="section-fields">
                                                 {isAdmin && (
-                                                    <button onClick={() => handleDeleteClick(filter.id)} className="btn-base btn-red icon-button" title="Delete Filter">
-                                                        <MdDelete size={18} />
-                                                    </button>
+                                                    <button onClick={() => handleDeleteClick(filter.id)} className="btn-base btn-red icon-button" title="Delete Filter"><MdDelete size={18} /></button>
                                                 )}
                                             </div>
                                         </div>
@@ -553,26 +529,18 @@ function FilterManager({filters, setFilters}) {
                                                     </label>
                                                 </div>
                                                 <div className="checkbox-container">
-                                                    <span className="checkbox-label">Enabled</span>
-                                                    <label className="checkbox-label">
-                                                        <input
-                                                            type="checkbox"
-                                                            className="checkbox-base"
-                                                            checked={newFilter.enabled || false}
-                                                            onChange={(e) => handleNewFilterChange('enabled', e.target.checked)}
-                                                        />
-                                                    </label>
-                                                </div>
-                                                <div className="checkbox-container">
-                                                    <span className="checkbox-label">Show in Header</span>
-                                                    <label className="checkbox-label">
-                                                        <input
-                                                            type="checkbox"
-                                                            className="checkbox-base"
-                                                            checked={newFilter.header_display || false}
-                                                            onChange={(e) => handleNewFilterChange('header_display', e.target.checked)}
-                                                        />
-                                                    </label>
+                                                    <label className="form-label" htmlFor="new-filter-header-display">Display Location</label>
+                                                    <select
+                                                        id="new-filter-header-display"
+                                                        value={newFilter.header_display}
+                                                        onChange={(e) => handleNewFilterChange('header_display', parseInt(e.target.value, 10))}
+                                                        className="form-input-base dropdown-base"
+                                                    >
+                                                        <option value={0}>Disabled</option>
+                                                        <option value={1}>Top Bar</option>
+                                                        <option value={2}>Second Bar</option>
+                                                        <option value={3}>Auxiliary Bar</option>
+                                                    </select>
                                                 </div>
                                             </div>
                                         </div>
