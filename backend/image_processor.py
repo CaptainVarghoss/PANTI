@@ -198,6 +198,36 @@ def cleanup_orphaned_image_locations(db: Session):
     else:
         print("No orphaned ImageLocation entries found.")
 
+def check_and_apply_folder_tags(db: Session):
+    """
+    Ensures all images within a folder have the tags assigned to that folder.
+    This acts as a data integrity check.
+    """
+    print("Checking for folder tag inheritance consistency...")
+    folders_with_tags = db.query(models.ImagePath).options(joinedload(models.ImagePath.tags)).filter(models.ImagePath.tags.any()).all()
+
+    if not folders_with_tags:
+        print("No folders with tags found. Skipping consistency check.")
+        return
+
+    for folder in folders_with_tags:
+        folder_tag_ids = {tag.id for tag in folder.tags}
+        if not folder_tag_ids:
+            continue
+
+        # Get all ImageContent objects for images in this folder
+        content_hashes_in_path = db.query(models.ImageLocation.content_hash).filter(models.ImageLocation.path == folder.path).distinct()
+        images_to_check = db.query(models.ImageContent).options(joinedload(models.ImageContent.tags)).filter(
+            models.ImageContent.content_hash.in_(content_hashes_in_path)
+        ).all()
+
+        for image_content in images_to_check:
+            image_tag_ids = {tag.id for tag in image_content.tags}
+            missing_tags = [tag for tag in folder.tags if tag.id not in image_tag_ids]
+            if missing_tags:
+                print(f"Found image ID {image_content.content_hash} in '{folder.path}' missing {len(missing_tags)} folder tags. Applying them now.")
+                image_content.tags.extend(missing_tags)
+
 def scan_paths(db: Session):
     """
     Scans all configured paths for new subdirectories and files, committing each discovery immediately.
@@ -214,6 +244,10 @@ def scan_paths(db: Session):
     try:
         # Before scanning, clean up any locations that point to now-deleted paths.
         cleanup_orphaned_image_locations(db)
+
+        # Also, ensure folder tags are correctly inherited by all images.
+        check_and_apply_folder_tags(db)
+        db.commit() # Commit any changes from the tag consistency check
 
         # Fetch all existing paths and checksums once at the start.
         paths_to_scan = db.query(models.ImagePath).all()

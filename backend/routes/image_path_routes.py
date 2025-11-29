@@ -78,6 +78,9 @@ def update_image_path(path_id: int, path: schemas.ImagePathUpdate, db: Session =
     db_image_path = db.query(models.ImagePath).filter(models.ImagePath.id == path_id).first()
     if db_image_path is None:
         raise HTTPException(status_code=404, detail="ImagePath not found")
+
+    old_tag_ids = {tag.id for tag in db_image_path.tags}
+    
     for key, value in path.dict(exclude_unset=True, exclude={'tag_ids'}).items():
         setattr(db_image_path, key, value)
     
@@ -90,6 +93,24 @@ def update_image_path(path_id: int, path: schemas.ImagePathUpdate, db: Session =
             else:
                 # Optionally, raise an error if a tag ID is invalid
                 print(f"Warning: Tag with ID {tag_id} not found during ImagePath update.")
+        
+        # --- Apply newly added folder tags to images within that folder ---
+        newly_added_tag_ids = set(path.tag_ids) - old_tag_ids
+        if newly_added_tag_ids:
+            print(f"Folder '{db_image_path.path}' has new tags. Applying to existing images.")
+            # Get all ImageContent objects for images in this folder
+            content_hashes_in_path = db.query(models.ImageLocation.content_hash).filter(models.ImageLocation.path == db_image_path.path).distinct()
+            images_to_update = db.query(models.ImageContent).options(joinedload(models.ImageContent.tags)).filter(
+                models.ImageContent.content_hash.in_(content_hashes_in_path)
+            ).all()
+
+            tags_to_add = db.query(models.Tag).filter(models.Tag.id.in_(newly_added_tag_ids)).all()
+
+            for image_content in images_to_update:
+                for tag in tags_to_add:
+                    if tag not in image_content.tags:
+                        image_content.tags.append(tag)
+            print(f"Applied {len(tags_to_add)} new tags to {len(images_to_update)} images in folder.")
 
     db.commit()
     db.refresh(db_image_path)

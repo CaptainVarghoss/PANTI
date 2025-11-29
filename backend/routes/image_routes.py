@@ -379,10 +379,22 @@ async def move_images_bulk(
     if not is_valid_destination:
         raise HTTPException(status_code=400, detail="Destination path is not a valid or registered image path.")
 
-    locations_to_move = db.query(models.ImageLocation).filter(models.ImageLocation.id.in_(image_ids)).all()
+    # Eagerly load folder tags for the destination path
+    destination_folder_tags = is_valid_destination.tags
+
+    locations_to_move = db.query(models.ImageLocation).options(
+        joinedload(models.ImageLocation.content).joinedload(models.ImageContent.tags)
+    ).filter(models.ImageLocation.id.in_(image_ids)).all()
 
     if len(locations_to_move) != len(image_ids):
         raise HTTPException(status_code=404, detail="One or more images not found.")
+
+    # Apply destination folder tags to the images being moved
+    if destination_folder_tags:
+        for location in locations_to_move:
+            for tag in destination_folder_tags:
+                if tag not in location.content.tags:
+                    location.content.tags.append(tag)
 
     for location in locations_to_move:
         if location.path == destination_path:
@@ -394,7 +406,7 @@ async def move_images_bulk(
 
         try:
             # Move the physical file
-            os.rename(source_full_path, dest_full_path)
+            os.rename(source_full_path, dest_full_path) # This is atomic on most OSes
             
             # Update the database record
             location.path = destination_path
