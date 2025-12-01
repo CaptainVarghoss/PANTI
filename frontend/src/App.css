@@ -175,7 +175,7 @@ p {
 }
 
 /* --- HEADER/NAVIGATION --- */
-header, main, section, .modal-content {
+header, main, section {
     background-color: var(--bg-header);
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
     border-radius: var(--radius-xl);
@@ -405,6 +405,7 @@ nav input {
 /* --- FORM ELEMENT STYLING --- */
 .form-group {
     margin-bottom: 1.5rem;
+    display: flex;
 }
 
 .form-grid {
@@ -434,6 +435,10 @@ nav input {
     box-shadow: 
         inset 0 2px 4px rgba(0, 0, 0, 0.6), /* Dark inset for depth */
         inset 0 1px 0 rgba(255, 255, 255, 0.05); /* Slight top highlight */
+}
+
+#settings .form-input-base {
+    width: unset;
 }
 
 .form-input-base:focus {
@@ -598,7 +603,7 @@ input:disabled {
 }
 
 .modal-controls {
-    position: absolute;
+    position: fixed;
     top: 1rem;
     right: 1rem;
     z-index: 10;
@@ -615,44 +620,63 @@ input:disabled {
 }
 
 .modal-content {
-  background-color: unset;
-    position: relative;
-    width: min-content;
-    max-width: 98vw;
-    min-height: fit-content;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.8);    
     margin:auto;
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    overflow: visible;
     padding: 0;
     border: none;
+    width: 70rem;
 }
 
-.modal-content section {
-  margin: auto;
+#image.modal-content {
   width: 100%;
-  max-width: -webkit-fill-available;
-  background-color: var(--bg-header);
+  overflow-x: hidden;
+}
+
+#settings.modal-content {
+  height: 100%;
+  max-width: 90%;
+}
+
+.modal-header, .modal-body, .modal-footer {
+    display: flex;
+    flex-direction: column;
+    margin-top: 0.5rem;
+    min-width:100%;
+}
+
+.modal-header section, .modal-body section, .modal-footer section {
+  width: 100%;
+  justify-content: center;
+}
+
+.modal-body section {
+  overflow-y: auto;
+}
+
+#settings .modal-header .section-container, #settings .modal-body .section-footer, #settings .modal-footer .section-container {
+  margin-bottom: 0;
+}
+
+#image section {
+  max-width: 90%;
+  margin: auto;
+}
+
+#settings section {
+  margin-bottom: 0;
+}
+
+#settings .modal-header .section-container {
+  display: flex;
+  justify-content: center;
 }
 
 .modal-content img, .modal-content video {
   height: 100%;
 }
 
-.modal-body {
-  max-width: fit-content;
-  overflow-y: auto;
-  overflow-wrap: anywhere;
-}
-
-.modal-body#settings {
-  height: 85vh;
-}
-
-.modal-header {
-  display: flex;
-  background-color: var(--bg-header);
-  justify-content: center;
+.modal-footer {
+  align-self: flex-end;
 }
 
 .modal-image-section {
@@ -707,11 +731,6 @@ input:disabled {
     color: rgba(255, 255, 255, 0.70);
 }
 
-.modal-footer {
-  margin-top: 0.5rem;
-  align-self: flex-end;
-}
-
 .section-container {
     margin-bottom: 0.75rem;
     padding: 1rem;
@@ -730,6 +749,7 @@ input:disabled {
   display: flex;
   flex-flow: column;
   justify-content: center;
+  word-wrap: break-word;
 }
 
 .section-item {
@@ -746,7 +766,13 @@ input:disabled {
 .section-row {
   display: flex;
   justify-content: space-between;
-  
+  flex-flow: column;
+}
+
+@media (min-width: 768px) {
+  .section-row {
+    flex-flow: row;
+  }
 }
 
 .section-fields {

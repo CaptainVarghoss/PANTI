@@ -185,7 +185,7 @@ function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFi
                     <IoChevronForward size={32} />
                 </button>
             )}
-            <div ref={modalContentRef} className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div ref={modalContentRef} className="modal-content" id="image" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-body">
                     <div className="modal-image-section" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
                         {currentImage.is_video ? (
@@ -242,7 +242,7 @@ function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFi
     );
 
     const renderSettingsModalContent = () => (
-        <div ref={modalContentRef} className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div ref={modalContentRef} className="modal-content" id="settings" onClick={(e) => e.stopPropagation()}>
             <Settings filters={filters} refetchFilters={refetchFilters} onLogout={handleLogout} />
         </div>
     );

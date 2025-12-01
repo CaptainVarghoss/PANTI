@@ -37,29 +37,34 @@ function Settings({ filters, setFilters, onLogout, refetchFilters }) {
 
     return (
         <>
-            <section className="modal-body" id="settings">
-                <div className="section-container modal-header">
-                    <div className="tab-container">
-                        {isAdmin && (
-                            <>
-                                <button className={`tab-item ${activeTab === 'global' ? 'active' : ''}`} onClick={() => setActiveTab('global')}>Global</button>
-                                <button className={`tab-item ${activeTab === 'paths' ? 'active' : ''}`} onClick={() => setActiveTab('paths')}>Folders</button>
-                                <button className={`tab-item ${activeTab === 'filters' ? 'active' : ''}`} onClick={() => setActiveTab('filters')}>Filters</button>
-                            </>
-                        )}
-                        <button className={`tab-item ${activeTab === 'device' ? 'active' : ''}`} onClick={() => setActiveTab('device')}>Device</button>
-                        <button className={`tab-item ${activeTab === 'user' ? 'active' : ''}`} onClick={() => setActiveTab('user')}>User</button>
+            <div className="modal-header">
+                <section>
+                    <div className="section-container">
+                        <div className="tab-container">
+                            {isAdmin && (
+                                <>
+                                    <button className={`tab-item ${activeTab === 'global' ? 'active' : ''}`} onClick={() => setActiveTab('global')}>Global</button>
+                                    <button className={`tab-item ${activeTab === 'paths' ? 'active' : ''}`} onClick={() => setActiveTab('paths')}>Folders</button>
+                                    <button className={`tab-item ${activeTab === 'filters' ? 'active' : ''}`} onClick={() => setActiveTab('filters')}>Filters</button>
+                                </>
+                            )}
+                            <button className={`tab-item ${activeTab === 'device' ? 'active' : ''}`} onClick={() => setActiveTab('device')}>Device</button>
+                            <button className={`tab-item ${activeTab === 'user' ? 'active' : ''}`} onClick={() => setActiveTab('user')}>User</button>
+                        </div>
                     </div>
-                </div>
-
-                <div className="settings-tab-content">
+                </section>
+            </div>
+            <div className="modal-body">
+                <section>
                     {renderContent()}
-                </div>
-
-                
-            </section>
-            <div className="modal-footer section-container section-footer">
-                <button onClick={onLogout} className="btn-base btn-red settings-logout-button">Logout</button>
+                </section>
+            </div>
+            <div className="modal-footer">
+                <section>
+                    <div className="section-container">
+                        <button onClick={onLogout} className="btn-base btn-red settings-logout-button">Logout</button>
+                    </div>
+                </section>
             </div>
         </>
     );

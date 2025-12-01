@@ -363,20 +363,22 @@ function FilterManager({filters, refetchFilters, isAdmin}) {
                                         <div className="section-row">
                                             <div className="section-fields">
                                                 <div className="form-group">
-                                                    <label>Name</label>
+                                                    <label for="name">Name</label>
                                                     <input
                                                         type="text"
                                                         value={filter.name || ''}
+                                                        id="name"
                                                         onChange={(e) => handleInputChange(filter.id, 'name', e.target.value)}
                                                         className="form-input-base"
                                                         disabled={!isAdmin}
                                                     />
                                                 </div>
                                                 <div className="form-group form-group-full">
-                                                    <label>Search Terms</label>
+                                                    <label for="search_terms">Search Terms</label>
                                                     <textarea
                                                         rows="3"
                                                         value={filter.search_terms || ''}
+                                                        id="search_terms"
                                                         onChange={(e) => handleInputChange(filter.id, 'search_terms', e.target.value)}
                                                         className="form-input-base"
                                                         disabled={!isAdmin}

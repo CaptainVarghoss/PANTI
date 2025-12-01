@@ -278,7 +278,7 @@ function ImagePathsManagement({ onBack }) {
                         type="text"
                         value={path.path}
                         onChange={(e) => handleInputChange(path.id, 'path', e.target.value)}
-                        className="form-input"
+                        className="form-input-base"
                         disabled={!isAdmin}
                       />
                     </div>
@@ -288,7 +288,7 @@ function ImagePathsManagement({ onBack }) {
                         type="text"
                         value={path.short_name || ''}
                         onChange={(e) => handleInputChange(path.id, 'short_name', e.target.value)}
-                        className="form-input"
+                        className="form-input-base"
                         disabled={!isAdmin}
                       />
                     </div>
@@ -383,7 +383,7 @@ function ImagePathsManagement({ onBack }) {
                           type="text"
                           value={newPath.path}
                           onChange={(e) => handleNewPathChange('path', e.target.value)}
-                          className="form-input"
+                          className="form-input-base"
                           required
                         />
                       </div>
@@ -395,7 +395,7 @@ function ImagePathsManagement({ onBack }) {
                           type="text"
                           value={newPath.short_name}
                           onChange={(e) => handleNewPathChange('short_name', e.target.value)}
-                          className="form-input"
+                          className="form-input-base"
                           required
                         />
                       </div>
