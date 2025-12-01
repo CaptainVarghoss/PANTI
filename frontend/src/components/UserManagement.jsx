@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
+import ConfirmationDialog from './ConfirmDialog';
 import { MdDelete } from "react-icons/md";
 
 function UserManagement() {
@@ -17,6 +18,11 @@ function UserManagement() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [passwordChangeMessage, setPasswordChangeMessage] = useState('');
     const [passwordChangeError, setPasswordChangeError] = useState('');
+
+    // State for device IDs
+    const [deviceIds, setDeviceIds] = useState([]);
+    const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+    const [deviceToDelete, setDeviceToDelete] = useState(null);
 
     const fetchAllUsers = useCallback(async () => {
         if (!isAdmin) {
@@ -39,9 +45,28 @@ function UserManagement() {
         }
     }, [token, isAdmin]);
 
+    const fetchDeviceIds = useCallback(async () => {
+        try {
+            const response = await fetch(`/api/devicesettings/?target_user_id=${user.id}`, {
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+            if (!response.ok) throw new Error('Failed to fetch device settings.');
+            const data = await response.json();
+            // Extract unique device IDs from the settings
+            const uniqueIds = [...new Set(data.map(setting => setting.device_id))];
+            setDeviceIds(uniqueIds);
+        } catch (err) {
+            setError(err.message);
+        }
+    }, [token, user]);
+
     useEffect(() => {
-        fetchAllUsers();
-    }, [fetchAllUsers]);
+        // Both admins and regular users should see their devices
+        fetchDeviceIds();
+        if (isAdmin) {
+            fetchAllUsers();
+        }
+    }, [fetchAllUsers, fetchDeviceIds, isAdmin]);
 
     const handleInputChange = (id, field, value) => {
         setEditableUsers(prev =>
@@ -93,7 +118,7 @@ function UserManagement() {
         }
 
         try {
-            const response = await fetch('/api/users/me/change-password', {
+            const response = await fetch('/api/users/change-password', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -119,6 +144,36 @@ function UserManagement() {
         }
     };
 
+    const handleDeleteDeviceClick = (deviceId) => {
+        setDeviceToDelete(deviceId);
+        setShowConfirmDialog(true);
+    };
+
+    const handleConfirmDeleteDevice = async () => {
+        if (!deviceToDelete) return;
+
+        try {
+            const response = await fetch(`/api/devicesettings/by-device-id/${deviceToDelete}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to delete device settings.');
+            }
+
+            setMessage('Device settings cleared successfully!');
+            // Refetch device IDs to update the list
+            fetchDeviceIds();
+
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setShowConfirmDialog(false);
+            setDeviceToDelete(null);
+        }
+    };
+
     const hasUnsavedChanges = JSON.stringify(allUsers) !== JSON.stringify(editableUsers);
 
     return (
@@ -127,7 +182,7 @@ function UserManagement() {
                 <div className="section-header">
                     <h3>My Account ({user?.username})</h3>
                 </div>
-                <form onSubmit={handleChangePassword} className="section-list">
+                <form onSubmit={handleChangePassword}>
                     <div className="section-item">
                         <div className="section-row">
                             <div className="section-fields">
@@ -152,6 +207,34 @@ function UserManagement() {
                     {passwordChangeMessage && <p className="status-text" style={{ color: 'var(--accent-green)' }}>{passwordChangeMessage}</p>}
                     {passwordChangeError && <p className="error-text">{passwordChangeError}</p>}
                 </form>
+            </div>
+
+            <div className="section-container">
+                <div className="section-header">
+                    <h3>My Devices</h3>
+                </div>
+                <div className="section-list">
+                    {deviceIds.length > 0 ? deviceIds.map(id => (
+                        <div key={id} className="section-item">
+                            <div className="section-row">
+                                <div className="section-fields">
+                                    <p><strong>Device ID:</strong> {id}</p>
+                                </div>
+                                <div className="section-fields">
+                                    <button
+                                        onClick={() => handleDeleteDeviceClick(id)}
+                                        className="btn-base btn-red icon-button"
+                                        title="Clear settings for this device"
+                                    >
+                                        <MdDelete size={18} />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )) : (
+                        <p className="status-text">No device-specific settings have been saved for this account.</p>
+                    )}
+                </div>
             </div>
 
             {isAdmin && (
@@ -215,6 +298,17 @@ function UserManagement() {
                     {message && <p className="status-text" style={{ color: 'var(--accent-green)' }}>{message}</p>}
                 </div>
             )}
+
+            <ConfirmationDialog
+                isOpen={showConfirmDialog}
+                onClose={() => setShowConfirmDialog(false)}
+                onConfirm={handleConfirmDeleteDevice}
+                title="Clear Device Settings"
+                message={`Are you sure you want to clear all settings for device ID "${deviceToDelete}"? This will reset the device to use global settings.`}
+                confirmText="Clear Settings"
+                cancelText="Cancel"
+                confirmButtonColor="#dc2626"
+            />
         </>
     );
 }

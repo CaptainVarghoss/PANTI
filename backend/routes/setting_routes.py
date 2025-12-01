@@ -203,3 +203,21 @@ def delete_device_setting(device_setting_id: int, db: Session = Depends(database
     db.delete(db_device_setting)
     db.commit()
     return
+
+@router.delete("/devicesettings/by-device-id/{device_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_device_settings_by_device_id(
+    device_id: str,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """
+    Deletes all device-specific settings for a given device_id for the current user.
+    """
+    # The query is filtered by the current_user.id, so users can only delete their own settings.
+    db.query(models.DeviceSetting).filter(
+        models.DeviceSetting.user_id == current_user.id,
+        models.DeviceSetting.device_id == device_id
+    ).delete(synchronize_session=False)
+
+    db.commit()
+    return

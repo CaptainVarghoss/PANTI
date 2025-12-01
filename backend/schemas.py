@@ -25,6 +25,10 @@ class User(UserBase):
     # No password_hash exposed in the response model for security
     model_config = ConfigDict(from_attributes=True) # Directly use ConfigDict
 
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str
+
 # --- Tag Schemas ---
 class TagBase(BaseModel):
     name: str

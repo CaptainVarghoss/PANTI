@@ -70,6 +70,29 @@ def update_user(user_id: int, user: schemas.UserUpdate, db: Session = Depends(da
     db.refresh(db_user)
     return db_user
 
+@router.post("/users/change-password", status_code=status.HTTP_204_NO_CONTENT)
+def change_current_user_password(
+    password_data: schemas.PasswordChange,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """
+    Allows the currently authenticated user to change their own password.
+    """
+    # Verify the current password is correct
+    if not auth.verify_password(password_data.current_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect current password",
+        )
+
+    # Hash the new password and update the user record
+    current_user.password_hash = auth.get_password_hash(password_data.new_password)
+    db.add(current_user)
+    db.commit()
+
+    return
+
 @router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_user(user_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_admin_user)):
     # Deletes a user. Only accessible by admin users.
