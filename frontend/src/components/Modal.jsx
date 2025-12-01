@@ -186,55 +186,57 @@ function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFi
                 </button>
             )}
             <div ref={modalContentRef} className="modal-content" onClick={(e) => e.stopPropagation()}>
-                <div className="modal-image-section" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
-                    {currentImage.is_video ? (
-                        <video controls src={imageUrlToDisplay} alt={currentImage.filename} className="modal-main-image" style={{ transform: `translateX(${imageTranslateX}px)`, transition: 'transform 0.1s ease-out' }} />
-                    ) : (
-                        <img
-                            src={imageUrlToDisplay}
-                            alt={currentImage.filename}
-                            className="modal-main-image"
-                            onClick={onClose}
-                            style={{ transform: `translateX(${imageTranslateX}px)`, transition: 'transform 0.1s ease-out' }}
-                            onError={(e) => { e.target.src = "https://placehold.co/1200x800/333333/FFFFFF?text=Image+Not+Found"; }}
-                        />
-                    )}
-                </div>
-                <section>
-                    <div className="section-container">
-                        <div className="section-row">
-                            <div className="section-fields">
-                                <div className="form-group">
-                                    <label>Tags</label>
-                                    <TagCluster.Display type="image_tags" itemId={currentImage.id} />
+                <div className="modal-body">
+                    <div className="modal-image-section" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+                        {currentImage.is_video ? (
+                            <video controls src={imageUrlToDisplay} alt={currentImage.filename} className="modal-main-image" style={{ transform: `translateX(${imageTranslateX}px)`, transition: 'transform 0.1s ease-out' }} />
+                        ) : (
+                            <img
+                                src={imageUrlToDisplay}
+                                alt={currentImage.filename}
+                                className="modal-main-image"
+                                onClick={onClose}
+                                style={{ transform: `translateX(${imageTranslateX}px)`, transition: 'transform 0.1s ease-out' }}
+                                onError={(e) => { e.target.src = "https://placehold.co/1200x800/333333/FFFFFF?text=Image+Not+Found"; }}
+                            />
+                        )}
+                    </div>
+                    <section>
+                        <div className="section-container">
+                            <div className="section-row">
+                                <div className="section-fields">
+                                    <div className="form-group">
+                                        <label>Tags</label>
+                                        <TagCluster.Display type="image_tags" itemId={currentImage.id} />
+                                    </div>
+                                </div>
+                                <div className="section-fields" style={{ position: 'relative' }}>
+                                    <button type="button" className="btn-base" onClick={() => setOpenTagPicker(prev => (prev.imageId === currentImage.id && prev.type === 'tags') ? { imageId: null, type: null } : { imageId: currentImage.id, type: 'tags' })}>
+                                        Change Tags
+                                    </button>
+                                    {openTagPicker.imageId === currentImage.id && openTagPicker.type === 'tags' && ( <TagCluster.Popup type="image_tags" itemId={currentImage.id} onClose={() => setOpenTagPicker({ imageId: null, type: null })} /> )}
                                 </div>
                             </div>
-                            <div className="section-fields" style={{ position: 'relative' }}>
-                                <button type="button" className="btn-base" onClick={() => setOpenTagPicker(prev => (prev.imageId === currentImage.id && prev.type === 'tags') ? { imageId: null, type: null } : { imageId: currentImage.id, type: 'tags' })}>
-                                    Change Tags
-                                </button>
-                                {openTagPicker.imageId === currentImage.id && openTagPicker.type === 'tags' && ( <TagCluster.Popup type="image_tags" itemId={currentImage.id} onClose={() => setOpenTagPicker({ imageId: null, type: null })} /> )}
+                        </div>
+                        <div className="section-container">
+                            <h3 className="section-header">Metadata</h3>
+                            <ul className="section-list">
+                                <li><strong className="modal-info-label">Path:</strong> {currentImage.path}</li>
+                                <li><strong className="modal-info-label">Filename:</strong> {currentImage.filename}</li>
+                                <li><strong className="modal-info-label">ID:</strong> {currentImage.id}</li>
+                                <li><strong className="modal-info-label">Checksum:</strong> {currentImage.content_hash}</li>
+                                <li><strong className="modal-info-label">Is Video:</strong> {currentImage.is_video ? 'Yes' : 'No'}</li>
+                                <li><strong className="modal-info-label">Date Created:</strong> {new Date(currentImage.date_created).toLocaleString()}</li>
+                                <li><strong className="modal-info-label">Date Modified:</strong> {new Date(currentImage.date_modified).toLocaleString()}</li>
+                                <li><strong className="modal-info-label">Width:</strong> {currentImage.width}</li>
+                                <li><strong className="modal-info-label">Height:</strong> {currentImage.height}</li>
+                            </ul>
+                            <div className="modal-metadata-box">
+                                {renderMetadata(currentImage.exif_data)}
                             </div>
                         </div>
-                    </div>
-                    <div className="section-container">
-                        <h3 className="section-header">Metadata</h3>
-                        <ul className="section-list">
-                            <li><strong className="modal-info-label">Path:</strong> {currentImage.path}</li>
-                            <li><strong className="modal-info-label">Filename:</strong> {currentImage.filename}</li>
-                            <li><strong className="modal-info-label">ID:</strong> {currentImage.id}</li>
-                            <li><strong className="modal-info-label">Checksum:</strong> {currentImage.content_hash}</li>
-                            <li><strong className="modal-info-label">Is Video:</strong> {currentImage.is_video ? 'Yes' : 'No'}</li>
-                            <li><strong className="modal-info-label">Date Created:</strong> {new Date(currentImage.date_created).toLocaleString()}</li>
-                            <li><strong className="modal-info-label">Date Modified:</strong> {new Date(currentImage.date_modified).toLocaleString()}</li>
-                            <li><strong className="modal-info-label">Width:</strong> {currentImage.width}</li>
-                            <li><strong className="modal-info-label">Height:</strong> {currentImage.height}</li>
-                        </ul>
-                        <div className="modal-metadata-box">
-                            {renderMetadata(currentImage.exif_data)}
-                        </div>
-                    </div>
-                </section>
+                    </section>
+                </div>
             </div>
         </>
     );

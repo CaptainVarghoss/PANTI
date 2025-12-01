@@ -586,6 +586,7 @@ input:disabled {
     left: 0;
     height: 100%;
     width: 100%;
+    max-height: 100%;
     background-color: rgba(0, 0, 0, 0.7);
     display: flex;
     justify-content: center;
@@ -614,6 +615,7 @@ input:disabled {
 }
 
 .modal-content {
+  background-color: unset;
     position: relative;
     width: min-content;
     max-width: 98vw;
@@ -630,6 +632,7 @@ input:disabled {
   margin: auto;
   width: 100%;
   max-width: -webkit-fill-available;
+  background-color: var(--bg-header);
 }
 
 .modal-content img, .modal-content video {
@@ -637,8 +640,9 @@ input:disabled {
 }
 
 .modal-body {
-  min-width: 70vw;
+  max-width: fit-content;
   overflow-y: auto;
+  overflow-wrap: anywhere;
 }
 
 .modal-body#settings {
