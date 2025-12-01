@@ -18,6 +18,7 @@ import Settings from './Settings'; // Import the new unified Settings component
 function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFilters, isFullscreen, toggleFullScreen }) { // eslint-disable-line no-unused-vars
     const { token, isAuthenticated, settings, isAdmin, logout } = useAuth();
     const modalContentRef = useRef(null);
+    const imageSectionRef = useRef(null); // Ref for the image section
 
     // --- Image Modal Navigation Logic ---
     const { currentImage, images, onNavigate } = modalProps;
@@ -46,6 +47,7 @@ function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFi
     const [touchStartX, setTouchStartX] = useState(0);
     const [touchStartY, setTouchStartY] = useState(0);
     const [imageTranslateX, setImageTranslateX] = useState(0);
+    const [swipeDirection, setSwipeDirection] = useState(null); // 'horizontal', 'vertical', or null
 
     // State to manage which tag picker is open
     const [openTagPicker, setOpenTagPicker] = useState({ imageId: null, type: null });
@@ -124,21 +126,41 @@ function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFi
     const handleTouchStart = useCallback((e) => {
         setTouchStartX(e.touches[0].clientX);
         setTouchStartY(e.touches[0].clientY);
-        setImageTranslateX(0);
+        setSwipeDirection(null); // Reset swipe direction
     }, []);
 
     const handleTouchMove = useCallback((e) => {
-        e.preventDefault();
+        if (touchStartX === 0 || touchStartY === 0) return;
+
         const diffX = e.touches[0].clientX - touchStartX;
-        setImageTranslateX(Math.max(-window.innerWidth / 1.5, Math.min(window.innerWidth / 1.5, diffX)));
-    }, [touchStartX]);
+        const diffY = e.touches[0].clientY - touchStartY;
+
+        let currentSwipeDirection = swipeDirection;
+
+        if (!currentSwipeDirection) {
+            // Determine direction after a small threshold to avoid ambiguity
+            if (Math.abs(diffX) > 10 || Math.abs(diffY) > 10) {
+                if (Math.abs(diffX) > Math.abs(diffY)) {
+                    currentSwipeDirection = 'horizontal';
+                } else {
+                    currentSwipeDirection = 'vertical';
+                }
+                setSwipeDirection(currentSwipeDirection);
+            }
+        }
+
+        if (currentSwipeDirection === 'horizontal') {
+            e.preventDefault(); // Prevent vertical scroll only when swiping horizontally
+            setImageTranslateX(Math.max(-window.innerWidth / 1.5, Math.min(window.innerWidth / 1.5, diffX)));
+        }
+    }, [touchStartX, touchStartY, swipeDirection]);
 
     const handleTouchEnd = useCallback((e) => {
         const diffX = e.changedTouches[0].clientX - touchStartX;
         const diffY = e.changedTouches[0].clientY - touchStartY;
         setImageTranslateX(0);
 
-        if (Math.abs(diffX) > SWIPE_THRESHOLD) {
+        if (swipeDirection === 'horizontal' && Math.abs(diffX) > SWIPE_THRESHOLD) {
             if (diffX > 0 && canGoPrev) handlePrev();
             else if (diffX < 0 && canGoNext) handleNext();
         } else if (Math.abs(diffX) <= TAP_THRESHOLD && Math.abs(diffY) <= TAP_THRESHOLD) {
@@ -148,7 +170,23 @@ function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFi
         }
         setTouchStartX(0);
         setTouchStartY(0);
-    }, [touchStartX, touchStartY, canGoPrev, canGoNext, handlePrev, handleNext, onClose]);
+        setSwipeDirection(null);
+    }, [touchStartX, touchStartY, canGoPrev, canGoNext, handlePrev, handleNext, onClose, swipeDirection]);
+
+    // Effect to add and remove the non-passive touchmove listener
+    useEffect(() => {
+        const imageSection = imageSectionRef.current;
+        if (isOpen && modalType === 'image' && imageSection) {
+            // Add the event listener with passive: false to be able to preventDefault on iOS
+            imageSection.addEventListener('touchmove', handleTouchMove, { passive: false });
+
+            // Cleanup function to remove the event listener
+            return () => {
+                imageSection.removeEventListener('touchmove', handleTouchMove, { passive: false });
+            };
+        }
+    }, [isOpen, modalType, handleTouchMove]);
+
 
     const renderMetadata = (meta) => {
         if (!meta) return <p className="modal-text-gray">No metadata available.</p>;
@@ -187,7 +225,7 @@ function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFi
             )}
             <div ref={modalContentRef} className="modal-content" id="image" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-body">
-                    <div className="modal-image-section" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+                    <div ref={imageSectionRef} className="modal-image-section" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
                         {currentImage.is_video ? (
                             <video controls src={imageUrlToDisplay} alt={currentImage.filename} className="modal-main-image" style={{ transform: `translateX(${imageTranslateX}px)`, transition: 'transform 0.1s ease-out' }} />
                         ) : (
