@@ -79,13 +79,6 @@ def change_current_user_password(
     """
     Allows the currently authenticated user to change their own password.
     """
-    # Verify the current password is correct
-    if not auth.verify_password(password_data.current_password, current_user.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Incorrect current password",
-        )
-
     # Hash the new password and update the user record
     current_user.password_hash = auth.get_password_hash(password_data.new_password)
     db.add(current_user)

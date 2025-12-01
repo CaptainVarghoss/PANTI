@@ -26,7 +26,6 @@ class User(UserBase):
     model_config = ConfigDict(from_attributes=True) # Directly use ConfigDict
 
 class PasswordChange(BaseModel):
-    current_password: str
     new_password: str
 
 # --- Tag Schemas ---

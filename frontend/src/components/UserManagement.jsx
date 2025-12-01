@@ -13,7 +13,6 @@ function UserManagement() {
     const [isSaving, setIsSaving] = useState(false);
 
     // State for password change form
-    const [oldPassword, setOldPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [passwordChangeMessage, setPasswordChangeMessage] = useState('');
@@ -124,10 +123,7 @@ function UserManagement() {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`,
                 },
-                body: JSON.stringify({
-                    current_password: oldPassword,
-                    new_password: newPassword,
-                }),
+                body: JSON.stringify({ new_password: newPassword }),
             });
 
             if (!response.ok) {
@@ -136,7 +132,6 @@ function UserManagement() {
             }
 
             setPasswordChangeMessage('Password changed successfully!');
-            setOldPassword('');
             setNewPassword('');
             setConfirmPassword('');
         } catch (err) {
@@ -186,10 +181,6 @@ function UserManagement() {
                     <div className="section-item">
                         <div className="section-row">
                             <div className="section-fields">
-                                <div className="form-group">
-                                    <label>Current Password</label>
-                                    <input type="password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} className="form-input-base" required />
-                                </div>
                                 <div className="form-group">
                                     <label>New Password</label>
                                     <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="form-input-base" required />
