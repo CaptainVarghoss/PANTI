@@ -53,3 +53,5 @@ You will be asked to login, an admin user is created by default.
 You will want to change the password in the settings immediately for security. You can also create a new user, give it admin priviledges, then delete the original if you want a different username.
 
 After logging in, go to settings and add a folder (or multiple) to the catalog and they will be automatically index and show all images in the grid. Sub-folders and their contents will automatically be scanned and added.
+
+Be aware that large folders will take a long time to scan the first time through. Loading after the initial scan will be much faster.
