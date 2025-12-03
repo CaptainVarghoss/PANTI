@@ -45,7 +45,6 @@ TagCluster.Display = function TagDisplay({ type, itemId }) {
     const fetchActiveTags = useCallback(async () => {
 
         const fetchActiveTags = async () => {
-            // This logic can be expanded to handle different types like 'image' or 'folder'
             if (type.startsWith('filter')) {
                 const response = await fetch(`/api/filters/${itemId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -114,10 +113,13 @@ TagCluster.Display = function TagDisplay({ type, itemId }) {
  * @param {number} itemId - The ID of the item.
  * @param {Function} onClose - Callback to close the popup.
  */
-TagCluster.Popup = function TagPopup({ type, itemId, itemIds, onClose, onTagSelect }) {
+TagCluster.Popup = function TagPopup({ type, itemId, itemIds, onClose, onTagSelect, isEmbedded = false }) {
     const { token, isAdmin, settings } = useAuth();
     const wrapperRef = useRef(null);
-    useOutsideAlerter(wrapperRef, onClose);
+    
+    // Only use the outside alerter if it's not embedded and an onClose function is provided.
+    // The handler is a no-op if embedded.
+    useOutsideAlerter(wrapperRef, !isEmbedded && onClose ? onClose : () => {});
 
     const [allTags, setAllTags] = useState([]);
     const [activeTagIds, setActiveTagIds] = useState(new Set());
@@ -294,11 +296,8 @@ TagCluster.Popup = function TagPopup({ type, itemId, itemIds, onClose, onTagSele
 
     if (error) return <div ref={wrapperRef} className="tag-cluster-popup"><p className="error-text">{error}</p></div>;
 
-    return (
-        <div ref={wrapperRef} className="tag-cluster-popup">
-            <button className="tag-cluster-close-btn" onClick={onClose} title="Close">
-                <IoClose size={18} />
-            </button>
+    const TagEditorContent = () => (
+        <div className="tag-cluster-content">
             {allTags.map(tag => {
                 const isActive = activeTagIds.has(tag.id);
                 const tagClasses = `tag-badge ${isActive ? 'active' : ''}`;
@@ -323,13 +322,7 @@ TagCluster.Popup = function TagPopup({ type, itemId, itemIds, onClose, onTagSele
                                 placeholder="Create new tag..."
                                 className="form-input-base"
                             />
-                            <button
-                                type="submit"
-                                disabled={!newTagName.trim()}
-                                className="btn-base btn-green"
-                            >
-                                Add
-                            </button>
+                            <button type="submit" disabled={!newTagName.trim()} className="btn-base btn-green">Add</button>
                         </form>
                     </div>
                     <button
@@ -341,6 +334,13 @@ TagCluster.Popup = function TagPopup({ type, itemId, itemIds, onClose, onTagSele
                     </button>
                 </div>
             )}
+        </div>
+    );
+
+    return isEmbedded ? <TagEditorContent /> : (
+        <div ref={wrapperRef} className="tag-cluster-popup">
+            <button className="tag-cluster-close-btn" onClick={onClose} title="Close"><IoClose size={18} /></button>
+            <TagEditorContent />
         </div>
     );
 }
