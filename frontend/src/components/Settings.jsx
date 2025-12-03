@@ -5,6 +5,7 @@ import FilterManager from './FilterManager';
 import DeviceSpecificSettingsForm from './DeviceSpecificSettingsForm';
 import GlobalSettingsForm from './GlobalSettingsForm';
 import UserManagement from './UserManagement';
+import TagManager from './TagManager';
 
 /**
  * A unified settings component that uses tabs to organize different settings panels.
@@ -24,6 +25,8 @@ function Settings({ filters, setFilters, onLogout, refetchFilters }) {
                 return <ImagePathsManagement />;
             case 'filters':
                 return <FilterManager filters={filters} refetchFilters={refetchFilters} isAdmin={isAdmin} />;
+            case 'tags':
+                return <TagManager />;
             case 'device':
                 return <DeviceSpecificSettingsForm />;
             case 'global':
@@ -46,6 +49,7 @@ function Settings({ filters, setFilters, onLogout, refetchFilters }) {
                                     <button className={`tab-item ${activeTab === 'global' ? 'active' : ''}`} onClick={() => setActiveTab('global')}>Global</button>
                                     <button className={`tab-item ${activeTab === 'paths' ? 'active' : ''}`} onClick={() => setActiveTab('paths')}>Folders</button>
                                     <button className={`tab-item ${activeTab === 'filters' ? 'active' : ''}`} onClick={() => setActiveTab('filters')}>Filters</button>
+                                    <button className={`tab-item ${activeTab === 'tags' ? 'active' : ''}`} onClick={() => setActiveTab('tags')}>Tags</button>
                                 </>
                             )}
                             <button className={`tab-item ${activeTab === 'device' ? 'active' : ''}`} onClick={() => setActiveTab('device')}>Device</button>
