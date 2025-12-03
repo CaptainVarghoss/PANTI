@@ -267,6 +267,7 @@ function ImageGrid({
 
           // UI updates via websocket, just clear selection
           setSelectedImages(new Set());
+          setIsSelectMode(false);
         } catch (error) {
           console.error("Error during bulk delete from context menu:", error);
           alert(`Error: ${error.message}`);
@@ -286,6 +287,7 @@ function ImageGrid({
               if (!response.ok) throw new Error('Failed to restore images.');
               setImages(prev => prev.filter(img => !selectedImages.has(img.id)));
               setSelectedImages(new Set());
+              setIsSelectMode(false);
           } catch (error) {
               alert(`Error: ${error.message}`);
           }
@@ -305,6 +307,7 @@ function ImageGrid({
                   if (!response.ok) throw new Error('Failed to permanently delete images.');
                   setImages(prev => prev.filter(img => !selectedImages.has(img.id)));
                   setSelectedImages(new Set());
+                  setIsSelectMode(false);
               } catch (error) {
                   alert(`Error: ${error.message}`);
               }
@@ -333,7 +336,10 @@ function ImageGrid({
             if (handleMoveSingleImage) handleMoveSingleImage(data.id);
             break;
         case 'move_selected':
-            if (handleMoveSelected) handleMoveSelected();
+            if (handleMoveSelected) {
+              handleMoveSelected();
+              setIsSelectMode(false); // Also exit select mode after initiating move
+            }
             break;
         case 'restore_selected':
             restoreSelectedImages();

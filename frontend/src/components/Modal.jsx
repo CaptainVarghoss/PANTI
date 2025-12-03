@@ -285,7 +285,7 @@ function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFi
                         <div className="section-container">
                             <div className="section-row">
                                 <div className="section-fields" style={{width: '100%'}}>
-                                    <div className="form-group">
+                                    <div className="form-group modal-tags">
                                         <label>Tags</label>
                                         <TagCluster.Popup type="image_tags" itemId={currentImage.id} isEmbedded={true} />
                                     </div>

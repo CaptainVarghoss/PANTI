@@ -834,6 +834,10 @@ form .section-list .section-item .section-fields:nth-child(3) {
   color: var(--text-bright);
 }
 
+.modal-tags {
+  margin-bottom: 0;
+}
+
 /* --- IMAGE GALLERY STYLING --- */
 
 .image-grid {
@@ -1034,6 +1038,20 @@ form .section-list .section-item .section-fields:nth-child(3) {
     flex-wrap: wrap;
     gap: 0.5rem;
     width: 15rem;
+}
+
+.tag-cluster-content {
+  display: contents;
+}
+
+#image .tag-cluster-content {
+  display: block;
+  justify-content: space-evenly;
+  width: 100%;
+}
+
+#image .tag-badge {
+ 
 }
 
 .tag-create-container {
