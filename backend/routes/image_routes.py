@@ -89,16 +89,13 @@ def read_images(
     # Create a subquery to select all paths that are explicitly marked as ignored.
     query = query.filter(models.ImagePath.is_ignored == False)
 
-    # The primary and most important filter: exclude any ImageLocation whose path is in the subquery of ignored paths.
-    query = query.filter(models.ImageLocation.path.notin_(ignored_paths_subquery))
-
     if trash_only:
         query = query.filter(models.ImageLocation.deleted == True)
     else:
         # If not viewing trash, filter out deleted items and apply search/filter criteria
         query = query.filter(models.ImageLocation.deleted == False)
-        # Apply search filter if provided
-        query = query.filter(generate_image_search_filter(search_terms=search_query, admin=current_user.admin, active_stages_json=active_stages_json, db=db))
+        search_filter = generate_image_search_filter(search_terms=search_query, admin=current_user.admin, active_stages_json=active_stages_json, db=db)
+        query = query.filter(search_filter)
 
     # Apply cursor-based pagination (Keyset Pagination)
     if last_id is not None and last_sort_value is not None:

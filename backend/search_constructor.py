@@ -332,20 +332,22 @@ def build_sqlalchemy_filter(node: Node, ImageContent, Tag, ImageLocation):
         # Define how to search based on the term's type and original input style (quoted vs. unquoted).
         if node.term_type == TOKEN_TYPE_PHRASE:
             # If it's a standalone quoted phrase (e.g., "blue sky"), search for it
-            # partially (contains) across exif_data, folder, and tag names.
+            # partially (contains) across exif_data, folder, filename, and tag names.
             meta_filter = ImageContent.exif_data.ilike(f"%{search_term}%")
             folder_filter = ImageLocation.path.ilike(f"%{search_term}%")
+            filename_filter = ImageLocation.filename.ilike(f"%{search_term}%")
             # For tags, use `any()` to check if any associated tag's name matches.
             tag_filter = ImageContent.tags.any(Tag.name.ilike(f"%{search_term}%"))
-            return or_(meta_filter, folder_filter, tag_filter)
+            return or_(meta_filter, folder_filter, filename_filter, tag_filter)
 
         elif node.term_type == TOKEN_TYPE_WORD:
             # If it's a standalone unquoted word (e.g., "cat"), search for it
-            # partially (contains) across exif_data, folder, and tag names.
+            # partially (contains) across exif_data, folder, filename, and tag names.
             meta_filter = ImageContent.exif_data.ilike(f"%{search_term}%")
             folder_filter = ImageLocation.path.ilike(f"%{search_term}%")
+            filename_filter = ImageLocation.filename.ilike(f"%{search_term}%")
             tag_filter = ImageContent.tags.any(Tag.name.ilike(f"%{search_term}%"))
-            return or_(meta_filter, folder_filter, tag_filter)
+            return or_(meta_filter, folder_filter, filename_filter, tag_filter)
 
         elif node.term_type == TOKEN_TYPE_KEYWORD_TAG:
             # For the 'TAG:' keyword:
