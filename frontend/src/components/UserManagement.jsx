@@ -35,8 +35,10 @@ function UserManagement() {
             });
             if (!response.ok) throw new Error('Failed to fetch users.');
             const data = await response.json();
-            setAllUsers(data);
-            setEditableUsers(JSON.parse(JSON.stringify(data)));
+            // Add a new_password field for the admin password change form
+            const usersWithPasswordField = data.map(u => ({ ...u, new_password: '' }));
+            setAllUsers(JSON.parse(JSON.stringify(usersWithPasswordField))); // Keep a pristine copy
+            setEditableUsers(usersWithPasswordField);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -89,7 +91,11 @@ function UserManagement() {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`,
                 },
-                body: JSON.stringify({ admin: u.admin, login_allowed: u.login_allowed }),
+                body: JSON.stringify({
+                    admin: u.admin,
+                    login_allowed: u.login_allowed,
+                    ...(u.new_password && { password: u.new_password }) // Only include password if it's being changed
+                }),
             });
         });
 
@@ -239,8 +245,16 @@ function UserManagement() {
                                 <div key={u.id} className="section-item">
                                     <div className="section-row">
                                         <div className="section-fields">
-                                            <p><strong>Username:</strong> {u.username}</p>
-                                            <p><strong>ID:</strong> {u.id}</p>
+                                            <p><strong>ID:</strong> {u.id}&nbsp;&nbsp;<strong>Username:</strong> {u.username}</p>
+                                            {u.id !== user.id && (
+                                                <div className="form-group" style={{ marginTop: '8px' }}>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="New Password"
+                                                        value={u.new_password || ''}
+                                                        onChange={(e) => handleInputChange(u.id, 'new_password', e.target.value)} className="form-input-base" />
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="section-fields section-fields-toggles">
                                             <div className="checkbox-container">
