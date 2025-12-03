@@ -3,6 +3,7 @@
     --color-primary: hsl(240, 10%, 28%); /* Dark gray base for input/buttons/inactive tag */
     --color-secondary: hsl(240, 10%, 12%);
     --shadow-color: hsl(0, 0%, 90%); /* Light text/shadow color (Text color) */
+    --text-bright: hsl(240, 28%, 85%);
     --text-muted: hsl(240, 10%, 65%); /* For labels and subtle text */
 
     /* Layering: Darkest to Lightest */
@@ -809,6 +810,28 @@ form .section-list .section-item .section-fields:nth-child(3) {
   display: flex;
   justify-content: end;
   gap: 0.75rem;
+}
+
+.modal-info-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  flex-flow: wrap;
+  justify-content: start;
+  gap: 0.5rem;
+}
+
+.modal-info-list li {
+  display: inline;
+  background-color: var(--bg-page);
+  border: 0.2rem solid var(--border-color);
+  border-radius: 0.5rem;
+  padding-inline: 0.4rem;
+  color: var(--text-muted);
+}
+
+.modal-info-label {
+  color: var(--text-bright);
 }
 
 /* --- IMAGE GALLERY STYLING --- */

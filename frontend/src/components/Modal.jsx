@@ -188,19 +188,62 @@ function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFi
     }, [isOpen, modalType, handleTouchMove]);
 
 
+    const renderAiParameters = (paramsString) => {
+        try {
+            let paramsObject = JSON.parse(paramsString);
+            let finalParams = {};
+
+            // Check for SwarmUI specific nested structure and flatten it
+            if (paramsObject.sui_image_params || paramsObject.sui_extra_data) {
+                if (paramsObject.sui_image_params && typeof paramsObject.sui_image_params === 'object') {
+                    finalParams = { ...finalParams, ...paramsObject.sui_image_params };
+                }
+                if (paramsObject.sui_extra_data && typeof paramsObject.sui_extra_data === 'object') {
+                    finalParams = { ...finalParams, ...paramsObject.sui_extra_data };
+                }
+            } else {
+                finalParams = paramsObject;
+            }
+
+            return (
+                <>
+                    {Object.entries(finalParams).map(([key, value]) => (
+                        <li key={key}><strong className="modal-info-label">{key.replace(/_/g, ' ')}:</strong> {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}</li>
+                    ))}
+                </>
+            );
+        } catch (e) {
+            // If not JSON, treat as a custom string format
+            const lines = paramsString.split('\n').filter(line => line.trim() !== '');
+            const firstLineIsPrompt = !lines[0].includes(':') && lines.length > 1;
+            const prompt = firstLineIsPrompt ? lines.shift() : null;
+            return (
+                <ul className="modal-info-list">
+                    {prompt && <li><strong className="modal-info-label">Prompt:</strong> {prompt}</li>}
+                    {lines.map((line, index) => {
+                        const parts = line.split(':');
+                        const key = parts[0];
+                        const value = parts.slice(1).join(':').trim();
+                        return <li key={index}><strong className="modal-info-label">{key}:</strong> {value}</li>;
+                    })}
+                </ul>
+            );
+        }
+    };
+
     const renderMetadata = (meta) => {
         if (!meta) return <p className="modal-text-gray">No metadata available.</p>;
         try {
             const metaObject = typeof meta === 'string' ? JSON.parse(meta) : meta;
             return (
-                <ul className="modal-metadata-list">
-                    {Object.entries(metaObject).map(([key, value]) => (
-                        <li key={key}>
-                            <strong className="modal-metadata-key">{key.replace(/_/g, ' ')}:</strong>{' '}
-                            {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                        </li>
-                    ))}
-                </ul>
+                <>
+                    {Object.entries(metaObject).map(([key, value]) => {
+                        if (key === 'parameters' && typeof value === 'string') {
+                            return renderAiParameters(value);
+                        }
+                        return <li key={key}><strong className="modal-info-label">{key.replace(/_/g, ' ')}:</strong> {typeof value === 'object' ? JSON.stringify(value) : String(value)}</li>;
+                    })}
+                </>
             );
         } catch (e) {
             return <p className="modal-error-text">Failed to parse metadata.</p>;
@@ -258,10 +301,10 @@ function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFi
                         </div>
                         <div className="section-container">
                             <h3 className="section-header">Metadata</h3>
-                            <ul className="section-list">
+                            <ul className="section-list modal-info-list">
+                                <li><strong className="modal-info-label">ID:</strong> {currentImage.id}</li>
                                 <li><strong className="modal-info-label">Path:</strong> {currentImage.path}</li>
                                 <li><strong className="modal-info-label">Filename:</strong> {currentImage.filename}</li>
-                                <li><strong className="modal-info-label">ID:</strong> {currentImage.id}</li>
                                 <li><strong className="modal-info-label">Checksum:</strong> {currentImage.content_hash}</li>
                                 <li><strong className="modal-info-label">Is Video:</strong> {currentImage.is_video ? 'Yes' : 'No'}</li>
                                 <li><strong className="modal-info-label">Date Created:</strong> {new Date(currentImage.date_created).toLocaleString()}</li>
@@ -269,9 +312,7 @@ function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFi
                                 <li><strong className="modal-info-label">Width:</strong> {currentImage.width}</li>
                                 <li><strong className="modal-info-label">Height:</strong> {currentImage.height}</li>
                             </ul>
-                            <div className="modal-metadata-box">
-                                {renderMetadata(currentImage.exif_data)}
-                            </div>
+                            <ul className="section-list modal-info-list">{renderMetadata(currentImage.exif_data)}</ul>
                         </div>
                     </section>
                 </div>
