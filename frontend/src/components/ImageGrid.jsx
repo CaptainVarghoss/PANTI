@@ -347,6 +347,17 @@ function ImageGrid({
         case 'delete_permanent_selected':
             deleteSelectedPermanently();
             break;
+        case 'edit_tags_selected':
+            openModal('editTags', {
+                imageIds: Array.from(selectedImages),
+                // When the modal closes, clear the selection and exit select mode.
+                // This is crucial for when tags are changed and images disappear from the current view.
+                onClose: () => {
+                    setSelectedImages(new Set());
+                    setIsSelectMode(false);
+                }
+            });
+            break;
         default:
             break;
       }
@@ -388,6 +399,35 @@ function ImageGrid({
       setSelectedImages(new Set());
     }
   }, [isSelectMode]);
+
+  // Effect to synchronize selectedImages with the images currently in view.
+  // This is crucial for when images are removed from the grid (e.g., due to filtering after a tag edit)
+  // to ensure the selection count is accurate and doesn't include hidden images.
+  useEffect(() => {
+    if (selectedImages.size > 0) {
+      const visibleImageIds = new Set(images.map(img => img.id));
+      const newSelectedImages = new Set();
+      for (const id of selectedImages) {
+        if (visibleImageIds.has(id)) {
+          newSelectedImages.add(id);
+        }
+      }
+      setSelectedImages(newSelectedImages);
+    }
+  }, [images]); // Reruns whenever the list of images changes.
+
+  // Effect to handle cleanup after bulk tag editing causes images to be filtered out.
+  // If select mode is on, but the selection becomes empty, it's likely due to a bulk action
+  // filtering the items out of view. In this case, we should exit select mode.
+  useEffect(() => {
+    // Only run this logic if select mode is currently active.
+    if (isSelectMode) {
+      // If there are no more selected images, exit select mode.
+      if (selectedImages.size === 0) {
+        setIsSelectMode(false);
+      }
+    }
+  }, [selectedImages, isSelectMode, setIsSelectMode]);
 
 
   // Fetch images function, now accepting an optional cursor (last_id)
