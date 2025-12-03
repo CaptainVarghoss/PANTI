@@ -451,7 +451,7 @@ def generate_thumbnail(
                 '-i', source_filepath,
                 '-ss', '00:00:00.001',
                 '-vframes', '1',
-                '-vf', f'scale=min(iw,{thumb_size}):min(ih,{thumb_size}):force_original_aspect_ratio=decrease',
+                '-vf', f"scale='min({thumb_size},iw)':'min({thumb_size},ih)':force_original_aspect_ratio=decrease",
                 '-q:v', '2',
                 '-y',
                 str(temp_image_path)
