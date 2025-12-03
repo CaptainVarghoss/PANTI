@@ -657,6 +657,11 @@ input:disabled {
   margin-bottom: 0;
 }
 
+#settings .modal-footer .section-container {
+  display: flex;
+  justify-content: flex-end;
+}
+
 #image section {
   max-width: 90%;
   margin: auto;
