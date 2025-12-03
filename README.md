@@ -3,108 +3,53 @@
 # PantiViewer -- (Python API Network Thumbnail Image Viewer)
 ## WARNING
 
-This is currently in the first stages of development and may be restructured at any time. Features and functionality can and will change at any time. Please do not expect stable or complete features at this time.
+This project is currently in the early stages of development and may be restructured at any time. Features and functionality can and will change at any time. Please do not expect stable or complete features at this time.
 
-This is a simple image viewing app written in Python to facilitate easy naviagation of all images in a folder and subfolders.
+## What is PantiViewer?
+
+### PantiViewer is a lightweight, fast, image viewer.
+The clean and minimalistic grid of thumbnails allows quick viewing of a large collection of images.
+
+A searchbar at the top of the app allows conditional searching of your images including keywords in the metadata, folder names, and tags.
+
+The tagging system allows creation of tags that can be added to images, folders, and filters to provide organization of your images.
+
+Filters combine keyword search strings and tags to quickly filter certain images in or out of your thumbnail grid. An "Explicit Content" filter comes pre-installed, this filter by default hides all NSFW contnent from the default view. Clicking on the filter will show this content alongside the rest of the content. Clicking a second time will put the view into 'show only' mode, showing only the NSFW content. This filter can be fully edited or removed and you can make as many of your own filters as you want. You can also create 'negative' tags, allowing a simple way to mark files that get filtered by accident (false positives).
+
+Filewatcher keeps track of the folders in your catalog and automatically adds new files as they are placed into the folders, making them instantly available in the image grid. This function will also remove images from the grid if they are deleted or otherwise become inaccesible.
+
+User authentication and permission system. Currently there are 3 levels of user access: Admin, User and Guest. An Admin can mark folders, tags and filters as 'Admin Only' making any images with those tags or in those folders invisible to anyone else.
+
 
 ## Install Instructions
 
-## Arch
+    git clone https://github.com/CaptainVarghoss/PantiViewer
 
-### 1. Install git, python, npm
-
-    sudo pacman -S git python npm
-
-### 2. Clone Repository
-
-    git clone https://github.com/CaptainVarghoss/PANTI
-
-    cd PANTI/backend
-
-### 3. Create and activate python venv
-
-    python -m venv .venv
-    source .venv/bin/activate
-
-### 4. Install requirements
-
-    pip install --upgrade pip
-    pip install -r requirements.txt
     
+### Run setup script
 
-
-## Debian/Ubuntu
-
-### 1. Install git, python, python-venv, and python-pip
-
-    sudo apt install git python3 python3-venv python3-pip
-
-### 2. Use git to clone the code from the repository and into the default "PANTI" folder and change to the new directory
-
-    git clone https://github.com/CaptainVarghoss/PANTI
-
-    cd PANTI
-
-Alternatively, use this git command if you want a different folder name
-
-    git clone https://github.com/CaptainVarghoss/PANTI MyFolderName
-
-    cd MyFolderName
-
-### 3. Run install.sh from a bash terminal
-
-    chmod +x ./install.sh
-    ./install.sh
-
-### 4. Run the run.sh script from a bash terminal
-
-    ./run.sh
-
-## Windows
-
-### 1. Install Python and git
-
-Get python here: <https://www.python.org/downloads/windows/>
-During installation choose custom install and make sure 'Add Python to environment variables' is checked.
-
-Get git here: <https://git-scm.com/downloads/win>
-
-### 2. Create a folder and install with git
-
-Create a folder.
-Open a command prompt and change to the folder you created.
-Run the git clone command
-
-    git clone https://github.com/CaptainVarghoss/PANTI
-
-Once the download is complete, change to the newly created folder
-
-    cd PANTI
-
-If you want it to install into a different folder use
-
-    git clone https://github.com/CaptainVarghoss/PANTI MyFolderName
-
-    cd MyFolderName
-
-### 3. Run install.bat
-
-### 4. Run start.bat
+### Run startup script
 
 
 
 ## All systems
 
-### 5. Optional, but recommended. Stop the program (ctrl+c) and edit the generated config.json
+### Edit the generated config.json
 
-    Change the SECRET_KEY to a string of random characters. This is the salt used for encrypting users passwords. Do not share this.
+    After setup you might want to check the config file.
+    The SECRET_KEY will be generated from random characters during setup but you can change this if you want. This is the salt used for encrypting users passwords. Do not share this.
 
     You can change HOST to 0.0.0.0 to listen on all interfaces **WARNING** This may allow access from outside your local network.
 
     The applications PORT can also be changed in this file.
 
-### Open "localhost:5080" in your browser
+### Open "localhost:5480" in your browser
 
-You will be asked to login, click the 'Signup' link and create a new user. The first user created on a fresh install will be the admin.
+You will be asked to login, an admin user is created by default.
 
-After creating an account and logging in, go to settings and add a base path (or multiple) with images in it to have those images shown in the program. Sub-folders and their contents will automatically be scanned and added.
+    Username: admin
+    Password: adminpass
+
+You will want to change the password in the settings immediately for security. You can also create a new user, give it admin priviledges, then delete the original if you want a different username.
+
+After logging in, go to settings and add a folder (or multiple) to the catalog and they will be automatically index and show all images in the grid. Sub-folders and their contents will automatically be scanned and added.
