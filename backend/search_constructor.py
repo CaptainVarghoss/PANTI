@@ -407,11 +407,8 @@ def generate_image_search_filter(
             meaning no results will be returned.
     """
 
-    # Start with a filter derived from the search terms
-    ast_filter = expression.true() # Default if search_terms are empty or syntax error
-
-    # This will hold clauses for 'hide' and 'show_only' filters
-    db_filter_clauses = []
+    # This will hold clauses for 'hide' filters.
+    hide_filter_clauses = [] # Initialize list for hide clauses.
 
     # This will hold the final filter clauses for each 'show_only' filter
     show_only_clauses = []
@@ -482,10 +479,10 @@ def generate_image_search_filter(
         if active_stage == 'hide':
             # HIDE: Exclude images that match the core logic.
             # This means we want `not(filter_core_logic)`
-            db_filter_clauses.append(not_(filter_core_logic))
+            hide_filter_clauses.append(not_(filter_core_logic))
         elif active_stage == 'show_only':
             # SHOW_ONLY: Results MUST match the core logic.
-            # We collect these and will OR them together later.
+            # We collect these and will combine them with OR later.
             show_only_clauses.append(filter_core_logic)
         elif active_stage == 'show':
             # SHOW: This filter has no effect on the query.
@@ -500,6 +497,7 @@ def generate_image_search_filter(
             not_(ImagePath.tags.any(Tag.admin_only == True)) # Also check folder tags
         )
 
+    ast_filter = expression.true()
     if search_terms:
 
         try:
@@ -514,14 +512,14 @@ def generate_image_search_filter(
             print(f"Search query parsing error: {e}")
             return expression.false()
 
-    # Start with the user's search query and global admin restrictions
+    # Start with the user's search query and global admin restrictions.
     final_filter_clause = and_(ast_filter, global_admin_filter)
 
     # If there are any 'show_only' filters active, the results must match AT LEAST ONE of them.
     if show_only_clauses:
         final_filter_clause = and_(final_filter_clause, or_(*show_only_clauses))
 
-    # Apply all other filter clauses (e.g., 'hide' filters)
-    final_filter_clause = and_(final_filter_clause, *db_filter_clauses)
+    # Apply all 'hide' filter clauses
+    final_filter_clause = and_(final_filter_clause, *hide_filter_clauses)
 
     return final_filter_clause

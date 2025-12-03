@@ -68,7 +68,7 @@ class ImagePath(Base):
     path = Column(String, unique=True, index=True, nullable=False)
     short_name = Column(String, unique=True, index=True, nullable=False)
     description = Column(String)
-    ignore = Column(Boolean, default=False)
+    is_ignored = Column(Boolean, default=False)
     admin_only = Column(Boolean, default=True)
     basepath = Column(Boolean, default=False)
     built_in = Column(Boolean, default=False)

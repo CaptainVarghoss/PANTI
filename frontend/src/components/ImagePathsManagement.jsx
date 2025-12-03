@@ -25,7 +25,7 @@ function ImagePathsManagement({ onBack }) {
   const [openTagPicker, setOpenTagPicker] = useState({ pathId: null, type: null });
 
   // State for the "Add New" form
-  const [newPath, setNewPath] = useState({ path: '', short_name: '', description: '', admin_only: true, ignore: false });
+  const [newPath, setNewPath] = useState({ path: '', short_name: '', description: '', admin_only: true, is_ignored: false });
 
 
   const fetchImagePaths = useCallback(async () => {
@@ -88,7 +88,7 @@ function ImagePathsManagement({ onBack }) {
       if (path.short_name !== originalPath.short_name) payload.short_name = path.short_name;
       if (path.description !== originalPath.description) payload.description = path.description;
       if (path.admin_only !== originalPath.admin_only) payload.admin_only = path.admin_only;
-      if (path.ignore !== originalPath.ignore) payload.ignore = path.ignore;
+      if (path.is_ignored !== originalPath.is_ignored) payload.is_ignored = path.is_ignored;
 
       return fetch(`/api/imagepaths/${path.id}`, {
         method: 'PUT',
@@ -139,7 +139,7 @@ function ImagePathsManagement({ onBack }) {
 
       if (response.ok) {
         setMessage('New path added successfully!');
-        setNewPath({ path: '', short_name: '', description: '', admin_only: true, ignore: false }); // Reset form
+        setNewPath({ path: '', short_name: '', description: '', admin_only: true, is_ignored: false }); // Reset form
         fetchImagePaths();
       } else {
         const errorData = await response.json();
@@ -313,8 +313,8 @@ function ImagePathsManagement({ onBack }) {
                           <input
                             type="checkbox"
                             className="checkbox-base"
-                            checked={path.ignore}
-                            onChange={(e) => handleInputChange(path.id, 'ignore', e.target.checked)}
+                            checked={path.is_ignored}
+                            onChange={(e) => handleInputChange(path.id, 'is_ignored', e.target.checked)}
                             disabled={!isAdmin}
                           />
                         </label>
@@ -418,8 +418,8 @@ function ImagePathsManagement({ onBack }) {
                           <input
                             type="checkbox"
                             className="checkbox-base"
-                            checked={newPath.ignore}
-                            onChange={(e) => handleNewPathChange('ignore', e.target.checked)}
+                            checked={newPath.is_ignored}
+                            onChange={(e) => handleNewPathChange('is_ignored', e.target.checked)}
                           />
                         </label>
                       </div>

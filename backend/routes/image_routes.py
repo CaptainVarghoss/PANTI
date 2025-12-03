@@ -86,6 +86,12 @@ def read_images(
         joinedload(models.ImageLocation.content).joinedload(models.ImageContent.tags)
     )
 
+    # Create a subquery to select all paths that are explicitly marked as ignored.
+    query = query.filter(models.ImagePath.is_ignored == False)
+
+    # The primary and most important filter: exclude any ImageLocation whose path is in the subquery of ignored paths.
+    query = query.filter(models.ImageLocation.path.notin_(ignored_paths_subquery))
+
     if trash_only:
         query = query.filter(models.ImageLocation.deleted == True)
     else:

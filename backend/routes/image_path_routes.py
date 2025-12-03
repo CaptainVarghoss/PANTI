@@ -54,7 +54,7 @@ def read_folders_for_move(db: Session = Depends(database.get_db), current_user: 
     Retrieves a list of all unique, non-ignored directory paths from ImagePath,
     respecting user permissions. Non-admin users will not see folders marked as admin_only.
     """
-    query = db.query(models.ImagePath).filter(models.ImagePath.ignore == False)
+    query = db.query(models.ImagePath).filter(models.ImagePath.is_ignored == False)
     if not current_user.admin:
         query = query.filter(models.ImagePath.admin_only == False)
     

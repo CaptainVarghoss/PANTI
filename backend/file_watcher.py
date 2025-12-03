@@ -18,7 +18,7 @@ from websocket_manager import manager
 def get_watched_paths(db: Session) -> List[str]:
     """Fetches all directory paths from the ImagePath table."""
     print("File Watcher: Fetching paths to watch from database.")
-    return [p.path for p in db.query(models.ImagePath).filter(models.ImagePath.ignore == False).all()]
+    return [p.path for p in db.query(models.ImagePath).filter(models.ImagePath.is_ignored == False).all()]
 
 
 class ImageChangeEventHandler(FileSystemEventHandler):

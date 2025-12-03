@@ -306,7 +306,7 @@ def scan_paths(db: Session):
                             print(f"Found new subdirectory: {subdir_full_path}")
                             new_image_path = models.ImagePath(
                                 path=subdir_full_path, parent=root, description=f"Auto-added: {d}",
-                                short_name=d, ignore=False, admin_only=True, basepath=False, built_in=False
+                                short_name=d, is_ignored=False, admin_only=True, basepath=False, built_in=False
                             )
                             db.add(new_image_path)
                             db.commit()

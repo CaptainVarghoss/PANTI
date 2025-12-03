@@ -484,6 +484,14 @@ function ImageGrid({
       return;
     }
 
+    // Add a guard to prevent fetching if filters are not yet loaded on initial mount.
+    // This is crucial on a fresh page load where filters might be fetched asynchronously.
+    // We check for `filters` being null/undefined OR an empty array.
+    if (!filters || filters.length === 0) {
+      setImagesLoading(false);
+      return;
+    }
+
     if (isAuthenticated && imagesPerPage > 0) {
       // Reset cursors and trigger a new initial load
       setLastId(null);
