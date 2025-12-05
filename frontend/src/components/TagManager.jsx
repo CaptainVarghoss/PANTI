@@ -155,7 +155,7 @@ function TagManager() {
   const hasUnsavedChanges = JSON.stringify(tags) !== JSON.stringify(editableTags);
 
   if (!isAdmin) {
-    return <p>You do not have permission to manage tags.</p>;
+    return;
   }
 
   return (

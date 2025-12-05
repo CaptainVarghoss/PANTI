@@ -288,12 +288,6 @@ TagCluster.Popup = function TagPopup({ type, itemId, itemIds, onClose, onTagSele
         }
     };
 
-    if (!canModifyTags) {
-        return <div ref={wrapperRef} className="tag-cluster-popup">
-            <p className="error-text">You do not have permission to modify tags.</p>
-        </div>;
-    }
-
     if (error) return <div ref={wrapperRef} className="tag-cluster-popup"><p className="error-text">{error}</p></div>;
 
     const TagEditorContent = () => (
@@ -301,11 +295,12 @@ TagCluster.Popup = function TagPopup({ type, itemId, itemIds, onClose, onTagSele
             {allTags.map(tag => {
                 const isActive = activeTagIds.has(tag.id);
                 const tagClasses = `tag-badge ${isActive ? 'active' : ''}`;
+                const isClickable = canModifyTags;
                 return (
                     <span
                         key={tag.id}
-                        className={tagClasses}
-                        onClick={() => handleTagToggle(tag)}
+                        className={`${tagClasses} ${isClickable ? '' : 'not-clickable'}`}
+                        onClick={isClickable ? () => handleTagToggle(tag) : undefined}
                     >
                         {tag.name}
                     </span>
