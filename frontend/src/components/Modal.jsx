@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { IoChevronBack, IoChevronForward, IoClose, IoExpand, IoContract } from 'react-icons/io5';
+import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import TagCluster from './TagCluster';
 import Settings from './Settings'; // Import the new unified Settings component
@@ -15,7 +16,7 @@ import Settings from './Settings'; // Import the new unified Settings component
  * @param {object} [props.modalProps] - Props specific to the modal type.
  *    For 'image': { currentImage, images, onNavigate, searchTerm, setSearchTerm }
  */
-function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFilters, isFullscreen, toggleFullScreen }) { // eslint-disable-line no-unused-vars
+function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFilters, isFullscreen, toggleFullScreen }) {
     const { token, isAuthenticated, settings, isAdmin, logout } = useAuth();
     const modalContentRef = useRef(null);
     const imageSectionRef = useRef(null); // Ref for the image section
@@ -24,6 +25,14 @@ function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFi
     const { currentImage, images, onNavigate } = modalProps;
     const currentIndex = (modalType === 'image' && currentImage && images) ? images.findIndex(img => img.id === currentImage.id) : -1;
     const canGoPrev = currentIndex > 0;
+    const originBoundsFromProps = modalProps.originBounds;
+    const originBoundsRef = useRef(null);
+
+    // Persist originBounds in a ref so it's available for the exit animation
+    // even if the prop is gone when the modal is closing.
+    if (originBoundsFromProps) {
+        originBoundsRef.current = originBoundsFromProps;
+    }
     const canGoNext = currentIndex !== -1 && currentIndex < images.length - 1;
 
 
@@ -48,6 +57,30 @@ function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFi
     const [touchStartY, setTouchStartY] = useState(0);
     const [imageTranslateX, setImageTranslateX] = useState(0);
     const [swipeDirection, setSwipeDirection] = useState(null); // 'horizontal', 'vertical', or null
+    const modalVariants = {
+        hidden: {
+            scale: 0,
+            opacity: 0,
+            x: originBoundsRef.current ? originBoundsRef.current.x + originBoundsRef.current.width / 2 - window.innerWidth / 2 : 0,
+            y: originBoundsRef.current ? originBoundsRef.current.y + originBoundsRef.current.height / 2 - window.innerHeight / 2 : 0,
+            transition: {
+                type: "spring",
+                stiffness: 200,
+                damping: 30,
+            },
+        },
+        visible: {
+            scale: 1,
+            opacity: 1,
+            x: 0,
+            y: 0,
+            transition: {
+                type: "spring",
+                stiffness: 200,
+                damping: 30,
+            },
+        },
+    };
 
     // State to manage which tag picker is open
     const usePreview = settings?.enable_previews === true;
@@ -250,8 +283,6 @@ function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFi
     };
 
     // --- Render Logic ---
-    if (!isOpen) return null;
-
     const renderImageModalContent = () => (
         <>
             {/* Navigation Buttons */}
@@ -335,7 +366,13 @@ function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFi
     };
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
+        <motion.div
+            key={modalType === 'image' && currentImage ? `image-modal-${currentImage.id}` : `modal-${modalType}`}
+            className="modal-overlay"
+            onClick={onClose}
+            variants={modalVariants}
+            initial="hidden"
+            animate="visible" exit="hidden">
             <div className="modal-controls">
                 {modalType === 'image' && (
                     <button onClick={(e) => { e.stopPropagation(); toggleFullScreen(); }} className="btn-base btn-primary modal-fullscreen-button" title="Toggle Fullscreen (f)">
@@ -349,7 +386,7 @@ function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFi
             {modalType === 'image' && currentImage && renderImageModalContent()}
             {modalType === 'settings' && renderSettingsModalContent()}
             {modalProps.ContentComponent && renderGenericModalContent()}
-        </div>
+        </motion.div>
     );
 }
 

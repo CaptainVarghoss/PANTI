@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { BrowserRouter as Router } from 'react-router-dom'; // Keep for potential future routing needs
 import { useAuth } from './context/AuthContext';
 import ImageGrid from "./components/ImageGrid"; // Assuming ImageGrid is now a page component
+import { AnimatePresence } from 'framer-motion';
 import FolderTree from './components/FolderTree'; // NEW IMPORT
 import Modal from './components/Modal';
 import MoveFilesForm from './components/MoveFilesForm'; // Import the new move form
@@ -379,7 +380,7 @@ function App() {
               sortOrder={sortOrder}
               setSortBy={setSortBy}
               setSortOrder={setSortOrder}
-              setSearchTerm={setSearchTerm} // This is correct
+              setSearchTerm={setSearchTerm}
               filters={filters}
               setFilters={setFilters}
               isConnected={isConnected}
@@ -435,11 +436,11 @@ function App() {
                   setSelectedImages={setSelectedImages}
                 />
               )}
-              {currentView === 'folders' && ( // NEW FOLDER VIEW
+              {currentView === 'folders' && (
                 <div className="folder-layout-container">
                   <div className="folder-tree-panel">
                     <FolderTree
-                      onSelectFolder={handleFolderSelect} // This was missing
+                      onSelectFolder={handleFolderSelect}
                       webSocketMessage={webSocketMessage}
                       setWebSocketMessage={setWebSocketMessage}
                     />
@@ -448,7 +449,7 @@ function App() {
                     <ImageGrid
                       images={images}
                       setImages={setImages}
-                      searchTerm={folderViewSearchTerm} // Use the dedicated search term for this view
+                      searchTerm={folderViewSearchTerm}
                       sortBy={sortBy}
                       sortOrder={sortOrder}
                       webSocketMessage={webSocketMessage}
@@ -468,19 +469,20 @@ function App() {
                 </div>
               )}
             </main>
-            {isModalOpen && (
-              <Modal
-                isOpen={isModalOpen}
-                onClose={closeModal}
-                modalType={modalType}
-                modalProps={modalProps}
-                // Pass state directly to the modal so it re-renders when state changes.
-                filters={filters}
-                isFullscreen={isFullscreen}
-                toggleFullScreen={toggleFullScreen}
-                refetchFilters={refetchFilters}
-              />
-            )}
+            <AnimatePresence>
+              {isModalOpen && (
+                <Modal
+                  isOpen={isModalOpen}
+                  onClose={closeModal}
+                  modalType={modalType}
+                  modalProps={modalProps}
+                  filters={filters}
+                  isFullscreen={isFullscreen}
+                  toggleFullScreen={toggleFullScreen}
+                  refetchFilters={refetchFilters}
+                />
+              )}
+            </AnimatePresence>
           </>
         ) : (
           <main>
