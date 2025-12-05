@@ -78,19 +78,17 @@ function TrashView({
             <ImageGrid
                 images={images}
                 setImages={setImages}
-                searchTerm={""} // Always empty for trash view
+                searchTerm={""}
                 sortBy={sortBy}
                 sortOrder={sortOrder}
-                filters={filters} // Pass stable empty array
+                filters={filters}
                 webSocketMessage={webSocketMessage}
                 setWebSocketMessage={setWebSocketMessage}
                 isSelectMode={isSelectMode}
                 setIsSelectMode={setIsSelectMode}
                 selectedImages={selectedImages}
                 setSelectedImages={setSelectedImages}
-                // Pass trash_only=true to fetch deleted items
                 trash_only={true}
-                // Overwrite context menu items for trash view
                 contextMenuItems={[
                     { label: "Restore", action: "restore" },
                     { label: "Delete Permanently", action: "delete_permanent" },

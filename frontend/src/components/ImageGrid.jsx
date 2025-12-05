@@ -539,9 +539,10 @@ function ImageGrid({
 
     // Add a guard to prevent fetching if filters are not yet loaded on initial mount.
     // This is crucial on a fresh page load where filters might be fetched asynchronously.
-    // We check for `filters` being null/undefined OR an empty array.
-    if (!filters || filters.length === 0) {
+    // We check for `filters` being null/undefined OR an empty array, but allow it for trash view.
+    if ((!filters || filters.length === 0) && !trash_only) {
       setImagesLoading(false);
+      setImages([]); // Also clear images if we are not fetching
       return;
     }
 
