@@ -16,13 +16,13 @@ import Settings from './Settings'; // Import the new unified Settings component
  * @param {object} [props.modalProps] - Props specific to the modal type.
  *    For 'image': { currentImage, images, onNavigate, searchTerm, setSearchTerm }
  */
-function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFilters, isFullscreen, toggleFullScreen, navigationDirection }) {
+function Modal({ isOpen, onClose, modalType, modalProps = {}, images, filters, refetchFilters, isFullscreen, toggleFullScreen, navigationDirection }) {
     const { token, isAuthenticated, settings, isAdmin, logout } = useAuth();
     const modalContentRef = useRef(null);
     const imageSectionRef = useRef(null); // Ref for the image section
 
-    // --- Image Modal Navigation Logic ---
-    const { currentImage, images, onNavigate } = modalProps;
+    // --- Image Modal State & Navigation Logic ---
+    const { currentImage, onNavigate, fetchMoreImages, hasMore, setImages } = modalProps;
     const currentIndex = (modalType === 'image' && currentImage && images) ? images.findIndex(img => img.id === currentImage.id) : -1;
     const canGoPrev = currentIndex > 0;
     const originBoundsFromProps = modalProps.originBounds;
@@ -33,7 +33,7 @@ function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFi
     if (originBoundsFromProps) {
         originBoundsRef.current = originBoundsFromProps;
     }
-    const canGoNext = currentIndex !== -1 && currentIndex < images.length - 1;
+    const canGoNext = (currentIndex !== -1 && currentIndex < images.length - 1) || (currentIndex === images.length - 1 && hasMore);
 
 
     // --- Settings Modal State and Logic ---
@@ -173,13 +173,22 @@ function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFi
         imageUrlToDisplay = usePreview ? previewUrl : blobImageUrl;
     }
 
-    const navigateImage = useCallback((direction) => {
+    const navigateImage = useCallback(async (direction) => {
         if (!images || images.length === 0) return;
-        const newIndex = currentIndex + (direction > 0 ? 1 : -1);
+        const newIndex = currentIndex + direction;
+
         if (newIndex >= 0 && newIndex < images.length) {
-            onNavigate(images[newIndex], direction > 0 ? 1 : -1);
+            onNavigate(images[newIndex], direction);
+        } else if (direction > 0 && newIndex >= images.length && hasMore && fetchMoreImages) {
+            const newImages = await fetchMoreImages();
+            // After fetching, the `images` prop on this component will be updated via the effect in App.jsx.
+            // We can then immediately navigate to the first of the new images.
+            if (newImages && newImages.length > 0) {
+                onNavigate(newImages[0], direction);
+            }
         }
-    }, [currentIndex, images, onNavigate]);
+    }, [currentIndex, images, onNavigate, hasMore, fetchMoreImages]);
+
 
     const handleNext = useCallback(() => navigateImage(1), [navigateImage]); // direction: 1 for next
     const handlePrev = useCallback(() => navigateImage(-1), [navigateImage]); // direction: -1 for prev

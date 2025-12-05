@@ -78,6 +78,93 @@ function ImageGrid({
     return images.find(img => img.id === focusedImageId);
   }, [images, focusedImageId]);
 
+  // Fetch images function, now accepting an optional cursor (last_id)
+  const fetchImages = useCallback(async (isInitialLoad) => {
+    // The guard against re-fetching is now handled by the callers.
+    // This function is now only responsible for the API call itself.
+
+    if (isInitialLoad) {
+      setImagesLoading(true);
+    } else {
+      setIsFetchingMore(true);
+    }
+    setImagesError(null);
+
+    try {
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const limit = isInitialLoad ? imagesPerPage * 2 : imagesPerPage;
+
+      const queryString = new URLSearchParams();
+      queryString.append('limit', limit);
+      queryString.append('sort_by', sortBy);
+      queryString.append('sort_order', sortOrder);
+
+      if (searchTerm) {
+        queryString.append('search_query', searchTerm);
+      }
+
+      // Use refs for cursors in subsequent loads
+      if (!isInitialLoad && lastIdRef.current) {
+        queryString.append('last_id', lastIdRef.current);
+      }
+      if (!isInitialLoad && lastSortValueRef.current) {
+        queryString.append('last_sort_value', lastSortValueRef.current);
+      }
+
+      if (trash_only) {
+        queryString.append('trash_only', 'true');
+      }
+
+      if (filters) {
+        const activeStages = {};
+        filters.forEach(filter => {
+          // Only include filters that have an active stage selected (index 0, 1, or 2).
+          // This correctly excludes disabled filters (index -2).
+          if (filter.activeStageIndex >= 0) activeStages[filter.id] = filter.activeStageIndex;
+        });
+        if (Object.keys(activeStages).length > 0) queryString.append('active_stages_json', JSON.stringify(activeStages));
+      }
+
+      const response = await fetch(`/api/images/?${queryString.toString()}`, { headers });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('HTTP Error Details:', response.status, response.statusText, errorText);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (isInitialLoad) {
+        setImages(data);
+      } else {
+        setImages(prevImages => {
+          const uniqueNewImages = data.filter(img => !prevImages.find(p => p.id === img.id));
+          return [...prevImages, ...uniqueNewImages];
+        });
+      }
+
+      if (data.length > 0) {
+        const newLastImage = data[data.length - 1];
+        setLastId(newLastImage.id);
+        let valForSort = newLastImage[sortBy];
+        if (sortBy === 'date_created') valForSort = new Date(valForSort).toISOString();
+        setLastSortValue(valForSort);
+      }
+
+      setHasMore(data.length === limit);
+      // Return the fetched data so the caller can use it
+      return data;
+    } catch (error) {
+      console.error('Error fetching images:', error);
+      setImagesError('Failed to load images. Ensure backend scanner has run and images exist, and you are logged in if required.');
+      setHasMore(false);
+    } finally {
+      setImagesLoading(false);
+      setIsFetchingMore(false);
+    }
+  }, [token, imagesPerPage, sortBy, sortOrder, searchTerm, filters, trash_only, setImages]); // `images` dependency removed to prevent loop
+
   const fetchImageById = useCallback(async (imageId) => {
     try {
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
@@ -143,16 +230,13 @@ function ImageGrid({
         originBounds: imageCardElement,
         currentImage: freshImageData,
         images: images,
-        onNavigate: (nextImage) => openModal('image', { // Re-open modal with new image
-          currentImage: nextImage,
-          images: images,
-          onNavigate: (img) => openModal('image', { currentImage: img, images, onNavigate }),
-          setSearchTerm: setSearchTerm
-        }),
+        fetchMoreImages: hasMore ? () => fetchImages(false) : null,
+        hasMore: hasMore,
+        setImages: setImages, // Pass setImages to the modal
         setSearchTerm: setSearchTerm
       });
     }
-  }, [isSelectMode, openModal, images, setSearchTerm, setSelectedImages, focusedImageId, fetchImageById, setImages, setFocusedImageId]);
+  }, [isSelectMode, openModal, images, setSearchTerm, setSelectedImages, focusedImageId, fetchImageById, setImages, setFocusedImageId, hasMore, fetchImages]);
 
   // Handle right-click event on a thumbnail
   const handleContextMenu = (event, thumbnail) => {
@@ -431,98 +515,19 @@ function ImageGrid({
     }
   }, [selectedImages, isSelectMode, setIsSelectMode]);
 
-
-  // Fetch images function, now accepting an optional cursor (last_id)
-  const fetchImages = useCallback(async (isInitialLoad) => {
-    // The guard against re-fetching is now handled by the callers.
-    // This function is now only responsible for the API call itself.
-
-    if (isInitialLoad) {
-      setImagesLoading(true);
-    } else {
-      setIsFetchingMore(true);
+  // Effect to scroll the focused image into view, especially for modal navigation
+  useEffect(() => {
+    // This logic is primarily for when the modal is open and navigating.
+    // The modal being open is an implicit condition, as `focusedImageId` is updated by the modal's onNavigate.
+    if (focusedImageId) {
+      const cardElement = document.querySelector(`[data-image-id="${focusedImageId}"]`);
+      if (cardElement) {
+        // Use 'nearest' to avoid unnecessary scrolling if the item is already visible.
+        // This is key for triggering the IntersectionObserver when the item is off-screen.
+        cardElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
     }
-    setImagesError(null);
-
-    try {
-      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-      const limit = isInitialLoad ? imagesPerPage * 2 : imagesPerPage;
-
-      const queryString = new URLSearchParams();
-      queryString.append('limit', limit);
-      queryString.append('sort_by', sortBy);
-      queryString.append('sort_order', sortOrder);
-
-      if (searchTerm) {
-        queryString.append('search_query', searchTerm);
-      }
-
-      // Use refs for cursors in subsequent loads
-      if (!isInitialLoad && lastIdRef.current) {
-        queryString.append('last_id', lastIdRef.current);
-      }
-      if (!isInitialLoad && lastSortValueRef.current) {
-        queryString.append('last_sort_value', lastSortValueRef.current);
-      }
-
-      if (trash_only) {
-        queryString.append('trash_only', 'true');
-      }
-
-      if (filters) {
-        const activeStages = {};
-        filters.forEach(filter => {
-          // Only include filters that have an active stage selected (index 0, 1, or 2).
-          // This correctly excludes disabled filters (index -2).
-          if (filter.activeStageIndex >= 0) activeStages[filter.id] = filter.activeStageIndex;
-        });
-        if (Object.keys(activeStages).length > 0) queryString.append('active_stages_json', JSON.stringify(activeStages));
-      }
-
-      const response = await fetch(`/api/images/?${queryString.toString()}`, { headers });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('HTTP Error Details:', response.status, response.statusText, errorText);
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      if (isInitialLoad) {
-        setImages(data);
-      } else {
-        setImages(prevImages => {
-          const existingIds = new Set(prevImages.map(img => img.id));
-          const uniqueNewImages = data.filter(img => !existingIds.has(img.id));
-          return [...prevImages, ...uniqueNewImages];
-        });
-      }
-
-      if (data.length > 0) {
-        const newLastImage = data[data.length - 1];
-        setLastId(newLastImage.id);
-        let valForSort = newLastImage[sortBy];
-        if (sortBy === 'date_created') {
-          valForSort = new Date(valForSort).toISOString();
-        }
-        setLastSortValue(valForSort);
-      } else {
-        setLastId(null);
-        setLastSortValue(null);
-      }
-
-      setHasMore(data.length === limit);
-
-    } catch (error) {
-      console.error('Error fetching images:', error);
-      setImagesError('Failed to load images. Ensure backend scanner has run and images exist, and you are logged in if required.');
-      setHasMore(false);
-    } finally {
-      setImagesLoading(false);
-      setIsFetchingMore(false);
-    }
-  }, [token, imagesPerPage, sortBy, sortOrder, searchTerm, filters, trash_only, setImages]); // Dependencies are now correct and stable
+  }, [focusedImageId]);
 
   // Effect for initial page load and when search/sort parameters change
   useEffect(() => {

@@ -80,15 +80,14 @@ function App() {
   const openModal = (type, newProps) => {
     setModalType(type);
 
-    // If the modal is for an image, we need to create a stable onNavigate function.
-    if (type === 'image' && newProps.images) {
-      // Define onNavigate once. It will use the `modalProps` state to get the latest props.
+    if (type === 'image') {
       const onNavigate = (nextImage, direction) => {
-        setNavigationDirection(direction);
-        // Use a functional update to get the latest modalProps and only update what's necessary.
-        setModalProps(currentProps => ({ ...currentProps, currentImage: nextImage }));
+          setNavigationDirection(direction);
+          setModalProps(currentProps => ({ ...currentProps, currentImage: nextImage }));
+          if (nextImage) setFocusedImageId(nextImage.id); // Sync grid focus with modal
       };
-      setModalProps({ ...newProps, onNavigate });
+      // When opening, set the full props. The `images` prop will be overridden by the one on the Modal component itself.
+      setModalProps({ ...newProps, onNavigate, images: newProps.images });
     } else if (type === 'moveFiles') {
       setNavigationDirection(0); // Ensure no slide animation for other modals
       setModalProps({
@@ -102,6 +101,16 @@ function App() {
     setIsModalOpen(true);
   };
 
+  // This effect ensures that when the main `images` state updates (e.g., from infinite scroll),
+  // the modal gets the new list, allowing navigation to continue.
+  useEffect(() => {
+    if (isModalOpen && modalType === 'image') {
+      setModalProps(currentProps => ({
+        ...currentProps,
+        images: images, // Update the images in the modal props
+      }));
+    }
+  }, [images, isModalOpen, modalType]);
 
   const closeModal = () => {
     setIsModalOpen(false);
@@ -479,6 +488,7 @@ function App() {
                   onClose={closeModal}
                   modalType={modalType}
                   modalProps={modalProps}
+                  images={images} // Pass the live images array to the modal
                   filters={filters}
                   isFullscreen={isFullscreen}
                   navigationDirection={navigationDirection}
