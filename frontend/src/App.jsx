@@ -53,6 +53,7 @@ function App() {
   const [modalType, setModalType] = useState(null);
   const [modalProps, setModalProps] = useState({});
   const [navigationDirection, setNavigationDirection] = useState(0);
+  const [isClosingModal, setIsClosingModal] = useState(false);
 
   // --- Fullscreen State ---
   const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
@@ -112,11 +113,34 @@ function App() {
     }
   }, [images, isModalOpen, modalType]);
 
+  // This effect triggers the actual closing of the modal *after* the originBounds have been updated.
+  useEffect(() => {
+    if (isClosingModal) {
+      setIsModalOpen(false);
+      setIsClosingModal(false); // Reset the trigger
+    }
+  }, [isClosingModal]);
+
   const closeModal = () => {
-    setIsModalOpen(false);
-    setModalType(null);
-    setModalProps({});
-    setNavigationDirection(0);
+    // For image modals, we want to update the origin bounds for the exit animation
+    // to target the *current* image's thumbnail, not the one that opened the modal.
+    if (modalType === 'image' && modalProps.currentImage) {
+      const imageId = modalProps.currentImage.id;
+      const cardElement = document.querySelector(`[data-image-id="${imageId}"]`);
+
+      if (cardElement) {
+        const newBounds = cardElement.getBoundingClientRect();
+        setModalProps(currentProps => ({
+          ...currentProps,
+          originBounds: newBounds,
+        }));
+        setIsClosingModal(true); // Trigger the close effect
+      } else {
+        setIsModalOpen(false); // Fallback if the element isn't found
+      }
+    } else {
+      setIsModalOpen(false); // For non-image modals, close immediately.
+    }
   };
 
   const refetchFilters = useCallback(async () => {

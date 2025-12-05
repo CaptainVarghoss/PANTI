@@ -24,17 +24,10 @@ function Modal({ isOpen, onClose, modalType, modalProps = {}, images, filters, r
     // --- Image Modal State & Navigation Logic ---
     const { currentImage, onNavigate, fetchMoreImages, hasMore, setImages } = modalProps;
     const currentIndex = (modalType === 'image' && currentImage && images) ? images.findIndex(img => img.id === currentImage.id) : -1;
-    const canGoPrev = currentIndex > 0;
-    const originBoundsFromProps = modalProps.originBounds;
-    const originBoundsRef = useRef(null);
+    const canGoPrev = currentIndex > 0;    
+    const canGoNext = (currentIndex !== -1 && currentIndex < images.length - 1) || (currentIndex === images.length - 1 && hasMore);    
 
-    // Persist originBounds in a ref so it's available for the exit animation
-    // even if the prop is gone when the modal is closing.
-    if (originBoundsFromProps) {
-        originBoundsRef.current = originBoundsFromProps;
-    }
-    const canGoNext = (currentIndex !== -1 && currentIndex < images.length - 1) || (currentIndex === images.length - 1 && hasMore);
-
+    const getAnimationBounds = () => modalProps.originBounds;
 
     // --- Settings Modal State and Logic ---
     const [openSections, setOpenSections] = useState({});
@@ -59,10 +52,11 @@ function Modal({ isOpen, onClose, modalType, modalProps = {}, images, filters, r
     const [swipeDirection, setSwipeDirection] = useState(null); // 'horizontal', 'vertical', or null
     const modalVariants = {
         hidden: {
+            // Use a function to get the latest bounds on exit
             scale: 0,
             opacity: 0,
-            x: originBoundsRef.current ? originBoundsRef.current.x + originBoundsRef.current.width / 2 - window.innerWidth / 2 : 0,
-            y: originBoundsRef.current ? originBoundsRef.current.y + originBoundsRef.current.height / 2 - window.innerHeight / 2 : 0,
+            x: getAnimationBounds() ? getAnimationBounds().x + getAnimationBounds().width / 2 - window.innerWidth / 2 : 0,
+            y: getAnimationBounds() ? getAnimationBounds().y + getAnimationBounds().height / 2 - window.innerHeight / 2 : 0,
             transition: {
                 type: "spring",
                 stiffness: 200,
