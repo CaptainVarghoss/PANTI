@@ -52,6 +52,7 @@ function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState(null);
   const [modalProps, setModalProps] = useState({});
+  const [navigationDirection, setNavigationDirection] = useState(0);
 
   // --- Fullscreen State ---
   const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
@@ -81,14 +82,15 @@ function App() {
 
     // If the modal is for an image, we need to create a stable onNavigate function.
     if (type === 'image' && newProps.images) {
-      const onNavigate = (nextImage) => {
-        // When navigating, we call openModal again with the new image,
-        // preserving the original image list and creating a new onNavigate
-        // that is aware of the full context.
-        openModal('image', { ...newProps, currentImage: nextImage });
+      // Define onNavigate once. It will use the `modalProps` state to get the latest props.
+      const onNavigate = (nextImage, direction) => {
+        setNavigationDirection(direction);
+        // Use a functional update to get the latest modalProps and only update what's necessary.
+        setModalProps(currentProps => ({ ...currentProps, currentImage: nextImage }));
       };
-      setModalProps({ ...newProps, onNavigate }); // Pass the newly created onNavigate
+      setModalProps({ ...newProps, onNavigate });
     } else if (type === 'moveFiles') {
+      setNavigationDirection(0); // Ensure no slide animation for other modals
       setModalProps({
         ...newProps,
         ContentComponent: MoveFilesForm,
@@ -105,6 +107,7 @@ function App() {
     setIsModalOpen(false);
     setModalType(null);
     setModalProps({});
+    setNavigationDirection(0);
   };
 
   const refetchFilters = useCallback(async () => {
@@ -217,9 +220,9 @@ function App() {
     modalType,
     closeModal,
     canGoPrev: modalProps.onNavigate && modalProps.images?.findIndex(img => img.id === modalProps.currentImage?.id) > 0,
-    canGoNext: modalProps.onNavigate && modalProps.images?.findIndex(img => img.id === modalProps.currentImage?.id) < modalProps.images?.length - 1,
-    handlePrev: () => modalProps.onNavigate && modalProps.onNavigate(modalProps.images[modalProps.images.findIndex(img => img.id === modalProps.currentImage.id) - 1]),
-    handleNext: () => modalProps.onNavigate && modalProps.onNavigate(modalProps.images[modalProps.images.findIndex(img => img.id === modalProps.currentImage.id) + 1]),
+    canGoNext: modalProps.onNavigate && modalProps.images?.findIndex(img => img.id === modalProps.currentImage?.id) < (modalProps.images?.length ?? 0) - 1,
+    handlePrev: () => modalProps.onNavigate && modalProps.onNavigate(modalProps.images[modalProps.images.findIndex(img => img.id === modalProps.currentImage.id) - 1], -1),
+    handleNext: () => modalProps.onNavigate && modalProps.onNavigate(modalProps.images[modalProps.images.findIndex(img => img.id === modalProps.currentImage.id) + 1], 1),
     toggleFullScreen: toggleFullScreen,
 
     // Grid states
@@ -478,6 +481,7 @@ function App() {
                   modalProps={modalProps}
                   filters={filters}
                   isFullscreen={isFullscreen}
+                  navigationDirection={navigationDirection}
                   toggleFullScreen={toggleFullScreen}
                   refetchFilters={refetchFilters}
                 />

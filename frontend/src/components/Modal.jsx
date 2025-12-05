@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { IoChevronBack, IoChevronForward, IoClose, IoExpand, IoContract } from 'react-icons/io5';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import TagCluster from './TagCluster';
 import Settings from './Settings'; // Import the new unified Settings component
@@ -16,7 +16,7 @@ import Settings from './Settings'; // Import the new unified Settings component
  * @param {object} [props.modalProps] - Props specific to the modal type.
  *    For 'image': { currentImage, images, onNavigate, searchTerm, setSearchTerm }
  */
-function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFilters, isFullscreen, toggleFullScreen }) {
+function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFilters, isFullscreen, toggleFullScreen, navigationDirection }) {
     const { token, isAuthenticated, settings, isAdmin, logout } = useAuth();
     const modalContentRef = useRef(null);
     const imageSectionRef = useRef(null); // Ref for the image section
@@ -80,6 +80,35 @@ function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFi
                 damping: 30,
             },
         },
+    };
+
+    const imageSlideVariants = {
+        enter: (direction) => ({
+            x: direction > 0 ? '100%' : '-100%', // Enter from right for next, left for prev
+            opacity: 0.8,
+        }),
+        center: {
+            zIndex: 1,
+            x: 0,
+            opacity: 1,
+            transition: {
+                x: { type: "spring", stiffness: 300, damping: 35 },
+                opacity: { duration: 0.2 }
+            },
+        },
+        exit: (direction) => ({
+            zIndex: 0,
+            x: direction < 0 ? '100%' : '-100%', // Exit to right for prev, left for next
+            opacity: 0.8,
+            transition: {
+                x: { type: "spring", stiffness: 300, damping: 35 },
+                opacity: { duration: 0.2 }
+            },
+        }),
+    };
+
+    const videoSlideVariants = {
+        ...imageSlideVariants, // Videos can use the same logic
     };
 
     // State to manage which tag picker is open
@@ -146,14 +175,14 @@ function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFi
 
     const navigateImage = useCallback((direction) => {
         if (!images || images.length === 0) return;
-        const newIndex = currentIndex + direction;
+        const newIndex = currentIndex + (direction > 0 ? 1 : -1);
         if (newIndex >= 0 && newIndex < images.length) {
-            onNavigate(images[newIndex]);
+            onNavigate(images[newIndex], direction > 0 ? 1 : -1);
         }
     }, [currentIndex, images, onNavigate]);
 
-    const handleNext = useCallback(() => navigateImage(1), [navigateImage]);
-    const handlePrev = useCallback(() => navigateImage(-1), [navigateImage]);
+    const handleNext = useCallback(() => navigateImage(1), [navigateImage]); // direction: 1 for next
+    const handlePrev = useCallback(() => navigateImage(-1), [navigateImage]); // direction: -1 for prev
 
     const handleTouchStart = useCallback((e) => {
         setTouchStartX(e.touches[0].clientX);
@@ -298,19 +327,39 @@ function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFi
             )}
             <div ref={modalContentRef} className="modal-content" id="image" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-body">
-                    <div ref={imageSectionRef} className="modal-image-section" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-                        {currentImage.is_video ? (
-                            <video controls src={imageUrlToDisplay} alt={currentImage.filename} className="modal-main-image" style={{ transform: `translateX(${imageTranslateX}px)`, transition: 'transform 0.1s ease-out' }} />
-                        ) : (
-                            <img
-                                src={imageUrlToDisplay}
-                                alt={currentImage.filename}
-                                className="modal-main-image"
-                                onClick={onClose}
-                                style={{ transform: `translateX(${imageTranslateX}px)`, transition: 'transform 0.1s ease-out' }}
-                                onError={(e) => { e.target.src = "https://placehold.co/1200x800/333333/FFFFFF?text=Image+Not+Found"; }}
-                            />
-                        )}
+                    <div ref={imageSectionRef} className="modal-image-section" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} style={{ position: 'relative' }}>
+                        <AnimatePresence initial={false} custom={navigationDirection}>
+                            {currentImage.is_video ? (
+                                <motion.video
+                                    key={currentImage.id}
+                                    controls
+                                    src={imageUrlToDisplay}
+                                    alt={currentImage.filename}
+                                    className="modal-main-image"
+                                    custom={navigationDirection}
+                                    variants={videoSlideVariants}
+                                    initial="enter"
+                                    animate="center"
+                                    exit="exit"
+                                    style={{ transform: `translateX(${imageTranslateX}px)`, position: 'absolute' }}
+                                />
+                            ) : (
+                                <motion.img
+                                    key={currentImage.id}
+                                    src={imageUrlToDisplay}
+                                    alt={currentImage.filename}
+                                    className="modal-main-image"
+                                    onClick={onClose}
+                                    custom={navigationDirection}
+                                    variants={imageSlideVariants}
+                                    initial="enter"
+                                    animate="center"
+                                    exit="exit"
+                                    style={{ transform: `translateX(${imageTranslateX}px)`, position: 'absolute' }}
+                                    onError={(e) => { e.target.src = "https://placehold.co/1200x800/333333/FFFFFF?text=Image+Not+Found"; }}
+                                />
+                            )}
+                        </AnimatePresence>
                     </div>
                     <section>
                         <div className="section-container">
@@ -367,7 +416,7 @@ function Modal({ isOpen, onClose, modalType, modalProps = {}, filters, refetchFi
 
     return (
         <motion.div
-            key={modalType === 'image' && currentImage ? `image-modal-${currentImage.id}` : `modal-${modalType}`}
+            key={`modal-${modalType}`}
             className="modal-overlay"
             onClick={onClose}
             variants={modalVariants}
