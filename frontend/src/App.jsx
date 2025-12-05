@@ -43,6 +43,7 @@ function App() {
   const [trashCount, setTrashCount] = useState(0);
   const [selectedImages, setSelectedImages] = useState(new Set());
   const [folderViewSearchTerm, setFolderViewSearchTerm] = useState(null);
+  const [selectedFolderPath, setSelectedFolderPath] = useState(null); // State for the selected folder path
 
   // State for keyboard navigation in ImageGrid
   const [focusedImageId, setFocusedImageId] = useState(null);
@@ -191,6 +192,7 @@ function App() {
 
   // Handler for when a folder is selected in the folder view
   const handleFolderSelect = (folderPath) => {
+    setSelectedFolderPath(folderPath); // Keep track of the selected path
     if (folderPath) {
       setFolderViewSearchTerm(`Folder:"${folderPath}"`);
     } else {
@@ -478,6 +480,7 @@ function App() {
                     <FolderTree
                       onSelectFolder={handleFolderSelect}
                       webSocketMessage={webSocketMessage}
+                      selectedFolderPath={selectedFolderPath} // Pass the selected path
                       setWebSocketMessage={setWebSocketMessage}
                     />
                   </div>

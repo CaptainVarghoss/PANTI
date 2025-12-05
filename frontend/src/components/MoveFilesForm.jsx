@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext'; // Import useAuth to get the token
+import FolderTree from './FolderTree'; // Import the FolderTree component
 
 const MoveFilesForm = ({ filesToMove, onMoveSuccess, onClose }) => {
     const [folders, setFolders] = useState([]);
@@ -13,7 +14,7 @@ const MoveFilesForm = ({ filesToMove, onMoveSuccess, onClose }) => {
         // Fetch available folders when the component mounts
         const fetchFolders = async () => {
             try {
-                const response = await fetch('/api/folders/', {
+                const response = await fetch('/api/folders/?format=tree', { // Request tree format
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (!response.ok) {
@@ -77,21 +78,15 @@ const MoveFilesForm = ({ filesToMove, onMoveSuccess, onClose }) => {
                 </p>
 
                 <div className="folder-list-container">
-                    {folders.length > 0 ? (
-                        <ul className="folder-list">
-                            {folders.map((folder) => (
-                                <li
-                                    key={folder.path}
-                                    className={`folder-list-item ${selectedFolder === folder.path ? 'active' : ''}`}
-                                    onClick={() => setSelectedFolder(folder.path)}
-                                >
-                                    {folder.path}
-                                </li>
-                            ))}
-                        </ul>
-                    ) : (
-                        <p>No destination folders available.</p>
-                    )}
+                {folders.length > 0 ? (
+                    <FolderTree
+                        nodes={folders}
+                        onSelectFolder={(path) => setSelectedFolder(path)}
+                        selectedFolderPath={selectedFolder}
+                    />
+                ) : (
+                    <p>No destination folders available.</p>
+                )}
                 </div>
 
                 {error && <p style={{ color: 'var(--accent-red)', marginBottom: '1rem' }}>{error}</p>}
